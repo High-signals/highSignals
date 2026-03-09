@@ -1,84 +1,26 @@
-import prisma from '../config/db.js'
-import bcrypt from 'bcrypt'
-import {
-  generateAccessToken,
-  generateRefreshToken,
-} from '../service/generateToken.js'
-import { verifyGoogleToken } from '../service/GoogleAuth.js'
+import asyncHandler from '../../shared/service/asyncHandler.js'
+import { registerUser, loginUser } from './auth.servcie.js'
 
-export const register = async (req, res) => {
+export const register = asyncHandler(async (req, res) => {
   const { email, password, name } = req.body
+  if (!email || !password || !name) {
+    return res
+      .status(400)
+      .json({ message: 'Email, password and name are required' })
+  }
+
+  const result = await registerUser({ email, password, name })
+  return res.status(201).json(result)
+})
+
+export const login = asyncHandler(async (req, res) => {
+  const { email, password } = req.body
   if (!email || !password) {
     return res.status(400).json({ message: 'Email and password are required' })
   }
-  try {
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    })
-    if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' })
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10)
-    const newUser = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-      },
-    })
-    res
-      .status(201)
-      .json({ message: 'User registered successfully', user: newUser })
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ message: 'Server error' })
-  }
-}
-
-export const login = async (req, res) => {
-  try {
-    const { email, password } = req.body
-    if (!email || !password) {
-      return res
-        .status(400)
-        .json({ message: 'Email and password are required' })
-    }
-    const user = await prisma.user.findUnique({
-      where: { email },
-    })
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' })
-    }
-    const isMatch = await bcrypt.compare(password, user.password)
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' })
-    }
-    const accessToken = generateAccessToken({
-      id: user.id,
-      email: user.email,
-    })
-    const refreshToken = generateRefreshToken({
-      id: user.id,
-    })
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { refreshToken },
-    })
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-    })
-    return res.status(200).json({
-      message: 'Login successful',
-      accessToken,
-    })
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ message: 'Server error' })
-  }
-}
+  const result = await loginUser({ email, password })
+  return res.status(200).json(result)
+})
 
 export const googleAuth = async (req, res) => {
   try {

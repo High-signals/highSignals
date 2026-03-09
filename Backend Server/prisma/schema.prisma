@@ -27,6 +27,13 @@ model User {
   googleId String? @unique
   refreshToken String? @unique
   provider  PROVIDER @default(LOCAL)
+  twitterId String? @unique
+  facebookId String? @unique
+  linkedInId String? @unique
+  tiktokId String? @unique
+  instagramId String? @unique
+  avatar    String?
+  bio       String?
 
   icp      ICP?
 
