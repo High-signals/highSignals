@@ -28,6 +28,24 @@ model User {
   refreshToken String? @unique
   provider  PROVIDER @default(LOCAL)
 
+  icp      ICP?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Ideal Client Profile (ICP) model
+model ICP {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  profession      String
+  dreamClient     String
+  mainProblem     String
+  dreamOutcome    String
+  authorityStory  String
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

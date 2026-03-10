@@ -3,6 +3,7 @@ import cors from 'cors'
 import morgan from 'morgan'
 import dotenv from 'dotenv'
 import authRoutes from './routes/auth.route.js'
+import icpRoutes from './routes/icp.route.js'
 
 dotenv.config()
 
@@ -15,6 +16,7 @@ app.use(express.json())
 
 // Routes
 app.use('/api/auth', authRoutes)
+app.use('/api/icp', icpRoutes)
 
 const PORT = process.env.PORT || 5000
 
