@@ -14,7 +14,7 @@ export const generateRefreshToken = (payload) => {
 
 export const verifyToken = (token) => {
   try {
-    return jwt.verify(token, process.env.JWT_SECRET)
+    return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
   } catch (error) {
     throw new Error('Invalid token')
   }

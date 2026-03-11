@@ -1,6 +1,4 @@
-import jwt from 'jsonwebtoken'
-
-import prisma from '../config/db.js'
+import { verifyToken } from '../service/generateToken.js'
 
 export const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers.authorization
@@ -14,6 +12,8 @@ export const authenticateToken = async (req, res, next) => {
     req.user = decoded
     next()
   } catch (error) {
-    return res.status(401).json({ message: 'Invalid token' })
+    return res
+      .status(401)
+      .json({ message: 'Invalid token', error: error.message })
   }
 }

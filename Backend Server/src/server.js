@@ -6,7 +6,7 @@ import morgan from 'morgan'
 import dotenv from 'dotenv'
 import errorHandler from './shared/middleware/error.js'
 import authRoutes from './module/auth/auth.route.js'
-// import icpRoutes from './routes/icp.route.js'
+import icpRoutes from './module/ICP/icp.route.js'
 
 dotenv.config()
 
@@ -28,7 +28,7 @@ app.use(express.json())
 
 // Routes
 app.use('/api/auth', authRoutes)
-// app.use('/api/icp', icpRoutes)
+app.use('/api/icp', icpRoutes)
 
 // Error handling middleware
 app.use(errorHandler)

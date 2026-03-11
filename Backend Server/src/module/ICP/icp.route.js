@@ -1,6 +1,6 @@
 import express from 'express'
-import { authenticateToken } from '../middleware/auth.middleware.js'
-import { createICP, editICP, getICP } from '../controller/icp.controller.js'
+import { authenticateToken } from '../../shared/middleware/auth.middleware.js'
+import { createICP, editICP, getICP } from './icp.controller.js'
 
 const router = express.Router()
 

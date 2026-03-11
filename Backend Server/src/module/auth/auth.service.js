@@ -1,7 +1,7 @@
 import prisma from '../../config/db.js'
 import bcrypt from 'bcrypt'
 import { generateAccessToken } from '../../shared/service/generateToken.js'
-import AppError from './../../shared/service/appError.js'
+import AppError from '../../shared/service/appError.js'
 
 export async function registerUser(data) {
   const existingUser = await prisma.user.findUnique({

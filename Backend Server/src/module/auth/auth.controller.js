@@ -1,5 +1,5 @@
 import asyncHandler from '../../shared/service/asyncHandler.js'
-import { registerUser, loginUser } from './auth.servcie.js'
+import { registerUser, loginUser } from './auth.service.js'
 
 export const register = asyncHandler(async (req, res) => {
   const { email, password, name } = req.body

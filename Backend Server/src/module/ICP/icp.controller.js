@@ -1,9 +1,8 @@
-import prisma from '../config/db.js'
+import prisma from '../../config/db.js'
 
 export const createICP = async (req, res) => {
   try {
-    const { id } = req.user
-    console.log('Creating ICP for user ID:', id)
+    const { id } = req.user.id
     const {
       profession,
       dreamClient,
