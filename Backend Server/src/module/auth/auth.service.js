@@ -1,7 +1,10 @@
 import prisma from '../../config/db.js'
+import { PROVIDER } from '@prisma/client'
 import bcrypt from 'bcrypt'
 import { generateAccessToken } from '../../shared/service/generateToken.js'
 import AppError from '../../shared/service/appError.js'
+import { googleAuth } from './auth.controller'
+import { verifyGoogleToken } from './../../shared/service/GoogleAuth.js'
 
 export async function registerUser(data) {
   const existingUser = await prisma.user.findUnique({
@@ -23,6 +26,7 @@ export async function registerUser(data) {
       email: data.email,
       password: hashedPassword,
       name: data.name,
+      provider: ['local'],
     },
   })
 
@@ -40,6 +44,13 @@ export async function loginUser(data) {
     throw new AppError('Invalid credentials', 400)
   }
 
+  if (!user.password && !user.provider.includes('LOCAL')) {
+    throw new AppError(
+      'User registered with Google. Please login with Google',
+      400,
+    )
+  }
+
   const isMatch = await bcrypt.compare(data.password, user.password)
 
   if (!isMatch) {
@@ -49,4 +60,57 @@ export async function loginUser(data) {
   const accessToken = await generateAccessToken({ id: user.id })
 
   return { message: 'Login successful', accessToken }
+}
+
+export async function googleAuth(data) {
+  const { idToken } = data
+
+  if (!idToken) {
+    throw new AppError('Google token required', 400)
+  }
+
+  const payload = await verifyGoogleToken(idToken)
+
+  const { sub: googleId, email, name, email_verified } = payload
+
+  if (!email_verified) {
+    throw new AppError('Google email not verified', 400)
+  }
+
+  let user = await prisma.user.findUnique({
+    where: { email },
+  })
+
+  // USER EXISTS
+  if (user) {
+    if (!user.provider.includes(PROVIDER.GOOGLE)) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          provider: {
+            push: PROVIDER.GOOGLE,
+          },
+          googleId,
+        },
+      })
+    }
+  } else {
+    user = await prisma.user.create({
+      data: {
+        email,
+        name: name.replace(/\s+/g, '').toLowerCase(),
+        googleId,
+        provider: [PROVIDER.GOOGLE],
+      },
+    })
+  }
+
+  const accessToken = await generateAccessToken({
+    id: user.id,
+  })
+
+  return {
+    message: 'Google authentication successful',
+    accessToken,
+  }
 }
