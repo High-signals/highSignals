@@ -19,6 +19,21 @@ enum PROVIDER {
   TWITTER
 }
 
+enum PLATFORM {
+  TWITTER
+  LINKEDIN
+  FACEBOOK
+  INSTAGRAM
+  TIKTOK
+}
+
+enum POST_STATUS {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -36,6 +51,7 @@ model User {
   bio       String?
 
   icp      ICP?
+  posts Post[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -57,4 +73,28 @@ model ICP {
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model Post {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  title       String?
+  content     String
+  hashtags    String[]
+  mediaUrls   String[]
+  platforms   PLATFORM[]
+  platformContent Json? 
+  externalPostIds Json?
+  status      POST_STATUS @default(DRAFT)
+
+  scheduledAt DateTime?
+  publishedAt DateTime?
+
+  isDeleted   Boolean  @default(false)
+  lastAttemptAt DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
