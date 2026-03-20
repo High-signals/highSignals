@@ -118,7 +118,7 @@ export default function OnboardingScreen() {
     // await saveICPProfile(finalAnswers);
     
     // Navigate to tabs dashboard (UPDATED)
-    router.replace('/dashboard');
+    router.replace('/(tabs)/dashboard');
   };
 
   const canProceed = currentAnswer.trim().length > 0 || !currentQuestion.required;
