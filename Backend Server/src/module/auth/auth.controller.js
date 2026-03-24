@@ -1,5 +1,6 @@
 import asyncHandler from '../../shared/service/asyncHandler.js'
 import { registerUser, loginUser, googleAuth } from './auth.service.js'
+// imports
 
 export const register = asyncHandler(async (req, res) => {
   const { email, password, name } = req.body
