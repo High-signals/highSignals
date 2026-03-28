@@ -28,6 +28,9 @@ app.use(morgan('dev'))
 app.use(express.json())
 
 // Routes
+app.use('/', (req, res, next) => {
+  res.status(200).json({ message: 'Welcome to the High Signals API!' })
+})
 app.use('/api/auth', authRoutes)
 app.use('/api/icp', icpRoutes)
 app.use('/api/user', userProfileRoutes)
