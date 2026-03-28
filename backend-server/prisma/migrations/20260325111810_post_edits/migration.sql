@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Post" ALTER COLUMN "platforms" SET NOT NULL,
+ALTER COLUMN "platforms" SET DATA TYPE "PLATFORM";
