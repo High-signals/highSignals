@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import {
   View,
   Text,
@@ -9,69 +9,124 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
+  ActivityIndicator,
+  Alert,
+} from 'react-native'
+import { useRouter } from 'expo-router'
+import DateTimePicker from '@react-native-community/datetimepicker'
+import { api } from '@/services/api'
+import { useAuth } from '@/context/AuthContext'
 
-type PublishOption = 'immediate' | 'schedule' | 'draft';
+type PublishOption = 'immediate' | 'schedule' | 'draft'
 
 export default function CreatePostScreen() {
-  const router = useRouter();
-  const [content, setContent] = useState('');
-  const [title, setTitle] = useState('');
-  const [platform, setPlatform] = useState('LinkedIn');
-  const [aiScore, setAiScore] = useState<number | null>(null);
-  const [aiFeedback, setAiFeedback] = useState<string[]>([]);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  
-  // Publishing options
-  const [publishOption, setPublishOption] = useState<PublishOption>('immediate');
-  const [scheduleDate, setScheduleDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showPublishModal, setShowPublishModal] = useState(false);
-  
-  // Text formatting
-  const [fontSize, setFontSize] = useState(16);
-  const [isBold, setIsBold] = useState(false);
-  const [isItalic, setIsItalic] = useState(false);
+  const router = useRouter()
+  const { isAuthenticated } = useAuth()
+  const [content, setContent] = useState('')
+  const [title, setTitle] = useState('')
+  const [platform, setPlatform] = useState('LINKEDIN')
+  const [aiScore, setAiScore] = useState<number | null>(null)
+  const [aiFeedback, setAiFeedback] = useState<string[]>([])
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
-  const platforms = ['LinkedIn', 'Twitter', 'Instagram', 'Facebook', 'Blog'];
+  // Publishing options
+  const [publishOption, setPublishOption] = useState<PublishOption>('draft')
+  const [scheduleDate, setScheduleDate] = useState(new Date())
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showPublishModal, setShowPublishModal] = useState(false)
+
+  // Text formatting
+  const [fontSize, setFontSize] = useState(16)
+  const [isBold, setIsBold] = useState(false)
+  const [isItalic, setIsItalic] = useState(false)
+
+  const platforms = [
+    'LINKEDIN',
+    'TWITTER',
+    'INSTAGRAM',
+    'FACEBOOK',
+    'TIKTOK',
+  ]
 
   const handleAnalyze = async () => {
-    setIsAnalyzing(true);
-    
-    // TODO: Call AI API
-    setTimeout(() => {
-      setAiScore(92);
-      setAiFeedback([
-        'Strong opening hook that grabs attention',
-        'Consider adding a call-to-action at the end',
-        'Good use of storytelling elements',
-      ]);
-      setIsAnalyzing(false);
-    }, 2000);
-  };
-
-  const handlePublish = () => {
-    if (publishOption === 'immediate') {
-      console.log('Publishing immediately:', { title, content, platform });
-      router.back();
-    } else if (publishOption === 'schedule') {
-      console.log('Scheduling for:', scheduleDate, { title, content, platform });
-      router.back();
-    } else {
-      console.log('Saving as draft:', { title, content, platform });
-      router.back();
+    if (!content) {
+      Alert.alert('Error', 'Please write some content first')
+      return
     }
-  };
+
+    setIsAnalyzing(true)
+
+    try {
+      // TODO: Call AI API for content analysis
+      // For now, simulate AI analysis
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      const score = Math.floor(Math.random() * 30) + 70 // Random score between 70-100
+      setAiScore(score)
+      setAiFeedback([
+        'Strong opening that captures attention',
+        `Consider adding a call-to-action`,
+        'Good use of key insights',
+      ])
+    } catch (error) {
+      Alert.alert('Error', 'Failed to analyze content')
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
+  const handlePublish = async () => {
+    if (!content) {
+      Alert.alert('Error', 'Please write some content')
+      return
+    }
+
+    if (!isAuthenticated) {
+      Alert.alert('Error', 'Please login first')
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const scheduleTime =
+        publishOption === 'schedule' ? scheduleDate.toISOString() : null
+
+      const postData = {
+        title: title || undefined,
+        content,
+        platforms: [platform],
+        hashtags: [],
+        mediaUrls: [],
+        scheduledAt: scheduleTime,
+      }
+
+      await api.posts.create(postData)
+
+      Alert.alert(
+        'Success',
+        publishOption === 'draft'
+          ? 'Post saved as draft'
+          : publishOption === 'schedule'
+          ? 'Post scheduled successfully'
+          : 'Post published successfully'
+      )
+      router.back()
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to save post')
+    } finally {
+      setIsSaving(false)
+      setShowPublishModal(false)
+    }
+  }
 
   const increaseFontSize = () => {
-    if (fontSize < 24) setFontSize(fontSize + 2);
-  };
+    if (fontSize < 24) setFontSize(fontSize + 2)
+  }
 
   const decreaseFontSize = () => {
-    if (fontSize > 12) setFontSize(fontSize - 2);
-  };
+    if (fontSize > 12) setFontSize(fontSize - 2)
+  }
 
   return (
     <KeyboardAvoidingView
@@ -295,13 +350,15 @@ export default function CreatePostScreen() {
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={() => {
-                  setShowPublishModal(false);
-                  handlePublish();
-                }}
+                style={[styles.confirmButton, isSaving && styles.buttonDisabled]}
+                onPress={handlePublish}
+                disabled={isSaving}
               >
-                <Text style={styles.confirmText}>Confirm</Text>
+                {isSaving ? (
+                  <ActivityIndicator color='#0a192f' size='small' />
+                ) : (
+                  <Text style={styles.confirmText}>Confirm</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>

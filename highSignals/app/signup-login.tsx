@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import {
   View,
   Text,
@@ -9,43 +9,74 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { useRouter } from 'expo-router';
+  ActivityIndicator,
+  Alert,
+} from 'react-native'
+import { useRouter } from 'expo-router'
+import { useAuth } from '@/context/AuthContext'
 
 export default function SignupLoginScreen() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter()
+  const { login, register } = useAuth()
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login')
+  const [rememberMe, setRememberMe] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   // Form states
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
 
-  const handleLogin = () => {
-    console.log('Login:', { email, password, rememberMe });
-    // TODO: Connect to backend API
-    // router.push('/onboarding');
-  };
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields')
+      return
+    }
 
-  const handleRegister = () => {
-    console.log('Register:', { fullName, email, password });
-    // TODO: Connect to backend API
-    // After successful registration, navigate to onboarding
-    router.push('/onboarding');
-  };
+    setLoading(true)
+    try {
+      await login(email, password)
+      router.replace('/(tabs)/dashboard')
+    } catch (error: any) {
+      Alert.alert('Login Failed', error.message || 'Failed to login')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRegister = async () => {
+    if (!fullName || !email || !password || !confirmPassword) {
+      Alert.alert('Error', 'Please fill in all fields')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match')
+      return
+    }
+
+    setLoading(true)
+    try {
+      await register(email, password, fullName)
+      router.replace('/onboarding')
+    } catch (error: any) {
+      Alert.alert('Registration Failed', error.message || 'Failed to register')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleGoogleAuth = () => {
-    console.log('Google auth');
+    Alert.alert('Coming Soon', 'Google OAuth implementation coming soon')
     // TODO: Implement Google OAuth
-  };
+  }
 
   const handleFacebookAuth = () => {
-    console.log('Facebook auth');
+    Alert.alert('Coming Soon', 'Facebook OAuth implementation coming soon')
     // TODO: Implement Facebook OAuth
-  };
+  }
 
   return (
     <KeyboardAvoidingView
@@ -158,10 +189,15 @@ export default function SignupLoginScreen() {
 
               {/* Login Button */}
               <TouchableOpacity 
-                style={styles.primaryButton}
+                style={[styles.primaryButton, loading && styles.disabledButton]}
                 onPress={handleLogin}
+                disabled={loading}
               >
-                <Text style={styles.primaryButtonText}>Login</Text>
+                {loading ? (
+                  <ActivityIndicator color="#0a192f" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>Login</Text>
+                )}
               </TouchableOpacity>
             </View>
           )}
@@ -238,10 +274,15 @@ export default function SignupLoginScreen() {
 
               {/* Register Button */}
               <TouchableOpacity 
-                style={styles.primaryButton}
+                style={[styles.primaryButton, loading && styles.disabledButton]}
                 onPress={handleRegister}
+                disabled={loading}
               >
-                <Text style={styles.primaryButtonText}>Create Account</Text>
+                {loading ? (
+                  <ActivityIndicator color="#0a192f" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>Create Account</Text>
+                )}
               </TouchableOpacity>
             </View>
           )}
@@ -448,6 +489,9 @@ const styles = StyleSheet.create({
     color: '#0a192f', // Brand blue text on gold button
     fontSize: 16,
     fontWeight: '700',
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 
   // Divider

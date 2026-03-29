@@ -1,3 +1,4 @@
+import React from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { Stack, usePathname, useRouter } from 'expo-router'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
@@ -16,9 +17,15 @@ export default function TabsLayout() {
     },
     {
       href: '/(tabs)/create-post',
-      label: 'Post',
+      label: 'Create',
       icon: 'add-circle-outline',
       activeIcon: 'add-circle',
+    },
+    {
+      href: '/(tabs)/posts',
+      label: 'Posts',
+      icon: 'document-text-outline',
+      activeIcon: 'document-text',
     },
     {
       href: '/(tabs)/profile',

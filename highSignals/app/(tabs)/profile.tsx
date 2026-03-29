@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker'
 import { useRouter } from 'expo-router'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Alert,
   Image,
@@ -10,7 +10,11 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from 'react-native'
+import { useAuth } from '@/context/AuthContext'
+import { api } from '@/services/api'
+import { Ionicons } from '@expo/vector-icons'
 
 interface BackendUserData {
   name: string
@@ -27,13 +31,16 @@ interface BackendUserData {
 
 export default function ProfileScreen() {
   const router = useRouter()
+  const { user, logout, isAuthenticated } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [fetching, setFetching] = useState(true)
 
   const [userData, setUserData] = useState<BackendUserData>({
-    name: 'Samuel Adebayo',
-    profession: 'Content Creator',
-    email: 'samuel@highsignals.com',
-    bio: 'Helping entrepreneurs build their personal brands through consistent content',
+    name: '',
+    profession: '',
+    email: '',
+    bio: '',
     avatar: undefined,
     twitterId: '',
     facebookId: '',
@@ -42,8 +49,55 @@ export default function ProfileScreen() {
     instagramId: '',
   })
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUserProfile()
+    } else {
+      setFetching(false)
+    }
+  }, [isAuthenticated])
+
+  const fetchUserProfile = async () => {
+    setFetching(true)
+    try {
+      const profile = await api.profile.get()
+      setUserData({
+        name: profile.name || '',
+        profession: profile.profession || '',
+        email: profile.email || '',
+        bio: profile.bio || '',
+        avatar: profile.avatar || undefined,
+        twitterId: profile.twitterId || '',
+        facebookId: profile.facebookId || '',
+        linkedInId: profile.linkedInId || '',
+        tiktokId: profile.tiktokId || '',
+        instagramId: profile.instagramId || '',
+      })
+    } catch (error) {
+      console.error('Error fetching profile:', error)
+      // Fall back to user from auth context
+      if (user) {
+        setUserData({
+          name: user.name,
+          email: user.email,
+          profession: '',
+          bio: user.bio || '',
+          avatar: user.avatar || undefined,
+          twitterId: '',
+          facebookId: '',
+          linkedInId: '',
+          tiktokId: '',
+          instagramId: '',
+        })
+      }
+    } finally {
+      setFetching(false)
+    }
+  }
+
   const handleSave = async () => {
     try {
+      setLoading(true)
       // Backend aligned payload
       const payload = {
         name: userData.name,
@@ -57,15 +111,14 @@ export default function ProfileScreen() {
         instagramId: userData.instagramId || null,
       }
 
-      console.log('Saving to backend:', payload)
+      await api.profile.update(payload)
 
-      // TODO: POST /api/profile
-      // await fetch('/api/profile', { method: 'PATCH', body: JSON.stringify(payload) });
-
-      Alert.alert('Success', 'Profile updated!')
+      Alert.alert('Success', 'Profile updated successfully!')
       setIsEditing(false)
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save profile')
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to save profile')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -89,9 +142,51 @@ export default function ProfileScreen() {
   }
 
   const handleLogout = () => {
-    // TODO: Clear auth tokens
-    console.log('Logging out')
-    router.replace('/')
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          onPress: () => {},
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          onPress: () => {
+            logout()
+            router.replace('/')
+          },
+          style: 'destructive',
+        },
+      ]
+    )
+  }
+
+  if (fetching) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size='large' color='#d4af37' />
+      </View>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.emptyContainer}>
+          <Ionicons name='person-circle-outline' size={64} color='#d4af37' />
+          <Text style={styles.emptyTitle}>Not Logged In</Text>
+          <Text style={styles.emptySubtitle}>Please log in to see your profile</Text>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => router.replace('/')}
+          >
+            <Text style={styles.loginButtonText}>Go to Login</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    )
   }
 
   return (

@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   Animated,
   StatusBar,
@@ -7,10 +7,15 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
+  Alert,
 } from 'react-native'
+import { useAuth } from '@/context/AuthContext'
 
 export default function AuthScreen() {
   const router = useRouter()
+  const { googleLogin } = useAuth()
+  const [loading, setLoading] = useState(false)
 
   // Animation
   const fadeAnim = useRef(new Animated.Value(0)).current
@@ -30,6 +35,34 @@ export default function AuthScreen() {
       }),
     ]).start()
   }, [])
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true)
+    try {
+      // TODO: Implement Google Sign-In SDK
+      // For now, show alert
+      Alert.alert('Coming Soon', 'Google Sign-In integration coming soon')
+      // Once implemented:
+      // const idToken = await getGoogleIdToken()
+      // await googleLogin(idToken)
+      // router.replace('/(tabs)/dashboard')
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to sign in with Google')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleEmailSignUp = () => {
+    router.push('/signup-login')
+  }
+
+  const handleLogIn = () => {
+    router.push({
+      pathname: '/signup-login',
+      params: { tab: 'login' },
+    })
+  }
 
   return (
     <View style={styles.container}>
@@ -76,38 +109,35 @@ export default function AuthScreen() {
         <View style={styles.buttonsContainer}>
           {/* Continue with Google */}
           <TouchableOpacity
-            style={styles.googleButton}
+            style={[styles.googleButton, loading && styles.disabledButton]}
             activeOpacity={0.85}
-            onPress={() => {
-              console.log('Google sign in pressed')
-            }}
+            onPress={handleGoogleSignIn}
+            disabled={loading}
           >
-            <View style={styles.googleIcon}>
-              <Text style={styles.googleIconText}>G</Text>
-            </View>
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
+            {loading ? (
+              <ActivityIndicator color='#fff' size='small' />
+            ) : (
+              <>
+                <View style={styles.googleIcon}>
+                  <Text style={styles.googleIconText}>G</Text>
+                </View>
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           {/* Continue with Email */}
           <TouchableOpacity
             style={styles.emailButton}
             activeOpacity={0.85}
-            onPress={() => {
-              router.push('/signup-login')
-            }}
+            onPress={handleEmailSignUp}
           >
             <Text style={styles.emailIcon}>✉</Text>
             <Text style={styles.emailButtonText}>Continue with Email</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Already have account */}
-        <TouchableOpacity style={styles.loginRow}>
-          <Text style={styles.loginText}>
-            Already have an account?{' '}
-            <Text style={styles.loginAccent}>Log In</Text>
-          </Text>
-        </TouchableOpacity>
+        
       </Animated.View>
     </View>
   )
@@ -287,6 +317,9 @@ const styles = StyleSheet.create({
     color: '#ffffff', // Brand white
     fontSize: 15,
     fontWeight: '600',
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 
   // Login link
