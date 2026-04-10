@@ -1,5 +1,5 @@
 // API Configuration
-const API_BASE_URL = process.env.API_BASE_URL || 'http://10.85.211.46:4521'
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://high-signals.vercel.app' // || 'http://10.85.211.46:4521'
 
 interface TokenData {
 	access_token: string
