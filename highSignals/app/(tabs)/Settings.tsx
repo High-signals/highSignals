@@ -45,7 +45,7 @@ export default function SettingsScreen() {
 			{/* Header */}
 			<View style={styles.header}>
 				<TouchableOpacity onPress={() => router.back()}>
-					<Text style={styles.backButton}>←</Text>
+					<Text style={styles.backButton}>{'⟵'}</Text>
 				</TouchableOpacity>
 				<Text style={styles.headerTitle}>Settings</Text>
 				<View style={{ width: 30 }} />

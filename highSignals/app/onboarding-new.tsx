@@ -156,7 +156,7 @@ export default function OnboardingScreen() {
 			<View style={styles.container}>
 				<View style={styles.header}>
 					<TouchableOpacity onPress={() => router.back()}>
-						<Text style={styles.backButton}>←</Text>
+						<Text style={styles.backButton}>{'⟵'}</Text>
 					</TouchableOpacity>
 				</View>
 
@@ -214,7 +214,7 @@ export default function OnboardingScreen() {
 			{/* Header */}
 			<View style={styles.header}>
 				<TouchableOpacity onPress={handleBack}>
-					<Text style={styles.backButton}>←</Text>
+					<Text style={styles.backButton}>{'⟵'}</Text>
 				</TouchableOpacity>
 				<View style={styles.progressContainer}>
 					<View style={styles.progressBar}>

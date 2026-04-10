@@ -56,11 +56,10 @@ export default function ContentIdeasScreen() {
 	const router = useRouter()
 	const [selectedCategory, setSelectedCategory] = useState('Trending')
 
-	// ✅ FIXED Animated Value
 	const fadeAnim = useRef(new Animated.Value(0)).current
 
 	useEffect(() => {
-		fadeAnim.setValue(0) // reset before animating
+		fadeAnim.setValue(0)
 		Animated.timing(fadeAnim, {
 			toValue: 1,
 			duration: 400,
@@ -92,12 +91,10 @@ export default function ContentIdeasScreen() {
 			{/* HEADER */}
 			<View style={styles.header}>
 				<TouchableOpacity onPress={() => router.back()}>
-					<Text style={styles.backButton}>←</Text>
+					<Text style={styles.backButton}>{'⟵'}</Text>
 				</TouchableOpacity>
 				<Text style={styles.headerTitle}>Content Ideas</Text>
-				<TouchableOpacity>
-					<Text style={styles.icon}>💡</Text>
-				</TouchableOpacity>
+				<Text style={styles.icon}>💡</Text>
 			</View>
 
 			{/* AI BUTTON */}
@@ -111,6 +108,7 @@ export default function ContentIdeasScreen() {
 				horizontal
 				showsHorizontalScrollIndicator={false}
 				contentContainerStyle={styles.categories}
+				style={{ maxHeight: 40 }}
 			>
 				{ideaCategories.map((category) => (
 					<TouchableOpacity
@@ -189,8 +187,7 @@ export default function ContentIdeasScreen() {
 
 							<View style={styles.ideaActions}>
 								<TouchableOpacity style={styles.actionButton}>
-									<Text style={styles.actionIcon}>❤️</Text>
-									<Text style={styles.actionText}>Save</Text>
+									<Text>❤️ Save</Text>
 								</TouchableOpacity>
 
 								<TouchableOpacity
@@ -199,14 +196,8 @@ export default function ContentIdeasScreen() {
 										styles.primaryAction,
 									]}
 								>
-									<Text style={styles.actionIcon}>✍️</Text>
-									<Text
-										style={[
-											styles.actionText,
-											styles.primaryActionText,
-										]}
-									>
-										Use This
+									<Text style={{ color: '#000' }}>
+										✍️ Use This
 									</Text>
 								</TouchableOpacity>
 							</View>
@@ -237,8 +228,8 @@ const styles = StyleSheet.create({
 
 	backButton: {
 		fontSize: 28,
+		fontWeight: '900',
 		color: '#fff',
-		fontWeight: '600',
 	},
 
 	headerTitle: {
@@ -253,39 +244,38 @@ const styles = StyleSheet.create({
 
 	aiButton: {
 		flexDirection: 'row',
-		alignItems: 'center',
 		justifyContent: 'center',
 		backgroundColor: '#00D9FF',
 		marginHorizontal: 24,
 		marginBottom: 20,
-		paddingVertical: 16,
+		paddingVertical: 14,
 		borderRadius: 12,
 	},
 
 	aiEmoji: {
-		fontSize: 20,
 		marginRight: 8,
 	},
 
 	aiText: {
-		fontSize: 16,
 		fontWeight: '700',
 		color: '#000',
 	},
 
+	// ✅ FIXED HERE
 	categories: {
 		paddingHorizontal: 24,
 		gap: 10,
-		marginBottom: 20,
+		alignItems: 'flex-start', // prevents stretch
 	},
 
 	categoryChip: {
-		paddingHorizontal: 20,
-		paddingVertical: 10,
+		paddingHorizontal: 14,
+		paddingVertical: 6,
 		borderRadius: 20,
 		backgroundColor: 'rgba(255,255,255,0.05)',
 		borderWidth: 1,
 		borderColor: 'rgba(255,255,255,0.1)',
+		alignSelf: 'flex-start', // 🔥 prevents vertical stretch
 	},
 
 	categoryChipActive: {
@@ -294,7 +284,7 @@ const styles = StyleSheet.create({
 	},
 
 	categoryText: {
-		fontSize: 14,
+		fontSize: 13,
 		fontWeight: '600',
 		color: 'rgba(255,255,255,0.6)',
 	},
@@ -320,7 +310,6 @@ const styles = StyleSheet.create({
 	ideaHeader: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
-		alignItems: 'center',
 		marginBottom: 12,
 	},
 
@@ -328,7 +317,6 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 		fontWeight: '700',
 		color: '#00D9FF',
-		textTransform: 'uppercase',
 	},
 
 	badges: {
@@ -345,8 +333,7 @@ const styles = StyleSheet.create({
 
 	badgeText: {
 		fontSize: 11,
-		fontWeight: '700',
-		color: 'rgba(255,255,255,0.6)',
+		color: '#ccc',
 	},
 
 	ideaTitle: {
@@ -357,8 +344,7 @@ const styles = StyleSheet.create({
 	},
 
 	ideaDescription: {
-		fontSize: 14,
-		color: 'rgba(255,255,255,0.7)',
+		color: '#aaa',
 		marginBottom: 16,
 	},
 
@@ -369,30 +355,13 @@ const styles = StyleSheet.create({
 
 	actionButton: {
 		flex: 1,
-		flexDirection: 'row',
-		justifyContent: 'center',
-		paddingVertical: 12,
+		paddingVertical: 10,
 		borderRadius: 10,
+		alignItems: 'center',
 		backgroundColor: 'rgba(255,255,255,0.05)',
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.1)',
 	},
 
 	primaryAction: {
 		backgroundColor: '#00D9FF',
-		borderColor: '#00D9FF',
-	},
-
-	actionIcon: {
-		marginRight: 6,
-	},
-
-	actionText: {
-		fontWeight: '600',
-		color: 'rgba(255,255,255,0.8)',
-	},
-
-	primaryActionText: {
-		color: '#000',
 	},
 })

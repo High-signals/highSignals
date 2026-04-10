@@ -46,7 +46,7 @@ export default function ProfileScreen() {
 				{/* Header */}
 				<View style={styles.header}>
 					<TouchableOpacity onPress={() => router.back()}>
-						<Text style={styles.backButton}>←</Text>
+						<Text style={styles.backButton}>{'⟵'}</Text>
 					</TouchableOpacity>
 					<Text style={styles.headerTitle}>Edit Profile</Text>
 					<View style={{ width: 30 }} />
