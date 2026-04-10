@@ -29,10 +29,7 @@ app.use(morgan('dev'))
 app.use(express.json())
 
 // Routes
-app.use('/api-docs', swaggerUiServe, swaggerUiSetup)
-app.use('/', (req, res, next) => {
-	res.status(200).json({ message: '!Welcome to the High Signals API!' })
-})
+app.use('/api/docs', swaggerUiServe, swaggerUiSetup)
 app.use('/api/auth', authRoutes)
 app.use('/api/icp', icpRoutes)
 app.use('/api/user', userProfileRoutes)
@@ -42,8 +39,8 @@ app.use(errorHandler)
 
 const PORT = process.env.PORT || 5000
 
-// app.listen(PORT, () => {
-// 	console.log(`Server running on port ${PORT}`)
-// })
+app.listen(PORT, '0.0.0.0', () => {
+	console.log(`Server running on port ${PORT}`)
+})
 
-export default app
+// export default app
