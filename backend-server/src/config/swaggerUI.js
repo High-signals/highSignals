@@ -11,12 +11,25 @@ const options = {
 		},
 		servers: [
 			{
+				url: 'http://localhost:5000',
+				description: 'Local server',
+			},
+			{
 				url: 'https://high-signals.vercel.app',
-				description: 'Development server',
+				description: 'Production server',
 			},
 		],
 	},
-	apis: ['./src/module/**/*.js'], // 👈 adjust if needed
+	apis: ['./**/*.js'],
+	components: {
+		securitySchemes: {
+			bearerAuth: {
+				type: 'http',
+				scheme: 'bearer',
+				bearerFormat: 'JWT',
+			},
+		},
+	},
 }
 
 const swaggerSpec = swaggerJsdoc(options)
