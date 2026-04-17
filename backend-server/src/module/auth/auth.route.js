@@ -1,9 +1,15 @@
 import express from 'express'
 import { register, login, googleLogin } from './auth.controller.js'
+import { rateLimit } from 'express-rate-limit'
 
 const router = express.Router()
 
-// @route   POST /api/auth/login
+rateLimit({
+	windowMs: 5 * 60 * 1000,
+	limit: 10,
+	message: 'Too many requests from this IP. Please try again later.',
+})
+
 /**
  * @swagger
  * /api/auth/login:
@@ -16,50 +22,18 @@ const router = express.Router()
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - email
- *               - password
  *             properties:
  *               email:
  *                 type: string
- *                 example: ayomideayomipo147@gmail.com
  *               password:
  *                 type: string
- *                 example: 12345678
  *     responses:
  *       200:
- *         description: Successful login
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Login successful
- *                 accessToken:
- *                   type: string
- *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *         description: Login successful
  *       400:
- *         description: Invalid credentials or wrong provider
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Invalid credentials
- *       500:
- *         description: Server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Internal server error
+ *         description: Missing credentials
+ *       401:
+ *         description: Invalid credentials
  */
 router.post('/login', login)
 
@@ -75,56 +49,23 @@ router.post('/login', login)
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - email
- *               - password
- *               - name
  *             properties:
- *               name:
- *                 type: string
- *                 example: Ayomide
  *               email:
  *                 type: string
- *                 example: ayomideayomipo147@gmail.com
  *               password:
  *                 type: string
- *                 example: 12345678
+ *               name:
+ *                 type: string
  *     responses:
  *       201:
- *         description: User registered successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: User registered successfully
- *                 accessToken:
- *                   type: string
- *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *         description: Registration successful
  *       400:
- *         description: Validation error or user already exists
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: User already exists
- *       500:
- *         description: Server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Internal server error
+ *         description: Missing fields
+ *       409:
+ *         description: User already exists
  */
 router.post('/register', register)
+
 router.post('/google', googleLogin)
 // router.post('/refresh', refreshToken)
 // router.post('/logout', logout)

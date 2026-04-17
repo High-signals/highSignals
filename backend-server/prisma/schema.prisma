@@ -101,7 +101,6 @@ model Post {
 
   title           String?
   content         String
-  hashtags        String[]
   mediaUrls       String[]
   platforms       PLATFORM[]
   platformContent Json?

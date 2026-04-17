@@ -20,7 +20,7 @@ const options = {
 			},
 		],
 	},
-	apis: ['./src/module/**/*.routes.js'], // Path to the API route files
+	apis: ['./src/module/**/*.route.js', './src/module/**/*.routes.js'], // Path to the API route files
 	components: {
 		securitySchemes: {
 			bearerAuth: {

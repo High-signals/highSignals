@@ -1,84 +1,94 @@
 import prisma from '../../config/db.js'
+import AppError from '../../shared/service/appError.js'
+import asyncHandler from '../../shared/service/asyncHandler.js'
 import asyncWrapper from '../../shared/service/asyncHandler.js'
 import { createICPService } from './icp.service.js'
 
 export const createICP = asyncWrapper(async (req, res) => {
-  const { id } = req.user
-  const {
-    profession,
-    dreamClient,
-    mainProblem,
-    dreamOutcome,
-    authorityStory,
-    clientDemographics,
-    otherDetails,
-  } = req.body
+	const { id } = req.user
+	const {
+		type,
+		audienceDescription,
+		painPoint,
+		desiredOutcome,
+		motivation,
+		contentTopic,
+		backstory,
+		goal,
+		demographics,
+		additional,
+	} = req.body
 
-  if (
-    !profession ||
-    !dreamClient ||
-    !mainProblem ||
-    !dreamOutcome ||
-    !authorityStory ||
-    !clientDemographics
-  ) {
-    return res.status(400).json({ message: 'Missing required fields' })
-  }
+	if (
+		!type ||
+		!audienceDescription ||
+		!painPoint ||
+		!desiredOutcome ||
+		!motivation ||
+		!contentTopic ||
+		!backstory ||
+		!goal ||
+		!demographics ||
+		!additional
+	) {
+		throw new AppError('Missing required fields', 409)
+	}
 
-  const newICP = await createICPService(id, {
-    profession,
-    dreamClient,
-    mainProblem,
-    dreamOutcome,
-    authorityStory,
-    clientDemographics,
-    otherDetails,
-  })
+	const newICP = await createICPService(id, {
+		type,
+		audienceDescription,
+		painPoint,
+		desiredOutcome,
+		motivation,
+		contentTopic,
+		backstory,
+		goal,
+		demographics,
+		additional,
+	})
 
-  res.status(201).json(newICP)
+	res.status(201).json(newICP)
 })
 
-export const editICP = async (req, res) => {
-  try {
-    const { id } = req.user
-    const {
-      profession,
-      dreamClient,
-      mainProblem,
-      dreamOutcome,
-      authorityStory,
-    } = req.body
+export const editICP = asyncHandler(async (req, res) => {
+	const { id } = req.user
+	const {
+		audienceDescription,
+		painPoint,
+		desiredOutcome,
+		motivation,
+		contentTopic,
+		backstory,
+		goal,
+		demographics,
+		additional,
+	} = req.body
 
-    const updatedICP = await prisma.ICP.update({
-      where: { userId: id },
-      data: {
-        profession,
-        dreamClient,
-        mainProblem,
-        dreamOutcome,
-        authorityStory,
-      },
-    })
+	const updatedICP = await prisma.ICP.update({
+		where: { userId: id },
+		data: {
+			audienceDescription,
+			painPoint,
+			desiredOutcome,
+			motivation,
+			contentTopic,
+			backstory,
+			goal,
+			demographics,
+			additional,
+		},
+	})
 
-    res.status(200).json(updatedICP)
-  } catch (error) {
-    console.error('Error updating ICP:', error)
-    res.status(500).json({ message: 'Internal server error' })
-  }
-}
+	res.status(200).json(updatedICP)
+})
 
-export const getICP = async (req, res) => {
-  try {
-    const { id } = req.user
-    const icp = await prisma.ICP.findUnique({
-      where: { userId: id },
-    })
-    if (!icp) {
-      return res.status(404).json({ message: 'ICP not found' })
-    }
-    res.status(200).json(icp)
-  } catch (error) {
-    console.error('Error fetching ICP:', error)
-    res.status(500).json({ message: 'Internal server error' })
-  }
-}
+export const getICP = asyncHandler(async (req, res) => {
+	const { id } = req.user
+	const icp = await prisma.ICP.findUnique({
+		where: { userId: id },
+	})
+	if (!icp) {
+		throw new AppError('ICP Profile not found', 404)
+	}
+	res.status(200).json(icp)
+})
