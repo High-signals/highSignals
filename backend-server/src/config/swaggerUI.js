@@ -19,17 +19,20 @@ const options = {
 				description: 'Production server',
 			},
 		],
-	},
-	apis: ['./src/module/**/*.route.js', './src/module/**/*.routes.js'], // Path to the API route files
-	components: {
-		securitySchemes: {
-			bearerAuth: {
-				type: 'http',
-				scheme: 'bearer',
-				bearerFormat: 'JWT',
+
+		// ✅ FIX: components must be inside definition
+		components: {
+			securitySchemes: {
+				bearerAuth: {
+					type: 'http',
+					scheme: 'bearer',
+					bearerFormat: 'JWT',
+				},
 			},
 		},
 	},
+
+	apis: ['./src/module/**/*.route.js', './src/module/**/*.routes.js'],
 }
 
 const swaggerSpec = swaggerJsdoc(options)
