@@ -15,25 +15,6 @@ dotenv.config()
 const app = express()
 app.set('trust proxy', 1)
 
-// Global rate limiter
-const globalLimiter = rateLimit({
-	windowMs: 15 * 60 * 1000,
-	limit: 100,
-	message: 'Too many requests from this IP. Please try again later.',
-	standardHeaders: true,
-	legacyHeaders: false,
-
-	// ✅ FIXED (IPv6 safe)
-	keyGenerator: (req) => ipKeyGenerator(req),
-})
-
-// middleware
-app.use(helmet())
-app.use(globalLimiter)
-app.use(cors())
-app.use(morgan('dev'))
-app.use(express.json())
-
 // Routes
 app.get('/docs.json', (req, res) => {
 	res.json(swaggerUiSetup)
@@ -63,6 +44,25 @@ app.get('/docs', (req, res) => {
 	</html>
 	`)
 })
+
+// Global rate limiter
+const globalLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	limit: 100,
+	message: 'Too many requests from this IP. Please try again later.',
+	standardHeaders: true,
+	legacyHeaders: false,
+
+	// ✅ FIXED (IPv6 safe)
+	keyGenerator: (req) => ipKeyGenerator(req),
+})
+
+// middleware
+app.use(helmet())
+app.use(globalLimiter)
+app.use(cors())
+app.use(morgan('dev'))
+app.use(express.json())
 
 // app.use('/api/docs', swaggerUiServe, swaggerUiSetup)
 app.use('/api/auth', authRoutes)
