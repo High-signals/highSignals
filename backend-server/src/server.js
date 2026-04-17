@@ -9,6 +9,7 @@ import errorHandler from './shared/middleware/error.js'
 import authRoutes from './module/auth/auth.route.js'
 import icpRoutes from './module/ICP/icp.route.js'
 import userProfileRoutes from './module/User profile/userProfile.routes.js'
+import postRouter from './module/Post/post.route.js'
 
 dotenv.config()
 
@@ -83,6 +84,7 @@ app.get('/docs', (req, res) => {
 app.use('/api/auth', authRoutes)
 app.use('/api/icp', icpRoutes)
 app.use('/api/user', userProfileRoutes)
+app.use('/api/post', postRouter)
 
 // Error handling middleware
 app.use(errorHandler)
