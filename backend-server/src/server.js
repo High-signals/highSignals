@@ -29,7 +29,36 @@ app.use(morgan('dev'))
 app.use(express.json())
 
 // Routes
-app.use('/api/docs', swaggerUiServe, swaggerUiSetup)
+app.get('/api/docs.json', (req, res) => {
+	res.json(swaggerUiSetup)
+})
+
+app.get('/api/docs', (req, res) => {
+	res.send(`
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<title>Swagger UI</title>
+		<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
+	</head>
+	<body>
+		<div id="swagger-ui"></div>
+
+		<script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
+		<script>
+			window.onload = () => {
+				window.ui = SwaggerUIBundle({
+					url: '/api/docs.json',
+					dom_id: '#swagger-ui',
+				});
+			};
+		</script>
+	</body>
+	</html>
+	`)
+})
+
+// app.use('/api/docs', swaggerUiServe, swaggerUiSetup)
 app.use('/api/auth', authRoutes)
 app.use('/api/icp', icpRoutes)
 app.use('/api/user', userProfileRoutes)
