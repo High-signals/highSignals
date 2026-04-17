@@ -29,11 +29,11 @@ app.use(morgan('dev'))
 app.use(express.json())
 
 // Routes
-app.get('/api/docs.json', (req, res) => {
+app.get('/docs.json', (req, res) => {
 	res.json(swaggerUiSetup)
 })
 
-app.get('/api/docs', (req, res) => {
+app.get('/docs', (req, res) => {
 	res.send(`
 	<!DOCTYPE html>
 	<html>
@@ -47,8 +47,8 @@ app.get('/api/docs', (req, res) => {
 		<script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
 		<script>
 			window.onload = () => {
-				window.ui = SwaggerUIBundle({
-					url: '/api/docs.json',
+				SwaggerUIBundle({
+					url: '/docs.json',
 					dom_id: '#swagger-ui',
 				});
 			};
