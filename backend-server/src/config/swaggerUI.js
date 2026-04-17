@@ -1,5 +1,11 @@
 import swaggerUi from 'swagger-ui-express'
 import swaggerJsdoc from 'swagger-jsdoc'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+// Fix for ES modules (__dirname not available by default)
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const options = {
 	definition: {
@@ -19,8 +25,6 @@ const options = {
 				description: 'Production server',
 			},
 		],
-
-		// ✅ FIX: components must be inside definition
 		components: {
 			securitySchemes: {
 				bearerAuth: {
@@ -30,13 +34,26 @@ const options = {
 				},
 			},
 		},
+		// Optional but recommended: apply auth globally
+		security: [
+			{
+				bearerAuth: [],
+			},
+		],
 	},
 
-	apis: ['./src/module/**/*.route.js', './src/module/**/*.routes.js'],
+	apis: [
+		path.join(__dirname, '../module/**/*.js'),
+		path.join(__dirname, '../module/**/*.route.js'),
+		path.join(__dirname, '../module/**/*.routes.js'),
+	],
 }
 
 const swaggerSpec = swaggerJsdoc(options)
 
-// export BOTH
+// Optional debug (remove after confirming it works)
+console.log('Swagger loaded paths:', options.apis)
+console.log('Swagger endpoints:', Object.keys(swaggerSpec.paths || {}))
+
 export const swaggerUiServe = swaggerUi.serve
 export const swaggerUiSetup = swaggerUi.setup(swaggerSpec)
