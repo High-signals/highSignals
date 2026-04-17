@@ -47,8 +47,10 @@ app.use(morgan('dev'))
 app.use(express.json())
 
 // Routes
+import swaggerSpec from './config/swaggerUI.js'
+
 app.get('/docs.json', (req, res) => {
-	res.json(swaggerUiSetup)
+	res.json(swaggerSpec)
 })
 
 app.get('/docs', (req, res) => {
@@ -72,7 +74,7 @@ app.get('/docs', (req, res) => {
 		<script>
 			window.onload = () => {
 				SwaggerUIBundle({
-					url: '/docs.json',
+					url: '/api/docs.json',
 					dom_id: '#swagger-ui'
 				})
 			}

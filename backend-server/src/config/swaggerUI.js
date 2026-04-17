@@ -57,3 +57,4 @@ console.log('Swagger endpoints:', Object.keys(swaggerSpec.paths || {}))
 
 export const swaggerUiServe = swaggerUi.serve
 export const swaggerUiSetup = swaggerUi.setup(swaggerSpec)
+export default swaggerSpec
