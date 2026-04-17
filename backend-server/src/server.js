@@ -1,6 +1,6 @@
 import express from 'express'
 import cors from 'cors'
-import rateLimit from 'express-rate-limit'
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import dotenv from 'dotenv'
@@ -23,10 +23,8 @@ const globalLimiter = rateLimit({
 	standardHeaders: true,
 	legacyHeaders: false,
 
-	// 🔥 Fix for proxy environments
-	keyGenerator: (req) => {
-		return req.ip
-	},
+	// ✅ FIXED (IPv6 safe)
+	keyGenerator: (req) => ipKeyGenerator(req),
 })
 
 // middleware
