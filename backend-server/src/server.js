@@ -52,11 +52,17 @@ app.get('/docs.json', (req, res) => {
 })
 
 app.get('/docs', (req, res) => {
+	// 🔥 FORCE override CSP for this route only
+	res.setHeader(
+		'Content-Security-Policy',
+		"default-src * 'unsafe-inline' 'unsafe-eval' data: blob: https:;",
+	)
+
 	res.send(`
 	<!DOCTYPE html>
 	<html>
 	<head>
-		<title>Swagger UI</title>
+		<title>Swagger Docs</title>
 		<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
 	</head>
 	<body>
@@ -67,9 +73,9 @@ app.get('/docs', (req, res) => {
 			window.onload = () => {
 				SwaggerUIBundle({
 					url: '/docs.json',
-					dom_id: '#swagger-ui',
-				});
-			};
+					dom_id: '#swagger-ui'
+				})
+			}
 		</script>
 	</body>
 	</html>
