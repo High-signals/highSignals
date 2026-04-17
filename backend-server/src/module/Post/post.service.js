@@ -1,4 +1,4 @@
-import prisma from '../../config/db'
+import prisma from '../../config/db.js'
 import AppError from '../../shared/service/appError.js'
 
 export async function createPostService(userId, data) {
