@@ -47,11 +47,6 @@ app.use(morgan('dev'))
 app.use(express.json())
 
 // Routes
-import swaggerSpec from './config/swaggerUI.js'
-
-app.get('/docs.json', (req, res) => {
-	res.json(swaggerSpec)
-})
 
 app.get('/docs', (req, res) => {
 	// 🔥 FORCE override CSP for this route only
