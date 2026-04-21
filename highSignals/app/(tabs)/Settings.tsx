@@ -75,6 +75,18 @@ export default function SettingsScreen() {
 						</View>
 						<Text style={styles.menuArrow}>→</Text>
 					</TouchableOpacity>
+					<TouchableOpacity
+						style={styles.menuItem}
+						onPress={() => router.push('/(tabs)/icp-profile')}
+					>
+						<View style={styles.menuLeft}>
+							<Text style={styles.menuIcon}>📝</Text>
+							<Text style={styles.menuText}>
+								Edit ICP Profile
+							</Text>
+						</View>
+						<Text style={styles.menuArrow}>→</Text>
+					</TouchableOpacity>
 
 					{/* Change Password - not ready yet */}
 					<TouchableOpacity
