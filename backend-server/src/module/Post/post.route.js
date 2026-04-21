@@ -10,7 +10,7 @@ import { authenticateToken } from '../../shared/middleware/auth.middleware.js'
 
 const postRouter = Router()
 
-router.use(authenticateToken)
+postRouter.use(authenticateToken)
 // Create post
 /**
  * @swagger

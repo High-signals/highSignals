@@ -63,17 +63,17 @@ model ICP {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  type ICPType // 👈 NEW
+  type ICPType // CREATOR | BUSINESS
 
-  audienceDescription String // dreamClient / dreamFollower
-  painPoint           String? // problem
-  desiredOutcome      String? // outcome / feeling
-  motivation          String? // followReason
-  contentTopic        String? // topic
-  backstory           String? // story / backstory
-  goal                String? // goal
-  demographics        String?
-  additional          String?
+  profession        String? // NEW → "What do you do?" or creator identity
+  audience          String  // dreamClient OR dreamFollower
+  problem           String? // problem OR followReason (abstract “why they come”)
+  desiredOutcome    String? // outcome OR feeling
+  contentTopic      String? // topic (main content theme)
+  backstory         String? // story OR backstory
+  goal              String? // goal (mostly creator, optional for business)
+  demographics      String?
+  additional        String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
