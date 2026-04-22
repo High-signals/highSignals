@@ -77,7 +77,7 @@ export default function SettingsScreen() {
 					</TouchableOpacity>
 					<TouchableOpacity
 						style={styles.menuItem}
-						onPress={() => router.push('/(tabs)/icp-profile')}
+						onPress={() => router.push('/icp-profile')}
 					>
 						<View style={styles.menuLeft}>
 							<Text style={styles.menuIcon}>📝</Text>
