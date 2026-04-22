@@ -64,7 +64,7 @@ export default function SettingsScreen() {
 				>
 					<Text style={styles.sectionTitle}>Account</Text>
 
-					{/* Edit Profile - has route */}
+					{/* Edit Profile */}
 					<TouchableOpacity
 						style={styles.menuItem}
 						onPress={() => handleNavigate('/profile-new')}
@@ -75,6 +75,8 @@ export default function SettingsScreen() {
 						</View>
 						<Text style={styles.menuArrow}>→</Text>
 					</TouchableOpacity>
+
+					{/* Edit ICP Profile */}
 					<TouchableOpacity
 						style={styles.menuItem}
 						onPress={() => router.push('/icp-profile')}

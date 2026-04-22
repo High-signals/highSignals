@@ -10,6 +10,7 @@ import {
   RefreshControl,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { useRouter } from 'expo-router'
 import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
 
@@ -32,6 +33,7 @@ interface Post {
 }
 
 export default function PostsScreen() {
+  const router = useRouter()
   const { isAuthenticated } = useAuth()
   const [activeTab, setActiveTab] = useState('DRAFT')
   const [posts, setPosts] = useState<Post[]>([])
@@ -101,7 +103,11 @@ export default function PostsScreen() {
   }
 
   const PostCard = ({ post }: { post: Post }) => (
-    <TouchableOpacity style={styles.postCard} activeOpacity={0.8}>
+    <TouchableOpacity 
+      style={styles.postCard} 
+      activeOpacity={0.8}
+      onPress={() => router.push(`/(tabs)/post-detail?postId=${post.id}` as any)}
+    >
       <View style={styles.postHeader}>
         <View style={styles.postTitleSection}>
           <Text style={styles.postTitle} numberOfLines={2}>
@@ -160,10 +166,19 @@ export default function PostsScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Your Posts</Text>
-        <Text style={styles.headerSubtitle}>
-          Manage drafts, scheduled, and published posts
-        </Text>
+        <View>
+          <Text style={styles.headerTitle}>Your Posts</Text>
+          <Text style={styles.headerSubtitle}>
+            Manage drafts, scheduled, and published posts
+          </Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.getContentButton}
+          onPress={() => router.push('/(tabs)/GetContent' as any)}
+        >
+          <Ionicons name='search-outline' size={20} color='#0a192f' />
+          <Text style={styles.getContentButtonText}>Browse</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Tabs */}
@@ -256,6 +271,9 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 10,
@@ -269,6 +287,20 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.6)',
+  },
+  getContentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#d4af37',
+    borderRadius: 6,
+  },
+  getContentButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0a192f',
   },
   tabsScroll: {
     marginBottom: 20,
