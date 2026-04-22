@@ -169,9 +169,9 @@ export async function forgotPassword(data) {
 
 export async function resetPassword(data) {
 	const email = normalizeEmail(data.email || '')
-	const otpCode = (data.otp || data.resetToken || '').trim()
-	const newPassword = data.newPassword || ''
-	const confirmPassword = data.confirmPassword || ''
+	const otpCode = data.resetToken.trim()
+	const newPassword = data.newPassword
+	const confirmPassword = data.confirmPassword
 
 	if (!otpCode) {
 		throw new AppError('Reset code is required', 400)
