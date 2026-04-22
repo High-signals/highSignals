@@ -1,4 +1,10 @@
-import { createPostService, editPostService } from './post.service.js'
+import {
+	createPostService,
+	editPostService,
+	deletePostService,
+	getAllPostsService,
+	getPostByIdService,
+} from './post.service.js'
 import AppError from '../../shared/service/appError.js'
 import asyncHandler from '../../shared/service/asyncHandler.js'
 
