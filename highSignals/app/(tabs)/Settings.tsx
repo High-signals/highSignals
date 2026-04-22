@@ -10,9 +10,11 @@ import {
 	Alert,
 } from 'react-native'
 import { useRouter } from 'expo-router'
+import { useAuth } from '@/context/AuthContext'
 
 export default function SettingsScreen() {
 	const router = useRouter()
+	const { logout } = useAuth()
 	const [notifications, setNotifications] = useState(true)
 	const [darkMode, setDarkMode] = useState(true)
 	const [autoSave, setAutoSave] = useState(true)
@@ -37,6 +39,7 @@ export default function SettingsScreen() {
 	}, [])
 
 	const handleLogout = () => {
+		logout()
 		router.replace('/')
 	}
 
@@ -102,19 +105,6 @@ export default function SettingsScreen() {
 						<Text style={styles.menuArrow}>→</Text>
 					</TouchableOpacity>
 
-					{/* Edit ICP Profile - has no route */}
-					<TouchableOpacity
-						style={styles.menuItem}
-						onPress={() => handleNavigate()}
-					>
-						<View style={styles.menuLeft}>
-							<Text style={styles.menuIcon}>📝</Text>
-							<Text style={styles.menuText}>
-								Edit ICP Profile
-							</Text>
-						</View>
-						<Text style={styles.menuArrow}>→</Text>
-					</TouchableOpacity>
 				</Animated.View>
 
 				{/* Preferences */}

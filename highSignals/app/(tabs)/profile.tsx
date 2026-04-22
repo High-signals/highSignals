@@ -30,7 +30,10 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchProfile()
+      return
     }
+
+    setLoading(false)
   }, [isAuthenticated])
 
   const fetchProfile = async () => {
@@ -50,25 +53,25 @@ export default function ProfileScreen() {
       icon: 'person-outline',
       title: 'Edit Profile',
       description: 'Update your personal information',
-      onPress: () => router.push('/(tabs)/profile\ new' as any),
+      onPress: () => router.push('/profile-new' as any),
     },
     {
       icon: 'bulb-outline',
       title: 'ICP Profile',
       description: 'Manage your Ideal Client Profile',
-      onPress: () => router.push('/(tabs)/icp-profile' as any),
+      onPress: () => router.push('/icp-profile' as any),
     },
     {
       icon: 'document-text-outline',
       title: 'View Content',
       description: 'Browse all your content and posts',
-      onPress: () => router.push('/(tabs)/GetContent' as any),
+      onPress: () => router.push('/GetContent' as any),
     },
     {
       icon: 'settings-outline',
       title: 'Settings',
       description: 'App preferences and account settings',
-      onPress: () => router.push('/(tabs)/Settings' as any),
+      onPress: () => router.push('/Settings' as any),
     },
   ]
 
@@ -146,7 +149,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0a192f',
-    paddingBottom: 80,
   },
   profileCard: {
     alignItems: 'center',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+﻿import React, { useState, useEffect, useCallback } from 'react'
 import {
   View,
   Text,
@@ -27,6 +27,22 @@ interface Post {
   publishedAt?: string
 }
 
+const buildPreviewText = (value?: string | null) => {
+  if (!value) return 'No content yet.'
+
+  const withBreaks = value
+    .replace(/<\/(p|div|h1|h2|h3|h4|h5|h6)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<li>/gi, '- ')
+    .replace(/<\/li>/gi, '\n')
+
+  const plainText = withBreaks.replace(/<[^>]+>/g, ' ')
+  const compact = plainText.replace(/\s+/g, ' ').trim()
+
+  if (!compact) return 'No content yet.'
+  return compact.length > 160 ? `${compact.slice(0, 160)}...` : compact
+}
+
 export default function GetContentScreen() {
   const router = useRouter()
   const { isAuthenticated } = useAuth()
@@ -35,12 +51,6 @@ export default function GetContentScreen() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchPosts()
-    }
-  }, [isAuthenticated])
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -66,6 +76,15 @@ export default function GetContentScreen() {
       setRefreshing(false)
     }
   }, [])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchPosts()
+      return
+    }
+
+    setLoading(false)
+  }, [isAuthenticated, fetchPosts])
 
   const filteredPosts = posts.filter((post) => {
     const matchesFilter = filter === 'all' || post.status === filter
@@ -99,11 +118,7 @@ export default function GetContentScreen() {
   }
 
   const renderPost = ({ item }: { item: Post }) => (
-    <TouchableOpacity
-      style={styles.postCard}
-      onPress={() => router.push(`/(tabs)/post-detail?postId=${item.id}`)}
-      activeOpacity={0.8}
-    >
+    <View style={styles.postCard}>
       <View style={styles.postHeader}>
         <View style={styles.postLeft}>
           <View
@@ -131,12 +146,17 @@ export default function GetContentScreen() {
         </View>
       </View>
 
-      <Text style={styles.postTitle} numberOfLines={2}>
-        {item.title || 'Untitled Post'}
-      </Text>
+      <TouchableOpacity
+        activeOpacity={0.75}
+        onPress={() => router.push(`/(tabs)/post-detail?postId=${item.id}`)}
+      >
+        <Text style={styles.postTitle} numberOfLines={2}>
+          {item.title || 'Untitled Post'}
+        </Text>
+      </TouchableOpacity>
 
-      <Text style={styles.postContent} numberOfLines={2}>
-        {item.content}
+      <Text style={styles.postContent} numberOfLines={3}>
+        {buildPreviewText(item.content)}
       </Text>
 
       <View style={styles.postFooter}>
@@ -155,12 +175,12 @@ export default function GetContentScreen() {
           ))}
         </View>
       </View>
-    </TouchableOpacity>
+    </View>
   )
 
   const emptyComponent = (
     <View style={styles.emptyState}>
-      <Text style={styles.emptyEmoji}>📝</Text>
+      <Text style={styles.emptyEmoji}>*</Text>
       <Text style={styles.emptyText}>
         {filter === 'all' ? 'No content found' : `No ${filter.toLowerCase()} posts`}
       </Text>
@@ -180,7 +200,6 @@ export default function GetContentScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Your Content</Text>
@@ -193,7 +212,6 @@ export default function GetContentScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Search */}
       <View style={styles.searchContainer}>
         <Ionicons name='search-outline' size={20} color='rgba(255,255,255,0.4)' />
         <TextInput
@@ -205,7 +223,6 @@ export default function GetContentScreen() {
         />
       </View>
 
-      {/* Filters */}
       <View style={styles.filters}>
         {(['all', 'DRAFT', 'SCHEDULED', 'PUBLISHED', 'FAILED'] as FilterType[]).map((f) => (
           <TouchableOpacity
@@ -225,7 +242,6 @@ export default function GetContentScreen() {
         ))}
       </View>
 
-      {/* Post List */}
       {filteredPosts.length === 0 ? (
         emptyComponent
       ) : (
@@ -252,7 +268,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0a192f',
-    paddingBottom: 80,
   },
   header: {
     flexDirection: 'row',
@@ -318,15 +333,15 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 24,
-    paddingBottom: 20,
+    paddingBottom: 36,
   },
   postCard: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.035)',
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.2)',
+    borderColor: 'rgba(212,175,55,0.12)',
   },
   postHeader: {
     flexDirection: 'row',

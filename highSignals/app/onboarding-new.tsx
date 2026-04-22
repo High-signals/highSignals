@@ -8,8 +8,10 @@ import {
 	ScrollView,
 	KeyboardAvoidingView,
 	Platform,
+	Alert,
 } from 'react-native'
 import { useRouter } from 'expo-router'
+import { api } from '@/services/api'
 
 type UserType = 'business' | 'creator' | null
 
@@ -144,10 +146,39 @@ export default function OnboardingScreen() {
 		}
 	}
 
-	const handleComplete = (finalAnswers: Record<string, string>) => {
-		console.log('Onboarding Complete:', { userType, answers: finalAnswers })
-		// TODO: Send to backend
-		router.replace('/(tabs)/dashboard-new')
+	const handleComplete = async (finalAnswers: Record<string, string>) => {
+		try {
+			const payload =
+				userType === 'business'
+					? {
+							type: 'BUSINESS',
+							profession: finalAnswers.profession,
+							dreamClient: finalAnswers.dreamClient,
+							problem: finalAnswers.problem,
+							outcome: finalAnswers.outcome,
+							story: finalAnswers.story,
+							demographics: finalAnswers.demographics,
+							additional: finalAnswers.additional || '',
+						}
+					: {
+							type: 'CREATOR',
+							topic: finalAnswers.topic,
+							dreamFollower: finalAnswers.dreamFollower,
+							followReason: finalAnswers.followReason,
+							feeling: finalAnswers.feeling,
+							backstory: finalAnswers.backstory,
+							goal: finalAnswers.goal,
+						}
+
+			await api.icp.create(payload)
+			router.replace('/(tabs)/dashboard-new')
+		} catch (error: any) {
+			console.error('Onboarding save failed:', error)
+			Alert.alert(
+				'Error',
+				error.message || 'Failed to save onboarding answers',
+			)
+		}
 	}
 
 	// User Type Selection Screen

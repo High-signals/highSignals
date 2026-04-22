@@ -1,14 +1,8 @@
 // API Configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://high-signals.vercel.app' // || 'http://10.85.211.46:4521'
-
-interface TokenData {
-	access_token: string
-	user: {
-		id: string
-		email: string
-		name: string
-	}
-}
+const API_BASE_URL =
+	process.env.EXPO_PUBLIC_API_URL ||
+	process.env.REACT_APP_API_URL ||
+	'https://high-signals.vercel.app'
 
 // Store tokens (in production, use secure storage)
 let authTokens = {
@@ -72,6 +66,9 @@ export const api = {
 				},
 				false,
 			)
+			if (response.accessToken) {
+				api.setTokens({ accessToken: response.accessToken })
+			}
 			return response
 		},
 
@@ -84,8 +81,8 @@ export const api = {
 				},
 				false,
 			)
-			if (response.access_token) {
-				api.setTokens({ accessToken: response.access_token })
+			if (response.accessToken) {
+				api.setTokens({ accessToken: response.accessToken })
 			}
 			return response
 		},
@@ -99,8 +96,8 @@ export const api = {
 				},
 				false,
 			)
-			if (response.access_token) {
-				api.setTokens({ accessToken: response.access_token })
+			if (response.accessToken) {
+				api.setTokens({ accessToken: response.accessToken })
 			}
 			return response
 		},
@@ -179,7 +176,7 @@ export const api = {
 	posts: {
 		create: async (postData: any) => {
 			return api.call(
-				'/api/posts',
+				'/api/post',
 				{
 					method: 'POST',
 					body: JSON.stringify(postData),
@@ -189,30 +186,28 @@ export const api = {
 		},
 
 		getAll: async () => {
-			return api.call(
-				'/api/posts',
+			const response = await api.call(
+				'/api/post',
 				{
 					method: 'GET',
 				},
 				true,
 			)
+			return response.posts ?? response
 		},
 
 		getByStatus: async (status: string) => {
-			return api.call(
-				`/api/posts/status?status=${status}`,
-				{
-					method: 'GET',
-				},
-				true,
-			)
+			const posts = await api.posts.getAll()
+			return Array.isArray(posts)
+				? posts.filter((post: any) => post.status === status)
+				: []
 		},
 
 		update: async (postId: string, postData: any) => {
 			return api.call(
-				`/api/posts/${postId}`,
+				`/api/post/${postId}`,
 				{
-					method: 'PATCH',
+					method: 'PUT',
 					body: JSON.stringify(postData),
 				},
 				true,
@@ -221,7 +216,7 @@ export const api = {
 
 		delete: async (postId: string) => {
 			return api.call(
-				`/api/posts/${postId}`,
+				`/api/post/${postId}`,
 				{
 					method: 'DELETE',
 				},

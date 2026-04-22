@@ -1,3 +1,4 @@
+import React from 'react'
 import { Tabs } from 'expo-router'
 import { Text, View } from 'react-native'
 // aa

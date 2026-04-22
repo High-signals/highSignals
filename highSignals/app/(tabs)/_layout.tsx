@@ -24,13 +24,13 @@ export default function TabsLayout() {
 			activeIcon: 'add-circle',
 		},
 		{
-			href: '/(tabs)/Content-library',
+			href: '/(tabs)/GetContent',
 			label: 'Posts',
 			icon: 'document-text-outline',
 			activeIcon: 'document-text',
 		},
 		{
-			href: '/(tabs)/Settings',
+			href: '/(tabs)/profile',
 			label: 'Profile',
 			icon: 'person-outline',
 			activeIcon: 'person',

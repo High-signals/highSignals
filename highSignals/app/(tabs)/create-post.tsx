@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useRef, useState } from 'react'
 import {
 	View,
 	Text,
@@ -14,23 +14,148 @@ import {
 	Dimensions,
 } from 'react-native'
 import { useRouter } from 'expo-router'
-import DateTimePicker from '@react-native-community/datetimepicker'
+import DateTimePicker, {
+	DateTimePickerAndroid,
+} from '@react-native-community/datetimepicker'
 import { LinearGradient } from 'expo-linear-gradient'
+import { Ionicons } from '@expo/vector-icons'
+import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor'
 import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
 
 const { width } = Dimensions.get('window')
 
 type PublishOption = 'immediate' | 'schedule' | 'draft'
-type TextFormat = 'bold' | 'italic' | 'underline' | 'strikethrough'
 
-interface FormattedSegment {
-	text: string
-	formats: Set<TextFormat>
+type TextStyleState = {
+	bold: boolean
+	italic: boolean
+	underline: boolean
+	strike: boolean
+	size: number
+}
+
+const defaultTextStyleState: TextStyleState = {
+	bold: false,
+	italic: false,
+	underline: false,
+	strike: false,
+	size: 16,
+}
+
+const tokenizeRichText = (text: string) => {
+	type Segment = { text: string; style: TextStyleState }
+	const segments: Segment[] = []
+
+	let current = ''
+	let i = 0
+	let style: TextStyleState = { ...defaultTextStyleState }
+
+	const flush = () => {
+		if (current.length > 0) {
+			segments.push({ text: current, style: { ...style } })
+			current = ''
+		}
+	}
+
+	while (i < text.length) {
+		if (text.startsWith('[size=', i)) {
+			const close = text.indexOf(']', i)
+			if (close !== -1) {
+				const value = Number(text.slice(i + 6, close))
+				flush()
+				style = {
+					...style,
+					size: Number.isFinite(value) ? value : style.size,
+				}
+				i = close + 1
+				continue
+			}
+		}
+
+		if (text.startsWith('[/size]', i)) {
+			flush()
+			style = { ...style, size: defaultTextStyleState.size }
+			i += 7
+			continue
+		}
+
+		if (text.startsWith('**', i)) {
+			flush()
+			style = { ...style, bold: !style.bold }
+			i += 2
+			continue
+		}
+
+		if (text.startsWith('__', i)) {
+			flush()
+			style = { ...style, underline: !style.underline }
+			i += 2
+			continue
+		}
+
+		if (text.startsWith('~~', i)) {
+			flush()
+			style = { ...style, strike: !style.strike }
+			i += 2
+			continue
+		}
+
+		if (text.startsWith('_', i)) {
+			flush()
+			style = { ...style, italic: !style.italic }
+			i += 1
+			continue
+		}
+
+		current += text[i]
+		i += 1
+	}
+
+	flush()
+	return segments
+}
+
+const renderRichText = (text: string, baseFontSize: number, color: string) => {
+	const segments = tokenizeRichText(text)
+
+	if (segments.length === 0) {
+		return null
+	}
+
+	return segments.map((segment, index) => {
+		const segmentStyle = {
+			fontSize: segment.style.size || baseFontSize,
+			fontWeight: segment.style.bold
+				? ('700' as const)
+				: ('400' as const),
+			fontStyle: segment.style.italic
+				? ('italic' as const)
+				: ('normal' as const),
+			textDecorationLine: [
+				segment.style.underline ? 'underline' : null,
+				segment.style.strike ? 'line-through' : null,
+			]
+				.filter(Boolean)
+				.join(' ') as
+				| 'none'
+				| 'underline'
+				| 'line-through'
+				| 'underline line-through',
+			color,
+		}
+
+		return (
+			<Text key={`${index}-${segment.text}`} style={segmentStyle}>
+				{segment.text}
+			</Text>
+		)
+	})
 }
 
 export default function CreatePostScreen() {
 	const router = useRouter()
+	const editorRef = useRef<RichEditor>(null)
 	const { isAuthenticated } = useAuth()
 	const [content, setContent] = useState('')
 	const [title, setTitle] = useState('')
@@ -48,30 +173,23 @@ export default function CreatePostScreen() {
 
 	// Text formatting
 	const [fontSize, setFontSize] = useState(16)
-	const [activeFormats, setActiveFormats] = useState<Set<TextFormat>>(
-		new Set(),
-	)
 	const [selectedColor, setSelectedColor] = useState('#ffffff')
 	const [editHistory, setEditHistory] = useState<string[]>([content])
 	const [historyIndex, setHistoryIndex] = useState(0)
+	const [selection, setSelection] = useState({ start: 0, end: 0 })
+
+	const plainContent = content
+		.replace(/<[^>]+>/g, ' ')
+		.replace(/&nbsp;/g, ' ')
+		.replace(/\s+/g, ' ')
+		.trim()
 
 	const characterLimit = 2000
 	const characterPercentage = Math.min(
-		(content.length / characterLimit) * 100,
+		(plainContent.length / characterLimit) * 100,
 		100,
 	)
-	const wordCount = content.split(' ').filter(Boolean).length
-
-	// Formatting utilities
-	const toggleFormat = (format: TextFormat) => {
-		const newFormats = new Set(activeFormats)
-		if (newFormats.has(format)) {
-			newFormats.delete(format)
-		} else {
-			newFormats.add(format)
-		}
-		setActiveFormats(newFormats)
-	}
+	const wordCount = plainContent ? plainContent.split(' ').length : 0
 
 	const updateContentHistory = (newContent: string) => {
 		const newHistory = editHistory.slice(0, historyIndex + 1)
@@ -93,6 +211,58 @@ export default function CreatePostScreen() {
 			setHistoryIndex(historyIndex + 1)
 			setContent(editHistory[historyIndex + 1])
 		}
+	}
+
+	const applyFormatting = (prefix: string, suffix = prefix) => {
+		const start = Math.min(selection.start, selection.end)
+		const end = Math.max(selection.start, selection.end)
+
+		if (start === end) {
+			Alert.alert(
+				'Select text first',
+				'Highlight the word or sentence you want to format, then tap the toolbar button again.',
+			)
+			return
+		}
+
+		const before = content.slice(0, start)
+		const selected = content.slice(start, end)
+		const after = content.slice(end)
+		const nextContent = `${before}${prefix}${selected}${suffix}${after}`
+		updateContentHistory(nextContent)
+
+		const cursor =
+			before.length + prefix.length + selected.length + suffix.length
+		setSelection({ start: cursor, end: cursor })
+	}
+
+	const applySizeToSelection = (nextSize: number) => {
+		const start = Math.min(selection.start, selection.end)
+		const end = Math.max(selection.start, selection.end)
+
+		if (start === end) {
+			setFontSize(nextSize)
+			Alert.alert(
+				'Select text first',
+				'Highlight the word or sentence you want to resize, then tap the size control again.',
+			)
+			return
+		}
+
+		setFontSize(nextSize)
+		const before = content.slice(0, start)
+		const selected = content
+			.slice(start, end)
+			.replace(/\[size=\d+\]|\[\/size\]/g, '')
+		const after = content.slice(end)
+		const sizeStart = `[size=${nextSize}]`
+		const sizeEnd = '[/size]'
+		const nextContent = `${before}${sizeStart}${selected}${sizeEnd}${after}`
+		updateContentHistory(nextContent)
+
+		const cursor =
+			before.length + sizeStart.length + selected.length + sizeEnd.length
+		setSelection({ start: cursor, end: cursor })
 	}
 
 	const insertLink = () => {
@@ -120,12 +290,50 @@ export default function CreatePostScreen() {
 		updateContentHistory(content + '\n\n📌 HEADING\n')
 	}
 
+	const combineDateAndTime = (datePart: Date, timePart: Date) => {
+		const next = new Date(datePart)
+		next.setHours(
+			timePart.getHours(),
+			timePart.getMinutes(),
+			timePart.getSeconds(),
+			0,
+		)
+		return next
+	}
+
+	const openScheduleDatePicker = () => {
+		if (Platform.OS === 'android') {
+			DateTimePickerAndroid.open({
+				value: scheduleDate,
+				mode: 'date',
+				onChange: (_event, selectedDate) => {
+					if (!selectedDate) return
+
+					DateTimePickerAndroid.open({
+						value: selectedDate,
+						mode: 'time',
+						onChange: (_timeEvent, selectedTime) => {
+							if (selectedTime) {
+								setScheduleDate(
+									combineDateAndTime(selectedDate, selectedTime),
+								)
+							}
+						},
+					})
+				},
+			})
+			return
+		}
+
+		setShowDatePicker(true)
+	}
+
 	const increaseFontSize = () => {
-		if (fontSize < 28) setFontSize(fontSize + 2)
+		if (fontSize < 28) applySizeToSelection(fontSize + 2)
 	}
 
 	const decreaseFontSize = () => {
-		if (fontSize > 12) setFontSize(fontSize - 2)
+		if (fontSize > 12) applySizeToSelection(fontSize - 2)
 	}
 
 	const handleAnalyze = async () => {
@@ -228,7 +436,10 @@ export default function CreatePostScreen() {
 				</View>
 			</LinearGradient>
 
-			<ScrollView showsVerticalScrollIndicator={false}>
+			<ScrollView
+				showsVerticalScrollIndicator={false}
+				contentContainerStyle={styles.scrollContent}
+			>
 				{/* Platform Selector Card */}
 				<View style={styles.card}>
 					<Text style={styles.cardLabel}>🎯 Where to Post?</Text>
@@ -289,177 +500,105 @@ export default function CreatePostScreen() {
 				<View style={styles.card}>
 					<Text style={styles.cardLabel}>🎨 Formatting Tools</Text>
 
-					{/* First Row - Font Size & Basic Formatting */}
-					<ScrollView
-						horizontal
-						showsHorizontalScrollIndicator={false}
-					>
-						<View style={styles.toolbarGroup}>
-							<TouchableOpacity
-								style={styles.toolButton}
-								onPress={decreaseFontSize}
-							>
-								<Text style={styles.toolIcon}>A</Text>
-								<Text style={styles.toolSubtext}>-</Text>
-							</TouchableOpacity>
-							<View style={styles.fontSizeContainer}>
-								<Text style={styles.fontSizeDisplay}>
-									{fontSize}
-								</Text>
-							</View>
-							<TouchableOpacity
-								style={styles.toolButton}
-								onPress={increaseFontSize}
-							>
-								<Text style={styles.toolIcon}>A</Text>
-								<Text style={styles.toolSubtext}>+</Text>
-							</TouchableOpacity>
+					<View style={styles.toolbarRow}>
+						<TouchableOpacity
+							style={styles.toolButton}
+							onPress={() => {
+								if (fontSize > 1) {
+									const next = (fontSize - 1) as
+										| 1
+										| 2
+										| 3
+										| 4
+										| 5
+										| 6
+										| 7
+									setFontSize((prev) => Math.max(1, prev - 1))
+									editorRef.current?.setFontSize(next)
+								}
+							}}
+						>
+							<Text style={styles.toolIcon}>A</Text>
+							<Text style={styles.toolSubtext}>-</Text>
+						</TouchableOpacity>
+
+						<View style={styles.fontSizeContainer}>
+							<Text style={styles.fontSizeDisplay}>
+								{fontSize}
+							</Text>
 						</View>
 
-						<View style={styles.toolDivider} />
-
 						<TouchableOpacity
-							style={[
-								styles.toolButton,
-								activeFormats.has('bold') &&
-									styles.toolButtonActive,
+							style={styles.toolButton}
+							onPress={() => {
+								if (fontSize < 7) {
+									const next = (fontSize + 1) as
+										| 1
+										| 2
+										| 3
+										| 4
+										| 5
+										| 6
+										| 7
+									setFontSize((prev) => Math.min(7, prev + 1))
+									editorRef.current?.setFontSize(next)
+								}
+							}}
+						>
+							<Text style={styles.toolIcon}>A</Text>
+							<Text style={styles.toolSubtext}>+</Text>
+						</TouchableOpacity>
+					</View>
+
+					<View style={styles.toolbarEditorWrap}>
+						<RichToolbar
+							editor={editorRef}
+							actions={[
+								actions.setBold,
+								actions.setItalic,
+								actions.setUnderline,
+								actions.setStrikethrough,
+								actions.heading1,
+								actions.insertBulletsList,
+								actions.insertOrderedList,
+								actions.insertLink,
+								actions.undo,
+								actions.redo,
 							]}
-							onPress={() => toggleFormat('bold')}
-						>
-							<Text
-								style={[
-									styles.toolIcon,
-									{ fontWeight: 'bold' },
-								]}
-							>
-								B
-							</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={[
-								styles.toolButton,
-								activeFormats.has('italic') &&
-									styles.toolButtonActive,
-							]}
-							onPress={() => toggleFormat('italic')}
-						>
-							<Text
-								style={[
-									styles.toolIcon,
-									{ fontStyle: 'italic' },
-								]}
-							>
-								I
-							</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={[
-								styles.toolButton,
-								activeFormats.has('underline') &&
-									styles.toolButtonActive,
-							]}
-							onPress={() => toggleFormat('underline')}
-						>
-							<Text style={[styles.toolIcon]}>U̲</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={[
-								styles.toolButton,
-								activeFormats.has('strikethrough') &&
-									styles.toolButtonActive,
-							]}
-							onPress={() => toggleFormat('strikethrough')}
-						>
-							<Text style={[styles.toolIcon]}>S̶</Text>
-						</TouchableOpacity>
-					</ScrollView>
-
-					{/* Second Row - Lists & Structure */}
-					<ScrollView
-						horizontal
-						showsHorizontalScrollIndicator={false}
-						style={styles.toolbarSecondRow}
-					>
-						<TouchableOpacity
-							style={styles.toolButton}
-							onPress={insertHeading}
-						>
-							<Text style={styles.toolIcon}>H1</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={styles.toolButton}
-							onPress={insertBulletList}
-						>
-							<Text style={styles.toolIcon}>◆</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={styles.toolButton}
-							onPress={insertNumberedList}
-						>
-							<Text style={styles.toolIcon}>1.</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={styles.toolButton}
-							onPress={insertLink}
-						>
-							<Text style={styles.toolIcon}>🔗</Text>
-						</TouchableOpacity>
-
-						<View style={styles.toolDivider} />
-
-						<TouchableOpacity
-							style={styles.toolButton}
-							onPress={undo}
-							disabled={historyIndex <= 0}
-						>
-							<Text style={[styles.toolIcon, { fontSize: 18 }]}>
-								↶
-							</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={styles.toolButton}
-							onPress={redo}
-							disabled={historyIndex >= editHistory.length - 1}
-						>
-							<Text style={[styles.toolIcon, { fontSize: 18 }]}>
-								↷
-							</Text>
-						</TouchableOpacity>
-					</ScrollView>
+							iconTint='#ffffff'
+							selectedIconTint='#0a192f'
+							selectedButtonStyle={styles.richToolbarSelected}
+							style={styles.richToolbar}
+						/>
+					</View>
 				</View>
 
 				{/* Content Editor Card */}
 				<View style={styles.card}>
 					<Text style={styles.cardLabel}>✍️ Your Content</Text>
 					<View style={styles.editorSection}>
-						<TextInput
-							style={[
-								styles.contentInput,
-								{
-									fontSize,
-									fontWeight: activeFormats.has('bold')
-										? 'bold'
-										: 'normal',
-									fontStyle: activeFormats.has('italic')
-										? 'italic'
-										: 'normal',
-									color: selectedColor,
-								},
-							]}
+						<RichEditor
+							ref={editorRef}
+							initialContentHTML={content || '<p></p>'}
+							onChange={setContent}
+							editorStyle={{
+								backgroundColor: 'transparent',
+								color: '#ffffff',
+								caretColor: '#d4af37',
+								placeholderColor: 'rgba(255,255,255,0.3)',
+								contentCSSText:
+									"font-size: 16px; line-height: 28px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #ffffff;",
+							}}
 							placeholder='Write your thoughts, insights, or ideas here...'
-							placeholderTextColor='rgba(255,255,255,0.3)'
-							value={content}
-							onChangeText={updateContentHistory}
-							multiline
-							textAlignVertical='top'
+							useContainer={false}
+							style={styles.richEditorInput}
 						/>
+					</View>
+
+					<View style={styles.formatHintCompact}>
+						<Text style={styles.formatHintCompactText}>
+							Use the toolbar above to format selected text.
+						</Text>
 					</View>
 
 					{/* Character Count Progress */}
@@ -480,7 +619,7 @@ export default function CreatePostScreen() {
 						</View>
 						<View style={styles.statsRow}>
 							<Text style={styles.statText}>
-								{content.length}/{characterLimit} chars
+								{plainContent.length}/{characterLimit} chars
 							</Text>
 							<Text style={styles.statText}>
 								{wordCount} words
@@ -543,7 +682,7 @@ export default function CreatePostScreen() {
 					</LinearGradient>
 				)}
 
-				<View style={{ height: 180 }} />
+				<View style={{ height: aiScore !== null ? 260 : 220 }} />
 			</ScrollView>
 
 			{/* Bottom Action Bar */}
@@ -651,7 +790,7 @@ export default function CreatePostScreen() {
 							]}
 							onPress={() => {
 								setPublishOption('schedule')
-								setShowDatePicker(true)
+								openScheduleDatePicker()
 							}}
 						>
 							<View style={styles.optionLeft}>
@@ -746,14 +885,19 @@ export default function CreatePostScreen() {
 			</Modal>
 
 			{/* Date Picker */}
-			{showDatePicker && (
+			{showDatePicker && Platform.OS === 'ios' && (
 				<DateTimePicker
 					value={scheduleDate}
 					mode='datetime'
 					display='default'
 					onChange={(event, selectedDate) => {
-						setShowDatePicker(false)
+						if (event?.type === 'dismissed') {
+							setShowDatePicker(false)
+							return
+						}
+
 						if (selectedDate) setScheduleDate(selectedDate)
+						setShowDatePicker(false)
 					}}
 				/>
 			)}
@@ -767,7 +911,7 @@ const styles = StyleSheet.create({
 		backgroundColor: '#0a192f',
 	},
 	headerGradient: {
-		paddingTop: 60,
+		paddingTop: 30,
 		paddingBottom: 16,
 		borderBottomWidth: 1,
 		borderBottomColor: 'rgba(212,175,55,0.2)',
@@ -814,6 +958,9 @@ const styles = StyleSheet.create({
 		marginBottom: 12,
 		textTransform: 'uppercase',
 	},
+	scrollContent: {
+		paddingBottom: 220,
+	},
 
 	// Platform Selector
 	platformScrollView: {
@@ -857,10 +1004,30 @@ const styles = StyleSheet.create({
 	},
 
 	// Toolbar
+	toolbarRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: 10,
+	},
 	toolbarGroup: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		marginRight: 12,
+	},
+	toolbarEditorWrap: {
+		borderRadius: 14,
+		overflow: 'hidden',
+		backgroundColor: 'rgba(255,255,255,0.04)',
+		borderWidth: 1,
+		borderColor: 'rgba(212,175,55,0.12)',
+	},
+	richToolbar: {
+		backgroundColor: 'transparent',
+		borderTopWidth: 0,
+		borderBottomWidth: 0,
+	},
+	richToolbarSelected: {
+		backgroundColor: '#d4af37',
 	},
 	toolbarSecondRow: {
 		marginTop: 8,
@@ -912,12 +1079,38 @@ const styles = StyleSheet.create({
 
 	// Editor
 	editorSection: {
-		minHeight: 280,
+		minHeight: 320,
 		paddingVertical: 8,
 	},
-	contentInput: {
-		color: '#ffffff',
-		lineHeight: 28,
+	richEditorInput: {
+		minHeight: 280,
+	},
+	formatHint: {
+		flexDirection: 'row',
+		alignItems: 'flex-start',
+		gap: 8,
+		marginTop: 12,
+		padding: 12,
+		borderRadius: 12,
+		backgroundColor: 'rgba(212,175,55,0.08)',
+		borderWidth: 1,
+		borderColor: 'rgba(212,175,55,0.15)',
+	},
+	formatHintText: {
+		flex: 1,
+		fontSize: 12,
+		lineHeight: 18,
+		color: 'rgba(255,255,255,0.75)',
+		fontWeight: '500',
+	},
+	formatHintCompact: {
+		marginTop: 12,
+		paddingHorizontal: 4,
+	},
+	formatHintCompactText: {
+		fontSize: 12,
+		lineHeight: 18,
+		color: 'rgba(255,255,255,0.55)',
 	},
 
 	// Stats

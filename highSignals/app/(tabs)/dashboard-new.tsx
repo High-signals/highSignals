@@ -1,22 +1,41 @@
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
-	View,
-	Text,
-	TouchableOpacity,
-	StyleSheet,
-	ScrollView,
-	TextInput,
-	SafeAreaView,
+	ActivityIndicator,
 	Animated,
+	SafeAreaView,
+	ScrollView,
+	StyleSheet,
+	Text,
+	TextInput,
+	TouchableOpacity,
+	View,
 } from 'react-native'
 import { useRouter } from 'expo-router'
+import { api } from '@/services/api'
+import { useAuth } from '@/context/AuthContext'
+
+type Post = {
+	id: string
+	title?: string
+	content: string
+	status: string
+	platforms: string[]
+	createdAt: string
+	scheduledAt?: string | null
+	publishedAt?: string | null
+}
 
 export default function DashboardScreen() {
 	const router = useRouter()
-	const fadeAnim = new Animated.Value(0)
-	const slideAnim = new Animated.Value(50)
+	const { user } = useAuth()
+	const fadeAnim = useMemo(() => new Animated.Value(0), [])
+	const slideAnim = useMemo(() => new Animated.Value(50), [])
+	const [posts, setPosts] = useState<Post[]>([])
+	const [profile, setProfile] = useState<any | null>(null)
+	const [icp, setIcp] = useState<any | null>(null)
+	const [loadingData, setLoadingData] = useState(true)
 
-	React.useEffect(() => {
+	useEffect(() => {
 		Animated.parallel([
 			Animated.timing(fadeAnim, {
 				toValue: 1,
@@ -30,14 +49,99 @@ export default function DashboardScreen() {
 				useNativeDriver: true,
 			}),
 		]).start()
+	}, [fadeAnim, slideAnim])
+
+	useEffect(() => {
+		let mounted = true
+
+		const loadDashboard = async () => {
+			try {
+				const [profileData, postsData, icpData] = await Promise.all([
+					api.profile.get().catch(() => null),
+					api.posts.getAll().catch(() => []),
+					api.icp.get().catch(() => null),
+				])
+
+				if (!mounted) return
+
+				setProfile(profileData)
+				setPosts(postsData || [])
+				setIcp(icpData)
+			} finally {
+				if (mounted) setLoadingData(false)
+			}
+		}
+
+		loadDashboard()
+
+		return () => {
+			mounted = false
+		}
 	}, [])
 
-	const userData = {
-		name: 'Samuel',
-		initial: 'S',
-		streak: 12,
-		date: 'Sunday, March 29, 2026',
-	}
+	const userName = profile?.name || user?.name || 'there'
+	const firstName = userName.split(' ')[0] || userName
+	const userInitial =
+		userName
+			.split(' ')
+			.map((part: string) => part[0])
+			.join('')
+			.toUpperCase()
+			.slice(0, 2) || 'U'
+	const todayLabel = new Date().toLocaleDateString(undefined, {
+		weekday: 'long',
+		month: 'long',
+		day: 'numeric',
+		year: 'numeric',
+	})
+
+	const counts = useMemo(
+		() =>
+			posts.reduce(
+				(acc, post) => {
+					if (post.status === 'DRAFT') acc.DRAFT += 1
+					if (post.status === 'SCHEDULED') acc.SCHEDULED += 1
+					if (post.status === 'PUBLISHED') acc.PUBLISHED += 1
+					if (post.status === 'FAILED') acc.FAILED += 1
+					return acc
+				},
+				{ DRAFT: 0, SCHEDULED: 0, PUBLISHED: 0, FAILED: 0 },
+			),
+		[posts],
+	)
+
+	const recentPosts = useMemo(
+		() =>
+			[...posts]
+				.sort(
+					(a, b) =>
+						new Date(b.createdAt).getTime() -
+						new Date(a.createdAt).getTime(),
+				)
+				.slice(0, 3),
+		[posts],
+	)
+
+	const nextScheduledPost = useMemo(
+		() =>
+			[...posts]
+				.filter(
+					(post) => post.status === 'SCHEDULED' && post.scheduledAt,
+				)
+				.sort(
+					(a, b) =>
+						new Date(a.scheduledAt || 0).getTime() -
+						new Date(b.scheduledAt || 0).getTime(),
+				)[0] || null,
+		[posts],
+	)
+
+	const hasPosts = posts.length > 0
+	const isProfileComplete = !!profile?.bio && !!icp
+	const mainActionTitle = isProfileComplete ? 'New content' : 'Complete setup'
+	const mainActionSubtitle = isProfileComplete
+		? 'Start a new post with your current ICP'
+		: 'Finish your profile and ICP first'
 
 	return (
 		<SafeAreaView style={styles.safeArea}>
@@ -47,25 +151,18 @@ export default function DashboardScreen() {
 					bounces={false}
 					contentContainerStyle={styles.scrollContent}
 				>
-					{/* Header */}
 					<Animated.View
 						style={[styles.header, { opacity: fadeAnim }]}
 					>
 						<View style={styles.headerLeft}>
 							<TouchableOpacity
 								style={styles.profileIcon}
-								onPress={() => router.push('/profile-new')}
+								onPress={() => router.push('/profile')}
 							>
 								<Text style={styles.profileInitial}>
-									{userData.initial}
+									{userInitial}
 								</Text>
 							</TouchableOpacity>
-							<View style={styles.streakBadge}>
-								<Text style={styles.streakIcon}>✨</Text>
-								<Text style={styles.streakText}>
-									v{userData.streak}
-								</Text>
-							</View>
 						</View>
 
 						<View style={styles.headerRight}>
@@ -78,23 +175,109 @@ export default function DashboardScreen() {
 						</View>
 					</Animated.View>
 
-					{/* Title */}
 					<View style={styles.titleSection}>
-						<Text style={styles.title}>My HighSignals</Text>
-						<Text style={styles.date}>{userData.date}</Text>
+						<Text style={styles.title}>
+							Welcome back, {firstName}
+						</Text>
+						<Text style={styles.date}>{todayLabel}</Text>
 					</View>
 
-					{/* Search Bar */}
-					<View style={styles.searchContainer}>
-						<TextInput
-							style={styles.searchInput}
-							placeholder='Find any post, idea or draft'
-							placeholderTextColor='rgba(255,255,255,0.4)'
-						/>
-						<Text style={styles.searchIcon}>🔍</Text>
+					<View style={styles.insightCard}>
+						<View style={styles.insightHeader}>
+							<View style={styles.insightIcon}>
+								<Text style={styles.insightEmoji}>✨</Text>
+							</View>
+							<Text style={styles.insightTitle}>
+								Dashboard Insight
+							</Text>
+						</View>
+						<Text style={styles.insightText}>
+							{!icp
+								? 'Your ICP is still missing. Complete it to unlock sharper post guidance.'
+								: !hasPosts
+									? 'You are set up. Start with your first post to populate your content pipeline.'
+									: nextScheduledPost
+										? `Next scheduled post is set for ${new Date(
+												nextScheduledPost.scheduledAt ||
+													'',
+											).toLocaleString()}`
+										: 'Your content pipeline is active. Schedule the next post to stay consistent.'}
+						</Text>
 					</View>
 
-					{/* Main Action Cards */}
+					{/* {nextScheduledPost ? (
+						<TouchableOpacity
+							style={styles.nextCard}
+							activeOpacity={0.85}
+							onPress={() =>
+								router.push(
+									`/(tabs)/post-detail?postId=${nextScheduledPost.id}` as any,
+								)
+							}
+						>
+							<View style={styles.nextCardTop}>
+								<Text style={styles.nextCardLabel}>
+									Next scheduled post
+								</Text>
+								<View style={styles.nextCardPill}>
+									<Text style={styles.nextCardPillText}>
+										{nextScheduledPost.status}
+									</Text>
+								</View>
+							</View>
+							<Text style={styles.nextCardTitle}>
+								{nextScheduledPost.title || 'Untitled Post'}
+							</Text>
+							<Text style={styles.nextCardMeta}>
+								{nextScheduledPost.platforms.join(', ')} on{' '}
+								{new Date(
+									nextScheduledPost.scheduledAt || '',
+								).toLocaleString()}
+							</Text>
+						</TouchableOpacity>
+					) : (
+						<View style={styles.nextCard}>
+							<View style={styles.nextCardTop}>
+								<Text style={styles.nextCardLabel}>
+									Next scheduled post
+								</Text>
+								<View style={styles.nextCardPillAlt}>
+									<Text style={styles.nextCardPillTextAlt}>
+										No schedule yet
+									</Text>
+								</View>
+							</View>
+							<Text style={styles.nextCardTitle}>
+								No upcoming post is scheduled
+							</Text>
+							<Text style={styles.nextCardMeta}>
+								Use Create to queue your next post and keep the
+								calendar full.
+							</Text>
+						</View>
+					)} */}
+
+					{!isProfileComplete && (
+						<TouchableOpacity
+							style={styles.setupPrompt}
+							onPress={() => router.push('/profile')}
+							activeOpacity={0.85}
+						>
+							<View style={styles.setupPromptIcon}>
+								<Text style={styles.setupPromptEmoji}>🧭</Text>
+							</View>
+							<View style={styles.setupPromptContent}>
+								<Text style={styles.setupPromptTitle}>
+									Finish your setup
+								</Text>
+								<Text style={styles.setupPromptSubtitle}>
+									Complete profile and ICP for better
+									recommendations.
+								</Text>
+							</View>
+						</TouchableOpacity>
+					)}
+
 					<Animated.View
 						style={[
 							styles.mainCards,
@@ -104,18 +287,26 @@ export default function DashboardScreen() {
 							},
 						]}
 					>
-						{/* New Content Card */}
 						<TouchableOpacity
 							style={[styles.actionCard, styles.greenCard]}
-							onPress={() => router.push('/create-post')}
+							onPress={() =>
+								router.push(
+									isProfileComplete
+										? '/create-post'
+										: '/profile',
+								)
+							}
 							activeOpacity={0.8}
 						>
 							<View style={styles.cardHeader}>
 								<Text style={styles.cardIcon}>+</Text>
 								<Text style={styles.cardTitle}>
-									New content
+									{mainActionTitle}
 								</Text>
 							</View>
+							<Text style={styles.cardSubtitle}>
+								{mainActionSubtitle}
+							</Text>
 							<View style={styles.cardIllustration}>
 								<View style={styles.illustrationBox}>
 									<View style={styles.illustrationLine} />
@@ -125,10 +316,9 @@ export default function DashboardScreen() {
 							</View>
 						</TouchableOpacity>
 
-						{/* View Drafts Card */}
 						<TouchableOpacity
 							style={[styles.actionCard, styles.purpleCard]}
-							onPress={() => router.push('/Content-library')}
+							onPress={() => router.push('/GetContent')}
 							activeOpacity={0.8}
 						>
 							<View style={styles.cardHeader}>
@@ -137,6 +327,9 @@ export default function DashboardScreen() {
 									View drafts
 								</Text>
 							</View>
+							<Text style={styles.cardSubtitle}>
+								Monitor drafts, scheduled, and published posts
+							</Text>
 							<View style={styles.cardIllustration}>
 								<View style={styles.draftIllustration}>
 									<View style={styles.draftItem}>
@@ -155,14 +348,10 @@ export default function DashboardScreen() {
 						</TouchableOpacity>
 					</Animated.View>
 
-					{/* Quick Actions */}
 					<View style={styles.quickActions}>
-						{/* Schedule */}
 						<TouchableOpacity
 							style={styles.quickActionItem}
-							onPress={() =>
-								router.push('/Content-library?status=schedule')
-							}
+							onPress={() => router.push('/GetContent')}
 						>
 							<View style={styles.quickActionIcon}>
 								<Text style={styles.quickIcon}>📅</Text>
@@ -172,7 +361,6 @@ export default function DashboardScreen() {
 							</Text>
 						</TouchableOpacity>
 
-						{/* Analytics */}
 						<TouchableOpacity
 							style={styles.quickActionItem}
 							onPress={() => router.push('/Analytics')}
@@ -185,7 +373,6 @@ export default function DashboardScreen() {
 							</Text>
 						</TouchableOpacity>
 
-						{/* Ideas */}
 						<TouchableOpacity
 							style={styles.quickActionItem}
 							onPress={() => router.push('/Content-ideas')}
@@ -196,16 +383,111 @@ export default function DashboardScreen() {
 							<Text style={styles.quickActionLabel}>Ideas</Text>
 						</TouchableOpacity>
 
-						{/* Media (not ready yet) */}
 						<TouchableOpacity
 							style={styles.quickActionItem}
-							onPress={() => router.push('/dashboard-new')} // optional
+							onPress={() => router.push('/dashboard-new')}
 						>
 							<View style={styles.quickActionIcon}>
 								<Text style={styles.quickIcon}>📸</Text>
 							</View>
 							<Text style={styles.quickActionLabel}>Media</Text>
 						</TouchableOpacity>
+					</View>
+
+					<View style={styles.statusStrip}>
+						<View style={styles.statusCard}>
+							<Text style={styles.statusValue}>
+								{counts.DRAFT}
+							</Text>
+							<Text style={styles.statusLabel}>Drafts</Text>
+						</View>
+						<View style={styles.statusCard}>
+							<Text style={styles.statusValue}>
+								{counts.SCHEDULED}
+							</Text>
+							<Text style={styles.statusLabel}>Schedule</Text>
+						</View>
+						<View style={styles.statusCard}>
+							<Text style={styles.statusValue}>
+								{counts.PUBLISHED}
+							</Text>
+							<Text style={styles.statusLabel}>Published</Text>
+						</View>
+						<View style={styles.statusCard}>
+							<Text style={styles.statusValue}>
+								{counts.FAILED}
+							</Text>
+							<Text style={styles.statusLabel}>Failed</Text>
+						</View>
+					</View>
+
+					<View style={styles.sectionHeader}>
+						<Text style={styles.sectionTitle}>Recent activity</Text>
+						<TouchableOpacity onPress={() => router.push('/posts')}>
+							<Text style={styles.sectionLink}>View all</Text>
+						</TouchableOpacity>
+					</View>
+
+					<View style={styles.activityCard}>
+						{loadingData ? (
+							<ActivityIndicator color='#d4af37' />
+						) : recentPosts.length > 0 ? (
+							recentPosts.map((post) => (
+								<TouchableOpacity
+									key={post.id}
+									style={styles.activityRow}
+									onPress={() =>
+										router.push(
+											`/(tabs)/post-detail?postId=${post.id}` as any,
+										)
+									}
+									activeOpacity={0.8}
+								>
+									<View
+										style={[
+											styles.activityDot,
+											{
+												backgroundColor:
+													post.status === 'PUBLISHED'
+														? '#34C759'
+														: post.status ===
+															  'SCHEDULED'
+															? '#FFB800'
+															: post.status ===
+																  'FAILED'
+																? '#FF6B6B'
+																: '#8E8E93',
+											},
+										]}
+									/>
+									<View style={styles.activityContent}>
+										<Text
+											style={styles.activityTitle}
+											numberOfLines={1}
+										>
+											{post.title || 'Untitled Post'}
+										</Text>
+										<Text
+											style={styles.activitySubtitle}
+											numberOfLines={1}
+										>
+											{post.status} on{' '}
+											{post.platforms.join(', ')}
+										</Text>
+									</View>
+									<Text style={styles.activityTime}>
+										{new Date(
+											post.createdAt,
+										).toLocaleDateString()}
+									</Text>
+								</TouchableOpacity>
+							))
+						) : (
+							<Text style={styles.emptyActivityText}>
+								No posts yet. Create your first post to start
+								seeing activity here.
+							</Text>
+						)}
 					</View>
 				</ScrollView>
 			</View>
@@ -222,10 +504,8 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	scrollContent: {
-		paddingBottom: 100, // Extra padding for tab bar
+		paddingBottom: 100,
 	},
-
-	// Header
 	header: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
@@ -252,22 +532,24 @@ const styles = StyleSheet.create({
 		fontWeight: '800',
 		color: '#000000',
 	},
-	streakBadge: {
-		backgroundColor: 'rgba(100,100,255,0.3)',
+	userBadge: {
+		backgroundColor: 'rgba(255,255,255,0.06)',
 		paddingHorizontal: 12,
 		paddingVertical: 8,
-		borderRadius: 20,
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 4,
+		borderRadius: 18,
 		borderWidth: 1,
-		borderColor: 'rgba(100,100,255,0.5)',
+		borderColor: 'rgba(255,255,255,0.08)',
 	},
-	streakIcon: {
-		fontSize: 16,
+	userBadgeLabel: {
+		fontSize: 10,
+		textTransform: 'uppercase',
+		letterSpacing: 0.8,
+		color: 'rgba(255,255,255,0.5)',
+		marginBottom: 2,
+		fontWeight: '700',
 	},
-	streakText: {
-		fontSize: 14,
+	userBadgeText: {
+		fontSize: 12,
 		fontWeight: '700',
 		color: '#ffffff',
 	},
@@ -286,14 +568,12 @@ const styles = StyleSheet.create({
 	icon: {
 		fontSize: 20,
 	},
-
-	// Title
 	titleSection: {
 		paddingHorizontal: 24,
-		marginBottom: 30,
+		marginBottom: 20,
 	},
 	title: {
-		fontSize: 36,
+		fontSize: 34,
 		fontWeight: '800',
 		color: '#ffffff',
 		marginBottom: 8,
@@ -302,33 +582,235 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		color: 'rgba(255,255,255,0.5)',
 	},
-
-	// Search
-	searchContainer: {
-		marginHorizontal: 24,
-		marginBottom: 30,
-		position: 'relative',
+	statusStrip: {
+		flexDirection: 'row',
+		paddingHorizontal: 24,
+		gap: 10,
+		marginBottom: 18,
+		marginTop: 23,
 	},
-	searchInput: {
-		backgroundColor: 'rgba(255,255,255,0.05)',
+	statusCard: {
+		flex: 1,
+		paddingVertical: 14,
+		paddingHorizontal: 10,
 		borderRadius: 16,
-		paddingHorizontal: 20,
-		paddingVertical: 16,
-		fontSize: 16,
-		color: '#ffffff',
+		backgroundColor: 'rgba(255,255,255,0.05)',
 		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.1)',
-		paddingRight: 50,
+		borderColor: 'rgba(255,255,255,0.08)',
+		alignItems: 'center',
 	},
-	searchIcon: {
-		position: 'absolute',
-		right: 20,
-		top: '50%',
-		marginTop: -12,
-		fontSize: 20,
+	statusValue: {
+		fontSize: 18,
+		fontWeight: '800',
+		color: '#ffffff',
+		marginBottom: 4,
 	},
-
-	// Main Action Cards
+	statusLabel: {
+		fontSize: 9,
+		color: 'rgba(255,255,255,0.55)',
+		fontWeight: '700',
+		textAlign: 'center',
+		textTransform: 'uppercase',
+		letterSpacing: 0.6,
+	},
+	insightCard: {
+		marginHorizontal: 24,
+		marginBottom: 18,
+		padding: 16,
+		borderRadius: 18,
+		backgroundColor: 'rgba(212,175,55,0.08)',
+		borderWidth: 1,
+		borderColor: 'rgba(212,175,55,0.18)',
+	},
+	insightHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 10,
+		marginBottom: 10,
+	},
+	insightIcon: {
+		width: 32,
+		height: 32,
+		borderRadius: 10,
+		backgroundColor: 'rgba(212,175,55,0.14)',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	insightEmoji: {
+		fontSize: 16,
+	},
+	insightTitle: {
+		fontSize: 14,
+		fontWeight: '800',
+		color: '#d4af37',
+		textTransform: 'uppercase',
+		letterSpacing: 0.6,
+	},
+	insightText: {
+		fontSize: 14,
+		lineHeight: 20,
+		color: 'rgba(255,255,255,0.85)',
+	},
+	nextCard: {
+		marginHorizontal: 24,
+		marginBottom: 18,
+		padding: 18,
+		borderRadius: 20,
+		backgroundColor: 'rgba(255,255,255,0.05)',
+		borderWidth: 1,
+		borderColor: 'rgba(255,255,255,0.08)',
+	},
+	nextCardTop: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		gap: 10,
+		marginBottom: 10,
+	},
+	nextCardLabel: {
+		fontSize: 12,
+		fontWeight: '800',
+		color: 'rgba(255,255,255,0.55)',
+		textTransform: 'uppercase',
+		letterSpacing: 0.7,
+	},
+	nextCardPill: {
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+		borderRadius: 999,
+		backgroundColor: 'rgba(255,184,0,0.12)',
+	},
+	nextCardPillAlt: {
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+		borderRadius: 999,
+		backgroundColor: 'rgba(255,255,255,0.06)',
+	},
+	nextCardPillText: {
+		fontSize: 11,
+		fontWeight: '800',
+		color: '#FFB800',
+		textTransform: 'uppercase',
+	},
+	nextCardPillTextAlt: {
+		fontSize: 11,
+		fontWeight: '800',
+		color: 'rgba(255,255,255,0.65)',
+		textTransform: 'uppercase',
+	},
+	nextCardTitle: {
+		fontSize: 18,
+		fontWeight: '800',
+		color: '#ffffff',
+		marginBottom: 6,
+	},
+	nextCardMeta: {
+		fontSize: 13,
+		lineHeight: 19,
+		color: 'rgba(255,255,255,0.68)',
+	},
+	sectionHeader: {
+		paddingHorizontal: 24,
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		marginBottom: 12,
+	},
+	sectionTitle: {
+		fontSize: 16,
+		fontWeight: '800',
+		color: '#ffffff',
+	},
+	sectionLink: {
+		fontSize: 13,
+		fontWeight: '700',
+		color: '#d4af37',
+	},
+	activityCard: {
+		marginHorizontal: 24,
+		marginBottom: 18,
+		padding: 4,
+		borderRadius: 18,
+		backgroundColor: 'rgba(255,255,255,0.04)',
+		borderWidth: 1,
+		borderColor: 'rgba(255,255,255,0.08)',
+	},
+	activityRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 12,
+		paddingVertical: 14,
+		paddingHorizontal: 12,
+		borderBottomWidth: 1,
+		borderBottomColor: 'rgba(255,255,255,0.05)',
+	},
+	activityDot: {
+		width: 10,
+		height: 10,
+		borderRadius: 5,
+	},
+	activityContent: {
+		flex: 1,
+	},
+	activityTitle: {
+		fontSize: 14,
+		fontWeight: '700',
+		color: '#ffffff',
+		marginBottom: 2,
+	},
+	activitySubtitle: {
+		fontSize: 12,
+		color: 'rgba(255,255,255,0.55)',
+	},
+	activityTime: {
+		fontSize: 11,
+		fontWeight: '700',
+		color: 'rgba(255,255,255,0.45)',
+	},
+	emptyActivityText: {
+		paddingVertical: 18,
+		paddingHorizontal: 14,
+		fontSize: 13,
+		lineHeight: 19,
+		color: 'rgba(255,255,255,0.6)',
+	},
+	setupPrompt: {
+		marginHorizontal: 24,
+		marginBottom: 18,
+		padding: 16,
+		borderRadius: 18,
+		backgroundColor: 'rgba(255,255,255,0.05)',
+		borderWidth: 1,
+		borderColor: 'rgba(255,255,255,0.08)',
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 12,
+	},
+	setupPromptIcon: {
+		width: 40,
+		height: 40,
+		borderRadius: 12,
+		backgroundColor: 'rgba(212,175,55,0.12)',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	setupPromptEmoji: {
+		fontSize: 18,
+	},
+	setupPromptContent: {
+		flex: 1,
+	},
+	setupPromptTitle: {
+		fontSize: 15,
+		fontWeight: '800',
+		color: '#ffffff',
+		marginBottom: 3,
+	},
+	setupPromptSubtitle: {
+		fontSize: 12,
+		lineHeight: 18,
+		color: 'rgba(255,255,255,0.6)',
+	},
 	mainCards: {
 		flexDirection: 'row',
 		paddingHorizontal: 24,
@@ -363,6 +845,13 @@ const styles = StyleSheet.create({
 		fontWeight: '700',
 		color: '#000000',
 	},
+	cardSubtitle: {
+		marginTop: 8,
+		fontSize: 13,
+		lineHeight: 18,
+		color: 'rgba(0,0,0,0.72)',
+		fontWeight: '600',
+	},
 	cardIllustration: {
 		marginTop: 20,
 	},
@@ -377,9 +866,7 @@ const styles = StyleSheet.create({
 		backgroundColor: 'rgba(0,0,0,0.3)',
 		borderRadius: 2,
 	},
-	draftIllustration: {
-		// Purple card illustration
-	},
+	draftIllustration: {},
 	draftItem: {
 		backgroundColor: 'rgba(0,0,0,0.2)',
 		borderRadius: 12,
@@ -409,8 +896,6 @@ const styles = StyleSheet.create({
 		backgroundColor: 'rgba(0,0,0,0.3)',
 		borderRadius: 2,
 	},
-
-	// Quick Actions
 	quickActions: {
 		flexDirection: 'row',
 		paddingHorizontal: 24,

@@ -1,5 +1,11 @@
 import asyncHandler from '../../shared/service/asyncHandler.js'
-import { registerUser, loginUser, googleAuth } from './auth.service.js'
+import {
+	registerUser,
+	loginUser,
+	googleAuth,
+	forgotPassword,
+	resetPassword,
+} from './auth.service.js'
 // imports users
 
 export const register = asyncHandler(async (req, res) => {
@@ -31,6 +37,31 @@ export const googleLogin = asyncHandler(async (req, res) => {
 		return res.status(400).json({ message: 'Google token is required' })
 	}
 	const result = await googleAuth({ idToken })
+	return res.status(200).json(result)
+})
+
+export const forgotPasswordRequest = asyncHandler(async (req, res) => {
+	const { email } = req.body
+
+	if (!email) {
+		return res.status(400).json({ message: 'Email is required' })
+	}
+
+	const result = await forgotPassword({ email })
+	return res.status(200).json(result)
+})
+
+export const resetPasswordRequest = asyncHandler(async (req, res) => {
+	const { email, otp, resetToken, newPassword, confirmPassword } = req.body
+
+	const result = await resetPassword({
+		email,
+		otp,
+		resetToken,
+		newPassword,
+		confirmPassword,
+	})
+
 	return res.status(200).json(result)
 })
 

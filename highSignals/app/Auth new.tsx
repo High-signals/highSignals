@@ -42,7 +42,7 @@ export default function AuthScreen() {
   const handleOTPVerify = () => {
     console.log('OTP:', otp.join(''));
     // Navigate to onboarding
-    router.replace('/onboarding');
+    router.replace('/onboarding-new');
   };
 
   const handleOTPChange = (index: number, value: string) => {

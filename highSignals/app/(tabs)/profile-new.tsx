@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
 	View,
 	Text,
@@ -7,20 +7,49 @@ import {
 	ScrollView,
 	TextInput,
 	Image,
+	ActivityIndicator,
+	Alert,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
+import { api } from '@/services/api'
+import { useAuth } from '@/context/AuthContext'
 
-export default function ProfileScreen() {
+export default function ProfileEditScreen() {
 	const router = useRouter()
-
-	const [userData, setUserData] = useState({
-		name: 'Melissa Peters',
-		email: 'melpeters@gmail.com',
-		dateOfBirth: '23/05/1995',
-		country: 'Nigeria',
-		profileImage: null as string | null,
+	const { isAuthenticated } = useAuth()
+	const [loading, setLoading] = useState(true)
+	const [saving, setSaving] = useState(false)
+	const [form, setForm] = useState({
+		name: '',
+		email: '',
+		bio: '',
+		avatar: null as string | null,
 	})
+
+	useEffect(() => {
+		if (isAuthenticated) {
+			loadProfile()
+		}
+	}, [isAuthenticated])
+
+	const loadProfile = async () => {
+		try {
+			setLoading(true)
+			const profileData = await api.profile.get()
+			setForm({
+				name: profileData.name || '',
+				email: profileData.email || '',
+				bio: profileData.bio || '',
+				avatar: profileData.avatar || null,
+			})
+		} catch (error) {
+			console.error('Error loading profile:', error)
+			Alert.alert('Error', 'Failed to load profile')
+		} finally {
+			setLoading(false)
+		}
+	}
 
 	const handleImagePick = async () => {
 		const result = await ImagePicker.launchImageLibraryAsync({
@@ -31,42 +60,66 @@ export default function ProfileScreen() {
 		})
 
 		if (!result.canceled) {
-			setUserData({ ...userData, profileImage: result.assets[0].uri })
+			setForm((prev) => ({ ...prev, avatar: result.assets[0].uri }))
 		}
 	}
 
-	const handleSave = () => {
-		console.log('Saving profile:', userData)
-		// TODO: Save to backend
+	const handleSave = async () => {
+		if (!form.name.trim()) {
+			Alert.alert('Error', 'Name is required')
+			return
+		}
+
+		try {
+			setSaving(true)
+			await api.profile.update({
+				name: form.name.trim(),
+				avatar: form.avatar,
+				bio: form.bio,
+			})
+			Alert.alert('Success', 'Profile updated successfully')
+			router.back()
+		} catch (error: any) {
+			console.error('Error saving profile:', error)
+			Alert.alert('Error', error.message || 'Failed to save profile')
+		} finally {
+			setSaving(false)
+		}
+	}
+
+	if (loading) {
+		return (
+			<View style={[styles.container, styles.center]}>
+				<ActivityIndicator size='large' color='#d4af37' />
+			</View>
+		)
 	}
 
 	return (
 		<View style={styles.container}>
 			<ScrollView showsVerticalScrollIndicator={false}>
-				{/* Header */}
 				<View style={styles.header}>
 					<TouchableOpacity onPress={() => router.back()}>
-						<Text style={styles.backButton}>{'⟵'}</Text>
+						<Text style={styles.backButton}>{'←'}</Text>
 					</TouchableOpacity>
 					<Text style={styles.headerTitle}>Edit Profile</Text>
 					<View style={{ width: 30 }} />
 				</View>
 
-				{/* Profile Image */}
 				<View style={styles.imageSection}>
 					<TouchableOpacity
 						style={styles.imageContainer}
 						onPress={handleImagePick}
 					>
-						{userData.profileImage ? (
+						{form.avatar ? (
 							<Image
-								source={{ uri: userData.profileImage }}
+								source={{ uri: form.avatar }}
 								style={styles.profileImage}
 							/>
 						) : (
 							<View style={styles.placeholderImage}>
 								<Text style={styles.placeholderInitial}>
-									{userData.name[0]}
+									{form.name?.[0] || 'U'}
 								</Text>
 							</View>
 						)}
@@ -76,64 +129,56 @@ export default function ProfileScreen() {
 					</TouchableOpacity>
 				</View>
 
-				{/* Form Fields */}
 				<View style={styles.form}>
-					{/* Name */}
 					<View style={styles.inputGroup}>
 						<Text style={styles.label}>Name</Text>
 						<TextInput
 							style={styles.input}
-							value={userData.name}
+							value={form.name}
 							onChangeText={(text) =>
-								setUserData({ ...userData, name: text })
+								setForm((prev) => ({ ...prev, name: text }))
 							}
+							placeholder='Your name'
 							placeholderTextColor='rgba(255,255,255,0.3)'
 						/>
 					</View>
 
-					{/* Email */}
 					<View style={styles.inputGroup}>
 						<Text style={styles.label}>Email</Text>
 						<TextInput
-							style={styles.input}
-							value={userData.email}
-							onChangeText={(text) =>
-								setUserData({ ...userData, email: text })
-							}
-							keyboardType='email-address'
+							style={[styles.input, styles.disabledInput]}
+							value={form.email}
+							editable={false}
 							placeholderTextColor='rgba(255,255,255,0.3)'
 						/>
 					</View>
 
-					{/* Date of Birth */}
 					<View style={styles.inputGroup}>
-						<Text style={styles.label}>Date of Birth</Text>
-						<TouchableOpacity style={styles.dropdownInput}>
-							<Text style={styles.dropdownText}>
-								{userData.dateOfBirth}
-							</Text>
-							<Text style={styles.dropdownIcon}>▼</Text>
-						</TouchableOpacity>
-					</View>
-
-					{/* Country/Region */}
-					<View style={styles.inputGroup}>
-						<Text style={styles.label}>Country/Region</Text>
-						<TouchableOpacity style={styles.dropdownInput}>
-							<Text style={styles.dropdownText}>
-								{userData.country}
-							</Text>
-							<Text style={styles.dropdownIcon}>▼</Text>
-						</TouchableOpacity>
+						<Text style={styles.label}>Bio</Text>
+						<TextInput
+							style={[styles.input, styles.bioInput]}
+							value={form.bio}
+							onChangeText={(text) =>
+								setForm((prev) => ({ ...prev, bio: text }))
+							}
+							placeholder='Tell people a bit about you'
+							placeholderTextColor='rgba(255,255,255,0.3)'
+							multiline
+							numberOfLines={4}
+						/>
 					</View>
 				</View>
 
-				{/* Save Button */}
 				<TouchableOpacity
-					style={styles.saveButton}
+					style={[styles.saveButton, saving && styles.saveButtonDisabled]}
 					onPress={handleSave}
+					disabled={saving}
 				>
-					<Text style={styles.saveButtonText}>Save changes</Text>
+					{saving ? (
+						<ActivityIndicator color='#0a192f' />
+					) : (
+						<Text style={styles.saveButtonText}>Save changes</Text>
+					)}
 				</TouchableOpacity>
 
 				<View style={{ height: 60 }} />
@@ -147,8 +192,10 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: '#1a2b4a',
 	},
-
-	// Header
+	center: {
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
 	header: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
@@ -167,8 +214,6 @@ const styles = StyleSheet.create({
 		fontWeight: '700',
 		color: '#ffffff',
 	},
-
-	// Profile Image
 	imageSection: {
 		alignItems: 'center',
 		marginBottom: 40,
@@ -214,15 +259,11 @@ const styles = StyleSheet.create({
 	cameraEmoji: {
 		fontSize: 16,
 	},
-
-	// Form
 	form: {
 		paddingHorizontal: 24,
 		gap: 20,
 	},
-	inputGroup: {
-		// Input container
-	},
+	inputGroup: {},
 	label: {
 		fontSize: 14,
 		fontWeight: '600',
@@ -239,38 +280,27 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 		borderColor: 'rgba(255,255,255,0.1)',
 	},
-	dropdownInput: {
-		backgroundColor: 'rgba(255,255,255,0.05)',
-		borderRadius: 12,
-		paddingHorizontal: 16,
-		paddingVertical: 14,
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.1)',
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		alignItems: 'center',
+	disabledInput: {
+		opacity: 0.65,
 	},
-	dropdownText: {
-		fontSize: 15,
-		color: '#ffffff',
+	bioInput: {
+		minHeight: 120,
+		textAlignVertical: 'top',
 	},
-	dropdownIcon: {
-		fontSize: 12,
-		color: 'rgba(255,255,255,0.5)',
-	},
-
-	// Save Button
 	saveButton: {
 		marginHorizontal: 24,
 		marginTop: 40,
-		backgroundColor: '#0066FF',
+		backgroundColor: '#d4af37',
 		borderRadius: 12,
 		paddingVertical: 16,
 		alignItems: 'center',
 	},
+	saveButtonDisabled: {
+		opacity: 0.7,
+	},
 	saveButtonText: {
 		fontSize: 16,
 		fontWeight: '700',
-		color: '#ffffff',
+		color: '#0a192f',
 	},
 })

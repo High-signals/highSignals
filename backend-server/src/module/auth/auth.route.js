@@ -1,5 +1,11 @@
 import express from 'express'
-import { register, login, googleLogin } from './auth.controller.js'
+import {
+	register,
+	login,
+	googleLogin,
+	forgotPasswordRequest,
+	resetPasswordRequest,
+} from './auth.controller.js'
 import { rateLimit } from 'express-rate-limit'
 
 const router = express.Router()
@@ -67,6 +73,8 @@ router.post('/login', login)
 router.post('/register', register)
 
 router.post('/google', googleLogin)
+router.post('/forgot-password', forgotPasswordRequest)
+router.post('/reset-password', resetPasswordRequest)
 // router.post('/refresh', refreshToken)
 // router.post('/logout', logout)
 
