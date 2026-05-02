@@ -78,10 +78,10 @@ export default function GetContentScreen() {
 
   const getStatusColor = (status: string) => {
     const colors: { [key: string]: string } = {
-      PUBLISHED: '#00FF00',
+      PUBLISHED: '#4ade80',
       SCHEDULED: '#FFD700',
       DRAFT: '#888888',
-      FAILED: '#FF6B6B',
+      FAILED: '#f87171',
     }
     return colors[status] || '#FFFFFF'
   }

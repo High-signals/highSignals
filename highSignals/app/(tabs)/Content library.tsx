@@ -6,9 +6,10 @@ import {
   StyleSheet,
   FlatList,
   TextInput,
-  Animated,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { COLORS, SPACING, RADIUS } from '@/constants/theme';
 
 type FilterType = 'all' | 'published' | 'scheduled' | 'draft';
 
@@ -21,7 +22,7 @@ const mockPosts = [
     date: '2 days ago',
     score: 94,
     views: '12.5K',
-    platformColor: '#000000',
+    platformColor: '#69C9D0',
   },
   {
     id: '2',
@@ -51,7 +52,7 @@ const mockPosts = [
     date: 'Saved 1 week ago',
     score: 85,
     views: '-',
-    platformColor: '#000000',
+    platformColor: '#69C9D0',
   },
 ];
 
@@ -59,15 +60,6 @@ export default function ContentLibraryScreen() {
   const router = useRouter();
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const fadeAnim = new Animated.Value(0);
-
-  React.useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  }, []);
 
   const filteredPosts = mockPosts.filter((post) => {
     const matchesFilter = filter === 'all' || post.status === filter;
@@ -78,13 +70,13 @@ export default function ContentLibraryScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'published':
-        return '#00FF00';
+        return COLORS.success;
       case 'scheduled':
-        return '#FFD700';
+        return COLORS.warning;
       case 'draft':
-        return '#888888';
+        return COLORS.textSubtle;
       default:
-        return '#FFFFFF';
+        return COLORS.text;
     }
   };
 
@@ -109,12 +101,12 @@ export default function ContentLibraryScreen() {
         <View style={styles.postStats}>
           {item.views !== '-' && (
             <View style={styles.statItem}>
-              <Text style={styles.statIcon}>👁️</Text>
+              <Ionicons name="eye-outline" size={13} color={COLORS.gold} />
               <Text style={styles.statText}>{item.views}</Text>
             </View>
           )}
           <View style={styles.statItem}>
-            <Text style={styles.statIcon}>⭐</Text>
+            <Ionicons name="star-outline" size={13} color={COLORS.gold} />
             <Text style={styles.statText}>{item.score}%</Text>
           </View>
         </View>
@@ -126,22 +118,22 @@ export default function ContentLibraryScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backButton}>←</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={22} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Content Library</Text>
-        <TouchableOpacity>
-          <Text style={styles.icon}>⚙️</Text>
+        <TouchableOpacity style={styles.headerIconWrap}>
+          <Ionicons name="settings-outline" size={20} color={COLORS.gold} />
         </TouchableOpacity>
       </View>
 
       {/* Search */}
       <View style={styles.searchContainer}>
-        <Text style={styles.searchIcon}>🔍</Text>
+        <Ionicons name="search-outline" size={18} color={COLORS.textSubtle} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search your content..."
-          placeholderTextColor="rgba(255,255,255,0.4)"
+          placeholderTextColor={COLORS.textSubtle}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -163,22 +155,20 @@ export default function ContentLibraryScreen() {
       </View>
 
       {/* Post List */}
-      <Animated.View style={[styles.listContainer, { opacity: fadeAnim }]}>
-        <FlatList
-          data={filteredPosts}
-          renderItem={renderPost}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyEmoji}>📝</Text>
-              <Text style={styles.emptyText}>No content found</Text>
-              <Text style={styles.emptySubtext}>Try adjusting your filters</Text>
-            </View>
-          }
-        />
-      </Animated.View>
+      <FlatList
+        data={filteredPosts}
+        renderItem={renderPost}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Ionicons name="document-text-outline" size={48} color={COLORS.textSubtle} />
+            <Text style={styles.emptyText}>No content found</Text>
+            <Text style={styles.emptySubtext}>Try adjusting your filters</Text>
+          </View>
+        }
+      />
     </View>
   );
 }
@@ -186,98 +176,85 @@ export default function ContentLibraryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: SPACING.lg,
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: SPACING.md,
   },
-  backButton: {
-    fontSize: 28,
-    color: '#ffffff',
-    fontWeight: '600',
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#ffffff',
+    fontWeight: '700',
+    color: COLORS.text,
   },
-  icon: {
-    fontSize: 24,
+  headerIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.goldMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-
-  // Search
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    marginHorizontal: 24,
-    marginBottom: 20,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  searchIcon: {
-    fontSize: 18,
-    marginRight: 8,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    gap: SPACING.sm,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 12,
     fontSize: 15,
-    color: '#ffffff',
+    color: COLORS.text,
   },
-
-  // Filters
   filters: {
     flexDirection: 'row',
-    paddingHorizontal: 24,
-    marginBottom: 20,
-    gap: 10,
+    paddingHorizontal: SPACING.lg,
+    marginBottom: SPACING.md,
+    gap: SPACING.sm,
   },
   filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 14,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surface,
   },
   filterButtonActive: {
-    backgroundColor: '#00D9FF',
-    borderColor: '#00D9FF',
+    backgroundColor: COLORS.gold,
   },
   filterText: {
     fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.6)',
+    color: COLORS.textMuted,
   },
   filterTextActive: {
-    color: '#000000',
-  },
-
-  // List
-  listContainer: {
-    flex: 1,
+    color: COLORS.background,
   },
   listContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: SPACING.lg,
     paddingBottom: 100,
   },
-
-  // Post Card
   postCard: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   postHeader: {
     flexDirection: 'row',
@@ -297,23 +274,23 @@ const styles = StyleSheet.create({
   },
   platformName: {
     fontSize: 13,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
+    color: COLORS.textMuted,
   },
   statusBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 3,
+    borderRadius: RADIUS.full,
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
     textTransform: 'capitalize',
   },
   postTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
     marginBottom: 12,
     lineHeight: 22,
   },
@@ -324,7 +301,7 @@ const styles = StyleSheet.create({
   },
   postDate: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.textSubtle,
   },
   postStats: {
     flexDirection: 'row',
@@ -335,32 +312,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  statIcon: {
-    fontSize: 14,
-  },
   statText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#00D9FF',
+    color: COLORS.gold,
   },
-
-  // Empty State
   emptyState: {
     alignItems: 'center',
     paddingTop: 60,
-  },
-  emptyEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
+    gap: SPACING.sm,
   },
   emptyText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 8,
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
   },
   emptySubtext: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.textSubtle,
   },
 });

@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { Stack, usePathname, useRouter } from 'expo-router'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { COLORS, SPACING, RADIUS } from '@/constants/theme'
 
 export default function TabsLayout() {
   const pathname = usePathname()
@@ -46,17 +47,21 @@ export default function TabsLayout() {
           return (
             <TouchableOpacity
               key={tab.href}
-              style={[styles.tabButton, active && styles.activeTab]}
+              style={styles.tabButton}
               onPress={() => router.push(tab.href as any)}
+              activeOpacity={0.7}
             >
-              <Ionicons
-                name={(active ? tab.activeIcon : tab.icon) as any}
-                size={28}
-                color={active ? '#d4af37' : 'rgba(255,255,255,0.5)'}
-              />
+              <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
+                <Ionicons
+                  name={(active ? tab.activeIcon : tab.icon) as any}
+                  size={22}
+                  color={active ? COLORS.gold : COLORS.textSubtle}
+                />
+              </View>
               <Text style={[styles.tabLabel, active && styles.activeLabel]}>
                 {tab.label}
               </Text>
+              {active && <View style={styles.activeDot} />}
             </TouchableOpacity>
           )
         })}
@@ -68,42 +73,56 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a192f',
+    backgroundColor: COLORS.background,
   },
   bottomNav: {
     flexDirection: 'row',
-    backgroundColor: '#0a192f',
-    borderTopColor: 'rgba(212,175,55,0.3)',
+    backgroundColor: COLORS.surface,
+    borderTopColor: COLORS.goldBorder,
     borderTopWidth: 1,
-    paddingVertical: 12,
-    paddingBottom: 32,
+    paddingTop: SPACING.sm,
+    paddingBottom: 30,
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   tabButton: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 8,
+    paddingTop: SPACING.xs,
   },
-  activeTab: {},
+  iconWrap: {
+    width: 40,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: RADIUS.md,
+  },
+  iconWrapActive: {
+    backgroundColor: COLORS.goldMuted,
+  },
   tabLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.5)',
-    marginTop: 4,
+    fontSize: 11,
+    fontWeight: '500',
+    color: COLORS.textSubtle,
+    marginTop: 2,
   },
   activeLabel: {
-    color: '#d4af37',
+    color: COLORS.gold,
+    fontWeight: '600',
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.gold,
+    marginTop: 3,
   },
 })

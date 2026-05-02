@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router'
-import { Text, View } from 'react-native'
+import { View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 // aa
 export default function TabsLayout() {
   return (
@@ -65,7 +66,7 @@ export default function TabsLayout() {
                 marginTop: -20,
               }}
             >
-              <Text style={{ fontSize: 24 }}>✍️</Text>
+              <Ionicons name="add" size={24} color="#0a192f" />
             </View>
           ),
         }}

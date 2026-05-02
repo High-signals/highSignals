@@ -5,9 +5,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Animated,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { COLORS, SPACING, RADIUS } from '@/constants/theme';
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -23,16 +24,6 @@ export default function ContentCalendarScreen() {
   const router = useRouter();
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  const scaleAnim = new Animated.Value(0.9);
-
-  React.useEffect(() => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      tension: 40,
-      friction: 7,
-      useNativeDriver: true,
-    }).start();
-  }, []);
 
   const getDaysInMonth = (month: number, year: number) => {
     return new Date(year, month + 1, 0).getDate();
@@ -46,31 +37,26 @@ export default function ContentCalendarScreen() {
   const firstDay = getFirstDayOfMonth(currentMonth, currentYear);
   const today = new Date().getDate();
 
-  const hasPost = (day: number) => {
-    return scheduledPosts.some((post) => post.date === day);
-  };
-
-  const getPostsForDay = (day: number) => {
-    return scheduledPosts.filter((post) => post.date === day);
-  };
+  const hasPost = (day: number) => scheduledPosts.some((post) => post.date === day);
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backButton}>←</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={22} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Content Calendar</Text>
-        <TouchableOpacity>
-          <Text style={styles.icon}>📅</Text>
-        </TouchableOpacity>
+        <View style={styles.headerIconWrap}>
+          <Ionicons name="calendar-outline" size={20} color={COLORS.gold} />
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Month Selector */}
         <View style={styles.monthSelector}>
           <TouchableOpacity
+            style={styles.navBtn}
             onPress={() => {
               if (currentMonth === 0) {
                 setCurrentMonth(11);
@@ -80,7 +66,7 @@ export default function ContentCalendarScreen() {
               }
             }}
           >
-            <Text style={styles.arrowButton}>←</Text>
+            <Ionicons name="chevron-back" size={20} color={COLORS.gold} />
           </TouchableOpacity>
 
           <Text style={styles.monthText}>
@@ -88,6 +74,7 @@ export default function ContentCalendarScreen() {
           </Text>
 
           <TouchableOpacity
+            style={styles.navBtn}
             onPress={() => {
               if (currentMonth === 11) {
                 setCurrentMonth(0);
@@ -97,29 +84,23 @@ export default function ContentCalendarScreen() {
               }
             }}
           >
-            <Text style={styles.arrowButton}>→</Text>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.gold} />
           </TouchableOpacity>
         </View>
 
         {/* Calendar Grid */}
-        <Animated.View style={[styles.calendar, { transform: [{ scale: scaleAnim }] }]}>
-          {/* Day Labels */}
+        <View style={styles.calendar}>
           <View style={styles.dayLabels}>
             {daysOfWeek.map((day) => (
-              <Text key={day} style={styles.dayLabel}>
-                {day}
-              </Text>
+              <Text key={day} style={styles.dayLabel}>{day}</Text>
             ))}
           </View>
 
-          {/* Days Grid */}
           <View style={styles.daysGrid}>
-            {/* Empty cells for days before month starts */}
             {Array.from({ length: firstDay }).map((_, index) => (
               <View key={`empty-${index}`} style={styles.dayCell} />
             ))}
 
-            {/* Actual days */}
             {Array.from({ length: daysInMonth }).map((_, index) => {
               const day = index + 1;
               const isToday = day === today && currentMonth === new Date().getMonth();
@@ -148,7 +129,7 @@ export default function ContentCalendarScreen() {
               );
             })}
           </View>
-        </Animated.View>
+        </View>
 
         {/* Upcoming Posts */}
         <View style={styles.section}>
@@ -164,13 +145,19 @@ export default function ContentCalendarScreen() {
               <View style={styles.postContent}>
                 <Text style={styles.postTitle}>{post.title}</Text>
                 <View style={styles.postMeta}>
-                  <Text style={styles.postTime}>⏰ {post.time}</Text>
-                  <Text style={styles.postPlatform}>📱 {post.platform}</Text>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="time-outline" size={12} color={COLORS.textSubtle} />
+                    <Text style={styles.metaText}>{post.time}</Text>
+                  </View>
+                  <View style={styles.metaItem}>
+                    <Ionicons name="phone-portrait-outline" size={12} color={COLORS.textSubtle} />
+                    <Text style={styles.metaText}>{post.platform}</Text>
+                  </View>
                 </View>
               </View>
 
               <TouchableOpacity style={styles.editButton}>
-                <Text style={styles.editIcon}>✏️</Text>
+                <Ionicons name="create-outline" size={18} color={COLORS.gold} />
               </TouchableOpacity>
             </View>
           ))}
@@ -185,61 +172,66 @@ export default function ContentCalendarScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: SPACING.lg,
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: SPACING.md,
   },
-  backButton: {
-    fontSize: 28,
-    color: '#ffffff',
-    fontWeight: '600',
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#ffffff',
+    fontWeight: '700',
+    color: COLORS.text,
   },
-  icon: {
-    fontSize: 24,
+  headerIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.goldMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
     paddingBottom: 40,
   },
-
-  // Month Selector
   monthSelector: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    marginBottom: 24,
+    paddingHorizontal: SPACING.lg,
+    marginBottom: SPACING.lg,
   },
-  arrowButton: {
-    fontSize: 24,
-    color: '#00D9FF',
-    fontWeight: '600',
+  navBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   monthText: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
   },
-
-  // Calendar
   calendar: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    marginHorizontal: 24,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: COLORS.surface,
+    marginHorizontal: SPACING.lg,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
   },
   dayLabels: {
     flexDirection: 'row',
@@ -249,8 +241,8 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
     fontSize: 12,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '600',
+    color: COLORS.textSubtle,
   },
   daysGrid: {
     flexDirection: 'row',
@@ -264,73 +256,69 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   todayCell: {
-    backgroundColor: '#00D9FF',
-    borderRadius: 8,
+    backgroundColor: COLORS.gold,
+    borderRadius: RADIUS.sm,
   },
   scheduledCell: {
-    backgroundColor: 'rgba(0,217,255,0.2)',
-    borderRadius: 8,
+    backgroundColor: COLORS.goldMuted,
+    borderRadius: RADIUS.sm,
   },
   dayNumber: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#ffffff',
+    color: COLORS.text,
   },
   todayNumber: {
-    color: '#000000',
-    fontWeight: '800',
+    color: COLORS.background,
+    fontWeight: '700',
   },
   scheduledNumber: {
-    color: '#00D9FF',
-    fontWeight: '800',
+    color: COLORS.gold,
+    fontWeight: '700',
   },
   postDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#00FF00',
+    backgroundColor: COLORS.gold,
     position: 'absolute',
     bottom: 4,
   },
-
-  // Upcoming Posts
   section: {
-    paddingHorizontal: 24,
+    paddingHorizontal: SPACING.lg,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#ffffff',
-    marginBottom: 16,
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: SPACING.md,
   },
   postCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.sm,
   },
   postDate: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
-    backgroundColor: '#00D9FF',
+    width: 52,
+    height: 52,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.goldMuted,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: SPACING.md,
   },
   postDay: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#000000',
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.gold,
   },
   postMonth: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#000000',
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.gold,
     textTransform: 'uppercase',
   },
   postContent: {
@@ -338,31 +326,29 @@ const styles = StyleSheet.create({
   },
   postTitle: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 6,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
   },
   postMeta: {
     flexDirection: 'row',
     gap: 12,
   },
-  postTime: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  postPlatform: {
+  metaText: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
+    color: COLORS.textSubtle,
   },
   editButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.goldMuted,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  editIcon: {
-    fontSize: 18,
   },
 });

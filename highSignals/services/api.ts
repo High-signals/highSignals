@@ -1,38 +1,47 @@
-// API Configuration
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000'
 
-interface TokenData {
-  access_token: string
-  user: {
-    id: string
-    email: string
-    name: string
-  }
-}
+const TOKEN_KEY = 'auth_access_token'
 
-// Store tokens (in production, use secure storage)
 let authTokens = {
   accessToken: '',
-  refreshToken: '',
 }
 
-// API methods
 export const api = {
-  setTokens: (tokens: { accessToken: string; refreshToken?: string }) => {
+  setTokens: async (tokens: { accessToken: string }) => {
     authTokens.accessToken = tokens.accessToken
-    if (tokens.refreshToken) {
-      authTokens.refreshToken = tokens.refreshToken
+    try {
+      await AsyncStorage.setItem(TOKEN_KEY, tokens.accessToken)
+    } catch (e) {
+      console.error('Failed to persist token:', e)
+    }
+  },
+
+  restoreToken: async (): Promise<string | null> => {
+    try {
+      const token = await AsyncStorage.getItem(TOKEN_KEY)
+      if (token) {
+        authTokens.accessToken = token
+      }
+      return token
+    } catch (e) {
+      console.error('Failed to restore token:', e)
+      return null
     }
   },
 
   getToken: () => authTokens.accessToken,
 
-  clearTokens: () => {
+  clearTokens: async () => {
     authTokens.accessToken = ''
-    authTokens.refreshToken = ''
+    try {
+      await AsyncStorage.removeItem(TOKEN_KEY)
+    } catch (e) {
+      console.error('Failed to clear token:', e)
+    }
   },
 
-  // Helper for API calls
   call: async (
     endpoint: string,
     options: RequestInit = {},
@@ -61,13 +70,15 @@ export const api = {
     return data
   },
 
-  // Auth endpoints
   auth: {
     register: async (email: string, password: string, name: string) => {
       const response = await api.call('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({ email, password, name }),
       }, false)
+      if (response.accessToken) {
+        await api.setTokens({ accessToken: response.accessToken })
+      }
       return response
     },
 
@@ -76,8 +87,8 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       }, false)
-      if (response.access_token) {
-        api.setTokens({ accessToken: response.access_token })
+      if (response.accessToken) {
+        await api.setTokens({ accessToken: response.accessToken })
       }
       return response
     },
@@ -87,14 +98,13 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ idToken }),
       }, false)
-      if (response.access_token) {
-        api.setTokens({ accessToken: response.access_token })
+      if (response.accessToken) {
+        await api.setTokens({ accessToken: response.accessToken })
       }
       return response
     },
   },
 
-  // User Profile endpoints
   profile: {
     get: async () => {
       return api.call('/api/user/profile', {
@@ -116,7 +126,6 @@ export const api = {
     },
   },
 
-  // ICP endpoints
   icp: {
     create: async (icpData: any) => {
       return api.call('/api/icp', {
@@ -139,7 +148,6 @@ export const api = {
     },
   },
 
-  // Posts endpoints
   posts: {
     create: async (postData: any) => {
       return api.call('/api/posts', {

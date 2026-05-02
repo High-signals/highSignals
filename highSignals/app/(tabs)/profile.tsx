@@ -130,8 +130,8 @@ export default function ProfileScreen() {
 
         {/* Account Section */}
         <View style={styles.accountSection}>
-          <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-            <Ionicons name='log-out-outline' size={20} color='#FF6B6B' />
+          <TouchableOpacity style={styles.logoutButton} onPress={async () => { await logout(); router.replace('/signup-login'); }}>
+            <Ionicons name='log-out-outline' size={20} color='#f87171' />
             <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
         </View>
@@ -265,11 +265,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: 'rgba(255,107,107,0.1)',
     borderWidth: 1,
-    borderColor: '#FF6B6B',
+    borderColor: '#f87171',
   },
   logoutText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FF6B6B',
+    color: '#f87171',
   },
 })

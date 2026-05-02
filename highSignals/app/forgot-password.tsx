@@ -12,8 +12,10 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { api } from '@/services/api'
+import { COLORS, SPACING, RADIUS } from '@/constants/theme'
 
 type ForgotPasswordStep = 'email' | 'reset'
 
@@ -26,6 +28,7 @@ export default function ForgotPasswordScreen() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [focusedField, setFocusedField] = useState<string | null>(null)
 
   const handleRequestReset = async () => {
     if (!email) {
@@ -44,13 +47,16 @@ export default function ForgotPasswordScreen() {
         false
       )
 
-      if (response.ok) {
-        Alert.alert('Success', 'Password reset link has been sent to your email')
-        setStep('reset')
-      } else {
-        const error = await response.json()
-        Alert.alert('Error', error.message || 'Failed to send reset link')
+      // Backend returns resetToken for now (until email sending is set up)
+      if (response.resetToken) {
+        setResetToken(response.resetToken)
       }
+
+      Alert.alert(
+        'Check Your Email',
+        'If an account exists with that email, a reset code has been sent.',
+      )
+      setStep('reset')
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to send reset link')
     } finally {
@@ -76,7 +82,7 @@ export default function ForgotPasswordScreen() {
 
     setLoading(true)
     try {
-      const response = await api.call(
+      await api.call(
         '/api/auth/reset-password',
         {
           method: 'POST',
@@ -89,13 +95,9 @@ export default function ForgotPasswordScreen() {
         false
       )
 
-      if (response.ok) {
-        Alert.alert('Success', 'Password has been reset successfully')
-        router.replace('/signup-login')
-      } else {
-        const error = await response.json()
-        Alert.alert('Error', error.message || 'Failed to reset password')
-      }
+      Alert.alert('Success', 'Password has been reset successfully', [
+        { text: 'OK', onPress: () => router.replace('/signup-login') },
+      ])
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to reset password')
     } finally {
@@ -103,28 +105,31 @@ export default function ForgotPasswordScreen() {
     }
   }
 
+  const inputStyle = (field: string) => [
+    styles.inputWrapper,
+    focusedField === field && styles.inputWrapperFocused,
+  ]
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar barStyle="light-content" backgroundColor="#0a192f" />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header Section */}
+        {/* Header */}
         <View style={styles.header}>
-          {/* Back Button */}
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <Text style={styles.backArrow}>←</Text>
+            <Ionicons name="chevron-back" size={22} color={COLORS.text} />
           </TouchableOpacity>
 
-          {/* Headline */}
           <Text style={styles.headline}>Reset Your Password</Text>
           <Text style={styles.subtitle}>
             {step === 'email'
@@ -138,11 +143,10 @@ export default function ForgotPasswordScreen() {
           {/* EMAIL STEP */}
           {step === 'email' && (
             <View style={styles.form}>
-              {/* Email Input */}
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Email Address</Text>
-                <View style={styles.inputWrapper}>
-                  <Text style={styles.inputIcon}>✉️</Text>
+                <View style={inputStyle('email')}>
+                  <Ionicons name="mail-outline" size={18} color="#999" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="your@email.com"
@@ -152,15 +156,17 @@ export default function ForgotPasswordScreen() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     editable={!loading}
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField(null)}
                   />
                 </View>
               </View>
 
-              {/* Submit Button */}
               <TouchableOpacity
                 style={[styles.primaryButton, loading && styles.disabledButton]}
                 onPress={handleRequestReset}
                 disabled={loading}
+                activeOpacity={0.8}
               >
                 {loading ? (
                   <ActivityIndicator color="#fff" />
@@ -169,10 +175,10 @@ export default function ForgotPasswordScreen() {
                 )}
               </TouchableOpacity>
 
-              {/* Back to Login */}
               <TouchableOpacity
                 style={styles.secondaryButton}
                 onPress={() => router.back()}
+                activeOpacity={0.7}
               >
                 <Text style={styles.secondaryButtonText}>Back to Login</Text>
               </TouchableOpacity>
@@ -182,11 +188,10 @@ export default function ForgotPasswordScreen() {
           {/* RESET PASSWORD STEP */}
           {step === 'reset' && (
             <View style={styles.form}>
-              {/* Reset Token Input */}
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Reset Code</Text>
-                <View style={styles.inputWrapper}>
-                  <Text style={styles.inputIcon}>🔐</Text>
+                <View style={inputStyle('token')}>
+                  <Ionicons name="key-outline" size={18} color="#999" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Enter the code from your email"
@@ -194,15 +199,16 @@ export default function ForgotPasswordScreen() {
                     value={resetToken}
                     onChangeText={setResetToken}
                     editable={!loading}
+                    onFocus={() => setFocusedField('token')}
+                    onBlur={() => setFocusedField(null)}
                   />
                 </View>
               </View>
 
-              {/* New Password Input */}
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>New Password</Text>
-                <View style={styles.inputWrapper}>
-                  <Text style={styles.inputIcon}>🔒</Text>
+                <View style={inputStyle('newPass')}>
+                  <Ionicons name="lock-closed-outline" size={18} color="#999" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Enter new password"
@@ -211,20 +217,23 @@ export default function ForgotPasswordScreen() {
                     onChangeText={setNewPassword}
                     secureTextEntry={!showPassword}
                     editable={!loading}
+                    onFocus={() => setFocusedField('newPass')}
+                    onBlur={() => setFocusedField(null)}
                   />
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    <Text style={styles.eyeIcon}>
-                      {showPassword ? '👁️' : '👁️‍🗨️'}
-                    </Text>
+                    <Ionicons
+                      name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                      size={20}
+                      color="#999"
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
 
-              {/* Confirm Password Input */}
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Confirm Password</Text>
-                <View style={styles.inputWrapper}>
-                  <Text style={styles.inputIcon}>🔒</Text>
+                <View style={inputStyle('confirmPass')}>
+                  <Ionicons name="lock-closed-outline" size={18} color="#999" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Confirm your password"
@@ -233,26 +242,29 @@ export default function ForgotPasswordScreen() {
                     onChangeText={setConfirmPassword}
                     secureTextEntry={!showPassword}
                     editable={!loading}
+                    onFocus={() => setFocusedField('confirmPass')}
+                    onBlur={() => setFocusedField(null)}
                   />
                 </View>
               </View>
 
-              {/* Password Requirements */}
               <View style={styles.requirements}>
                 <Text style={styles.requirementsTitle}>Password Requirements:</Text>
-                <Text style={styles.requirement}>
-                  ✓ Minimum 8 characters
-                </Text>
-                <Text style={styles.requirement}>
-                  ✓ Passwords must match
-                </Text>
+                <View style={styles.requirementRow}>
+                  <Ionicons name="checkmark-circle" size={14} color={COLORS.success} />
+                  <Text style={styles.requirement}>Minimum 8 characters</Text>
+                </View>
+                <View style={styles.requirementRow}>
+                  <Ionicons name="checkmark-circle" size={14} color={COLORS.success} />
+                  <Text style={styles.requirement}>Passwords must match</Text>
+                </View>
               </View>
 
-              {/* Submit Button */}
               <TouchableOpacity
                 style={[styles.primaryButton, loading && styles.disabledButton]}
                 onPress={handleResetPassword}
                 disabled={loading}
+                activeOpacity={0.8}
               >
                 {loading ? (
                   <ActivityIndicator color="#fff" />
@@ -261,14 +273,12 @@ export default function ForgotPasswordScreen() {
                 )}
               </TouchableOpacity>
 
-              {/* Back to Email Step */}
               <TouchableOpacity
                 style={styles.secondaryButton}
                 onPress={() => setStep('email')}
+                activeOpacity={0.7}
               >
-                <Text style={styles.secondaryButtonText}>
-                  Back to Email
-                </Text>
+                <Text style={styles.secondaryButtonText}>Back to Email</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -281,14 +291,13 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a192f',
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     flexGrow: 1,
     paddingBottom: 40,
   },
   header: {
-    backgroundColor: '#0a192f',
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 30,
@@ -296,72 +305,67 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: RADIUS.md,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
   },
-  backArrow: {
-    fontSize: 24,
-    color: '#fff',
-  },
   headline: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: '700',
+    color: COLORS.text,
     marginBottom: 12,
   },
   subtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: COLORS.textMuted,
     lineHeight: 20,
   },
   card: {
     backgroundColor: '#fff',
     marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
     marginBottom: 20,
   },
   form: {
     gap: 20,
   },
   inputGroup: {
-    gap: 8,
+    gap: SPACING.sm,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0a192f',
+    color: COLORS.background,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#e0e0e0',
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     paddingHorizontal: 12,
     backgroundColor: '#f9f9f9',
   },
+  inputWrapperFocused: {
+    borderColor: COLORS.gold,
+    backgroundColor: '#FFFDF5',
+  },
   inputIcon: {
-    fontSize: 18,
     marginRight: 8,
   },
   input: {
     flex: 1,
     paddingVertical: 12,
     fontSize: 14,
-    color: '#0a192f',
-  },
-  eyeIcon: {
-    fontSize: 18,
-    marginLeft: 8,
+    color: COLORS.background,
   },
   primaryButton: {
-    backgroundColor: '#0a192f',
+    backgroundColor: COLORS.background,
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
@@ -373,36 +377,41 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#0a192f',
+    borderColor: COLORS.background,
     marginTop: 10,
   },
   secondaryButtonText: {
-    color: '#0a192f',
+    color: COLORS.background,
     fontSize: 16,
     fontWeight: '600',
   },
   disabledButton: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   requirements: {
     backgroundColor: '#f0f4ff',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     marginTop: 8,
   },
   requirementsTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#0a192f',
+    color: COLORS.background,
     marginBottom: 8,
+  },
+  requirementRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
   },
   requirement: {
     fontSize: 12,
     color: '#666',
-    marginBottom: 4,
   },
 })

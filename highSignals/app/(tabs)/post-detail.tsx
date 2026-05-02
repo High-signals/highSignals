@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import {
   View,
   Text,
@@ -8,11 +8,24 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
+  Keyboard,
 } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
+import { COLORS, SPACING, RADIUS } from '@/constants/theme'
+
+const TEXT_COLORS = [
+  { label: 'Default', value: COLORS.text },
+  { label: 'Gold', value: COLORS.gold },
+  { label: 'Red', value: '#ef4444' },
+  { label: 'Orange', value: '#f97316' },
+  { label: 'Green', value: '#22c55e' },
+  { label: 'Blue', value: '#3b82f6' },
+  { label: 'Purple', value: '#a855f7' },
+  { label: 'Gray', value: '#9ca3af' },
+]
 
 interface Post {
   id: string
@@ -34,8 +47,21 @@ export default function PostDetailScreen() {
   const [post, setPost] = useState<Post | null>(null)
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
-  const [editedPost, setEditedPost] = useState<Post | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editContent, setEditContent] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [keyboardVisible, setKeyboardVisible] = useState(false)
+  const [showColorPicker, setShowColorPicker] = useState(false)
+  const [selectedColor, setSelectedColor] = useState<string>(COLORS.text)
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true))
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false)
+      setShowColorPicker(false)
+    })
+    return () => { showSub.remove(); hideSub.remove() }
+  }, [])
 
   useEffect(() => {
     if (!isAuthenticated || !postId) return
@@ -49,13 +75,13 @@ export default function PostDetailScreen() {
       const foundPost = allPosts.find((p: Post) => p.id === postId)
       if (foundPost) {
         setPost(foundPost)
-        setEditedPost(foundPost)
+        setEditTitle(foundPost.title || '')
+        setEditContent(foundPost.content)
       } else {
         Alert.alert('Error', 'Post not found')
         router.back()
       }
-    } catch (error) {
-      console.error('Error fetching post:', error)
+    } catch {
       Alert.alert('Error', 'Failed to load post')
       router.back()
     } finally {
@@ -63,244 +89,228 @@ export default function PostDetailScreen() {
     }
   }
 
-  const handleSaveChanges = async () => {
-    if (!editedPost) return
+  const startEditing = () => {
+    setEditTitle(post?.title || '')
+    setEditContent(post?.content || '')
+    setIsEditing(true)
+  }
 
+  const cancelEditing = () => {
+    setIsEditing(false)
+    Keyboard.dismiss()
+  }
+
+  const handleSave = async () => {
+    if (!post) return
     try {
       setIsSaving(true)
-      await api.posts.update(editedPost.id, {
-        title: editedPost.title,
-        content: editedPost.content,
-        hashtags: editedPost.hashtags,
-        platforms: editedPost.platforms,
-        mediaUrls: editedPost.mediaUrls,
-      })
-      setPost(editedPost)
+      await api.posts.update(post.id, { title: editTitle, content: editContent })
+      setPost({ ...post, title: editTitle, content: editContent })
       setIsEditing(false)
-      Alert.alert('Success', 'Post updated successfully')
-    } catch (error) {
-      console.error('Error saving post:', error)
+      Keyboard.dismiss()
+    } catch {
       Alert.alert('Error', 'Failed to update post')
     } finally {
       setIsSaving(false)
     }
   }
 
-  const handleDeletePost = async () => {
-    Alert.alert('Delete Post', 'Are you sure you want to delete this post?', [
-      { text: 'Cancel', onPress: () => {}, style: 'cancel' },
+  const handleDelete = () => {
+    Alert.alert('Delete Post', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
+        style: 'destructive',
         onPress: async () => {
           try {
-            setIsSaving(true)
             await api.posts.delete(post!.id)
-            Alert.alert('Success', 'Post deleted successfully')
             router.back()
-          } catch (error) {
-            console.error('Error deleting post:', error)
+          } catch {
             Alert.alert('Error', 'Failed to delete post')
-          } finally {
-            setIsSaving(false)
           }
         },
-        style: 'destructive',
       },
     ])
   }
 
-  const getPlatformIcon = (platform: string) => {
-    const iconMap: { [key: string]: any } = {
-      TWITTER: 'logo-twitter',
-      INSTAGRAM: 'logo-instagram',
-      FACEBOOK: 'logo-facebook',
-      TIKTOK: 'logo-tiktok',
-      YOUTUBE: 'logo-youtube',
-      LINKEDIN: 'logo-linkedin',
-    }
-    return iconMap[platform] || 'logo-social'
+  const insertText = (prefix: string, suffix: string = '') => {
+    setEditContent(editContent + prefix + suffix)
+  }
+
+  const insertBlock = (block: string) => {
+    const sep = editContent && !editContent.endsWith('\n') ? '\n' : ''
+    setEditContent(editContent + sep + block)
   }
 
   const getStatusColor = (status: string) => {
-    const colors: { [key: string]: string } = {
-      DRAFT: '#888888',
-      SCHEDULED: '#FFD700',
-      PUBLISHED: '#00FF00',
-      FAILED: '#FF6B6B',
+    switch (status) {
+      case 'DRAFT': return COLORS.textSubtle
+      case 'SCHEDULED': return COLORS.warning
+      case 'PUBLISHED': return COLORS.success
+      default: return COLORS.textSubtle
     }
-    return colors[status] || '#FFFFFF'
   }
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size='large' color='#d4af37' />
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={COLORS.gold} />
       </View>
     )
   }
 
   if (!post) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, styles.centered]}>
         <Text style={styles.errorText}>Post not found</Text>
       </View>
     )
   }
 
-  const displayPost = isEditing ? editedPost : post
-
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => (isEditing ? setIsEditing(false) : router.back())}>
-          <Ionicons name='arrow-back' size={24} color='#ffffff' />
+        <TouchableOpacity
+          onPress={isEditing ? cancelEditing : () => router.back()}
+          style={styles.headerBtn}
+        >
+          <Ionicons name={isEditing ? 'close' : 'chevron-back'} size={22} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isEditing ? 'Edit Post' : 'Post Details'}</Text>
-        {!isEditing && (
-          <TouchableOpacity onPress={() => setIsEditing(true)}>
-            <Ionicons name='create-outline' size={24} color='#d4af37' />
+
+        <Text style={styles.headerTitle}>{isEditing ? 'Editing' : ''}</Text>
+
+        {isEditing ? (
+          <TouchableOpacity onPress={handleSave} style={styles.saveBtn} disabled={isSaving}>
+            {isSaving ? (
+              <ActivityIndicator size="small" color={COLORS.background} />
+            ) : (
+              <Text style={styles.saveBtnText}>Save</Text>
+            )}
           </TouchableOpacity>
-        )}
-        {isEditing && (
-          <TouchableOpacity onPress={handleSaveChanges} disabled={isSaving}>
-            <Text style={styles.saveButton}>{isSaving ? 'Saving...' : 'Save'}</Text>
+        ) : (
+          <TouchableOpacity onPress={startEditing} style={styles.headerBtn}>
+            <Ionicons name="create-outline" size={20} color={COLORS.gold} />
           </TouchableOpacity>
         )}
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Status Badge */}
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: getStatusColor(displayPost!.status) + '30' },
-          ]}
-        >
-          <Text style={[styles.statusText, { color: getStatusColor(displayPost!.status) }]}>
-            {displayPost!.status}
+      {/* Content */}
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentInner}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Status */}
+        <View style={styles.statusRow}>
+          <View style={[styles.statusDot, { backgroundColor: getStatusColor(post.status) }]} />
+          <Text style={[styles.statusLabel, { color: getStatusColor(post.status) }]}>
+            {post.status}
           </Text>
+          {post.scheduledAt && (
+            <Text style={styles.scheduledLabel}>
+              Scheduled {new Date(post.scheduledAt).toLocaleDateString()}
+            </Text>
+          )}
         </View>
 
         {/* Title */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Title</Text>
-          {isEditing ? (
-            <TextInput
-              style={styles.input}
-              value={editedPost?.title || ''}
-              onChangeText={(text) =>
-                setEditedPost(
-                  editedPost ? { ...editedPost, title: text } : null
-                )
-              }
-              placeholderTextColor='rgba(255,255,255,0.3)'
-            />
-          ) : (
-            <Text style={styles.titleText}>{displayPost?.title || 'Untitled Post'}</Text>
-          )}
-        </View>
+        {isEditing ? (
+          <TextInput
+            style={styles.titleInput}
+            value={editTitle}
+            onChangeText={setEditTitle}
+            placeholder="Title"
+            placeholderTextColor={COLORS.textSubtle}
+            multiline
+            scrollEnabled={false}
+          />
+        ) : (
+          <Text style={styles.titleText}>{post.title || 'Untitled Post'}</Text>
+        )}
 
         {/* Content */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Content</Text>
-          {isEditing ? (
-            <TextInput
-              style={[styles.input, styles.contentInput]}
-              value={editedPost?.content || ''}
-              onChangeText={(text) =>
-                setEditedPost(
-                  editedPost ? { ...editedPost, content: text } : null
-                )
-              }
-              placeholderTextColor='rgba(255,255,255,0.3)'
-              multiline
-              numberOfLines={8}
-            />
-          ) : (
-            <Text style={styles.contentText}>{displayPost?.content}</Text>
-          )}
-        </View>
-
-        {/* Platforms */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Platforms</Text>
-          <View style={styles.platformsList}>
-            {displayPost?.platforms.map((platform, idx) => (
-              <View key={idx} style={styles.platformTag}>
-                <Ionicons name={getPlatformIcon(platform) as any} size={16} color='#d4af37' />
-                <Text style={styles.platformText}>{platform}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Hashtags */}
-        {displayPost?.hashtags && displayPost.hashtags.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.label}>Hashtags</Text>
-            <View style={styles.hashtagsList}>
-              {displayPost.hashtags.map((tag, idx) => (
-                <View key={idx} style={styles.hashtagTag}>
-                  <Text style={styles.hashtagText}>{tag}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
+        {isEditing ? (
+          <TextInput
+            style={[styles.contentInput, { color: selectedColor }]}
+            value={editContent}
+            onChangeText={setEditContent}
+            placeholder="Write content..."
+            placeholderTextColor={COLORS.textSubtle}
+            multiline
+            textAlignVertical="top"
+            scrollEnabled={false}
+          />
+        ) : (
+          <Text style={styles.contentText}>{post.content}</Text>
         )}
 
-        {/* Media URLs */}
-        {displayPost?.mediaUrls && displayPost.mediaUrls.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.label}>Media URLs</Text>
-            {displayPost.mediaUrls.map((url, idx) => (
-              <Text key={idx} style={styles.urlText}>
-                {url}
-              </Text>
-            ))}
-          </View>
-        )}
-
-        {/* Dates */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Created</Text>
-          <Text style={styles.dateText}>
-            {new Date(displayPost!.createdAt).toLocaleString()}
-          </Text>
-        </View>
-
-        {displayPost!.scheduledAt && (
-          <View style={styles.section}>
-            <Text style={styles.label}>Scheduled For</Text>
-            <Text style={styles.dateText}>
-              {new Date(displayPost!.scheduledAt).toLocaleString()}
-            </Text>
-          </View>
-        )}
-
-        {displayPost!.publishedAt && (
-          <View style={styles.section}>
-            <Text style={styles.label}>Published</Text>
-            <Text style={styles.dateText}>
-              {new Date(displayPost!.publishedAt).toLocaleString()}
-            </Text>
-          </View>
-        )}
-
-        {/* Delete Button */}
+        {/* Meta */}
         {!isEditing && (
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={handleDeletePost}
-            disabled={isSaving}
-          >
-            <Ionicons name='trash-outline' size={20} color='#FF6B6B' />
-            <Text style={styles.deleteButtonText}>Delete Post</Text>
+          <View style={styles.meta}>
+            <Text style={styles.metaText}>
+              Created {new Date(post.createdAt).toLocaleDateString()}
+            </Text>
+            {post.publishedAt && (
+              <Text style={styles.metaText}>
+                Published {new Date(post.publishedAt).toLocaleDateString()}
+              </Text>
+            )}
+          </View>
+        )}
+
+        {/* Delete */}
+        {!isEditing && (
+          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+            <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+            <Text style={styles.deleteText}>Delete Post</Text>
           </TouchableOpacity>
         )}
 
-        <View style={{ height: 60 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Formatting Toolbar — edit mode only, keyboard visible */}
+      {isEditing && keyboardVisible && (
+        <View style={styles.toolbar}>
+          {showColorPicker ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.colorRow}>
+              <TouchableOpacity onPress={() => setShowColorPicker(false)} style={styles.toolBtn}>
+                <Ionicons name="chevron-back" size={18} color={COLORS.textMuted} />
+              </TouchableOpacity>
+              {TEXT_COLORS.map((c) => (
+                <TouchableOpacity
+                  key={c.value}
+                  style={[styles.colorDot, { backgroundColor: c.value }, selectedColor === c.value && styles.colorDotActive]}
+                  onPress={() => { setSelectedColor(c.value); setShowColorPicker(false) }}
+                />
+              ))}
+            </ScrollView>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toolbarRow} keyboardShouldPersistTaps="handled">
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('# ')}><Text style={styles.toolText}>H1</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('## ')}><Text style={styles.toolText}>H2</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('### ')}><Text style={styles.toolText}>H3</Text></TouchableOpacity>
+              <View style={styles.toolDivider} />
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertText('**', '**')}><Text style={[styles.toolText, { fontWeight: '800' }]}>B</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertText('*', '*')}><Text style={[styles.toolText, { fontStyle: 'italic' }]}>I</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertText('__', '__')}><Text style={[styles.toolText, { textDecorationLine: 'underline' }]}>U</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertText('~~', '~~')}><Text style={[styles.toolText, { textDecorationLine: 'line-through' }]}>S</Text></TouchableOpacity>
+              <View style={styles.toolDivider} />
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('- [ ] ')}><Ionicons name="checkbox-outline" size={18} color={COLORS.textMuted} /></TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('• ')}><Ionicons name="list" size={18} color={COLORS.textMuted} /></TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('1. ')}><Text style={styles.toolTextSm}>1.</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('\n---\n')}><Ionicons name="remove-outline" size={18} color={COLORS.textMuted} /></TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertText('[', '](url)')}><Ionicons name="link-outline" size={18} color={COLORS.textMuted} /></TouchableOpacity>
+              <View style={styles.toolDivider} />
+              <TouchableOpacity style={styles.toolBtn} onPress={() => setShowColorPicker(true)}>
+                <View style={[styles.colorIndicator, { backgroundColor: selectedColor }]} />
+              </TouchableOpacity>
+            </ScrollView>
+          )}
+        </View>
+      )}
     </View>
   )
 }
@@ -308,149 +318,189 @@ export default function PostDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a192f',
-    paddingBottom: 80,
+    backgroundColor: COLORS.background,
   },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: COLORS.error,
+    fontSize: 16,
+  },
+
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingHorizontal: SPACING.md,
+    paddingTop: 56,
+    paddingBottom: SPACING.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(212,175,55,0.2)',
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  headerBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.textMuted,
   },
-  saveButton: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#d4af37',
+  saveBtn: {
+    backgroundColor: COLORS.gold,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.sm,
   },
+  saveBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.background,
+  },
+
+  // Content
   content: {
     flex: 1,
-    padding: 24,
   },
-  errorText: {
-    color: '#FF6B6B',
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 24,
+  contentInner: {
+    padding: SPACING.lg,
   },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginBottom: 24,
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
   },
-  statusText: {
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     textTransform: 'uppercase',
   },
-  section: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#d4af37',
-    marginBottom: 8,
-    textTransform: 'uppercase',
+  scheduledLabel: {
+    fontSize: 12,
+    color: COLORS.textSubtle,
+    marginLeft: 'auto',
   },
   titleText: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#ffffff',
+    color: COLORS.text,
     lineHeight: 32,
+    marginBottom: SPACING.md,
+  },
+  titleInput: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.text,
+    lineHeight: 32,
+    marginBottom: SPACING.md,
   },
   contentText: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
-    lineHeight: 24,
-  },
-  input: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.3)',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: '#ffffff',
-    fontSize: 16,
+    color: COLORS.textMuted,
+    lineHeight: 26,
   },
   contentInput: {
-    minHeight: 120,
-    textAlignVertical: 'top',
+    fontSize: 16,
+    lineHeight: 26,
+    color: COLORS.text,
+    minHeight: 300,
   },
-  platformsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  meta: {
+    marginTop: SPACING.xl,
+    paddingTop: SPACING.md,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+    gap: SPACING.xs,
   },
-  platformTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(212,175,55,0.1)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.3)',
-  },
-  platformText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#d4af37',
-  },
-  hashtagsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  hashtagTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(0,217,255,0.1)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0,217,255,0.3)',
-  },
-  hashtagText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#00D9FF',
-  },
-  urlText: {
+  metaText: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.6)',
-    marginBottom: 8,
-  },
-  dateText: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
+    color: COLORS.textSubtle,
   },
   deleteButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: SPACING.sm,
     paddingVertical: 14,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,107,107,0.1)',
+    borderRadius: RADIUS.md,
+    backgroundColor: 'rgba(248,113,113,0.08)',
     borderWidth: 1,
-    borderColor: '#FF6B6B',
-    marginTop: 24,
+    borderColor: 'rgba(248,113,113,0.2)',
+    marginTop: SPACING.lg,
   },
-  deleteButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FF6B6B',
+  deleteText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.error,
+  },
+
+  // Toolbar
+  toolbar: {
+    backgroundColor: COLORS.surface,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+    paddingVertical: SPACING.sm,
+  },
+  toolbarRow: {
+    paddingHorizontal: SPACING.md,
+    gap: 2,
+    alignItems: 'center',
+  },
+  toolBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  toolText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.textMuted,
+  },
+  toolTextSm: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textMuted,
+  },
+  toolDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginHorizontal: 4,
+  },
+  colorRow: {
+    paddingHorizontal: SPACING.md,
+    gap: SPACING.sm,
+    alignItems: 'center',
+  },
+  colorDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  colorDotActive: {
+    borderWidth: 2,
+    borderColor: COLORS.text,
+  },
+  colorIndicator: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
 })

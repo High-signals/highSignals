@@ -34,15 +34,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [hasLoggedInBefore, setHasLoggedInBefore] = useState(false)
 
   useEffect(() => {
-    checkFirstTimeUser()
+    restoreSession()
   }, [])
 
-  const checkFirstTimeUser = async () => {
+  const restoreSession = async () => {
     try {
-      const hasLoggedBefore = await AsyncStorage.getItem('hasLoggedInBefore')
+      const [hasLoggedBefore, savedToken] = await Promise.all([
+        AsyncStorage.getItem('hasLoggedInBefore'),
+        api.restoreToken(),
+      ])
+
       setHasLoggedInBefore(hasLoggedBefore === 'true')
+
+      if (savedToken) {
+        setToken(savedToken)
+        try {
+          const userData = await api.profile.get()
+          setUser(userData)
+        } catch {
+          // Token is expired or invalid — clear it
+          await api.clearTokens()
+          setToken(null)
+          setUser(null)
+        }
+      }
     } catch (error) {
-      console.error('Error checking first time user:', error)
+      console.error('Error restoring session:', error)
     } finally {
       setLoading(false)
     }
@@ -57,68 +74,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }
 
-  const fetchUserData = async () => {
-    try {
-      const response = await api.profile.get()
-      setUser(response)
-    } catch (error) {
-      console.error('Failed to fetch user:', error)
-      api.clearTokens()
-      setToken(null)
-      setUser(null)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const login = async (email: string, password: string) => {
-    setLoading(true)
-    try {
-      const response = await api.auth.login(email, password)
-      api.setTokens({ accessToken: response.access_token })
-      setToken(response.access_token)
-      setUser(response.user)
-      await markUserAsLoggedIn()
-    } finally {
-      setLoading(false)
-    }
+    const response = await api.auth.login(email, password)
+    setToken(response.accessToken)
+    setUser(response.user)
+    await markUserAsLoggedIn()
   }
 
   const register = async (email: string, password: string, name: string) => {
-    setLoading(true)
-    try {
-      const response = await api.auth.register(email, password, name)
-      api.setTokens({ accessToken: response.access_token })
-      setToken(response.access_token)
-      setUser(response.user)
-      await markUserAsLoggedIn()
-    } finally {
-      setLoading(false)
-    }
+    const response = await api.auth.register(email, password, name)
+    setToken(response.accessToken)
+    setUser(response.user)
+    await markUserAsLoggedIn()
   }
 
   const googleLogin = async (idToken: string) => {
-    setLoading(true)
-    try {
-      const response = await api.auth.googleLogin(idToken)
-      api.setTokens({ accessToken: response.access_token })
-      setToken(response.access_token)
-      setUser(response.user)
-      await markUserAsLoggedIn()
-    } finally {
-      setLoading(false)
-    }
+    const response = await api.auth.googleLogin(idToken)
+    setToken(response.accessToken)
+    setUser(response.user)
+    await markUserAsLoggedIn()
   }
 
-  const logout = () => {
-    api.clearTokens()
+  const logout = async () => {
+    await api.clearTokens()
     setToken(null)
     setUser(null)
   }
 
   const refreshUserData = async () => {
     if (token) {
-      await fetchUserData()
+      try {
+        const userData = await api.profile.get()
+        setUser(userData)
+      } catch {
+        await api.clearTokens()
+        setToken(null)
+        setUser(null)
+      }
     }
   }
 

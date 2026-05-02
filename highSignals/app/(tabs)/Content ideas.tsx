@@ -5,9 +5,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Animated,
-} from 'react';
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { COLORS, SPACING, RADIUS } from '@/constants/theme';
 
 const ideaCategories = ['Trending', 'For You', 'Quick Wins', 'Educational', 'Viral Hooks'];
 
@@ -49,15 +50,6 @@ const mockIdeas = [
 export default function ContentIdeasScreen() {
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState('Trending');
-  const fadeAnim = new Animated.Value(0);
-
-  React.useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 400,
-      useNativeDriver: true,
-    }).start();
-  }, [selectedCategory]);
 
   const filteredIdeas = mockIdeas.filter(
     (idea) => selectedCategory === 'Trending' || idea.category === selectedCategory
@@ -66,13 +58,13 @@ export default function ContentIdeasScreen() {
   const getEngagementColor = (level: string) => {
     switch (level) {
       case 'High':
-        return '#00FF00';
+        return COLORS.success;
       case 'Medium':
-        return '#FFD700';
+        return COLORS.warning;
       case 'Low':
-        return '#FF6B6B';
+        return COLORS.error;
       default:
-        return '#888888';
+        return COLORS.textSubtle;
     }
   };
 
@@ -80,24 +72,24 @@ export default function ContentIdeasScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backButton}>←</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={22} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Content Ideas</Text>
-        <TouchableOpacity>
-          <Text style={styles.icon}>💡</Text>
-        </TouchableOpacity>
+        <View style={styles.headerIconWrap}>
+          <Ionicons name="bulb-outline" size={20} color={COLORS.gold} />
+        </View>
       </View>
 
       {/* AI Generate Button */}
-      <TouchableOpacity style={styles.aiButton}>
-        <Text style={styles.aiEmoji}>✨</Text>
+      <TouchableOpacity style={styles.aiButton} activeOpacity={0.8}>
+        <Ionicons name="sparkles-outline" size={20} color={COLORS.background} />
         <Text style={styles.aiText}>Generate AI Ideas for Me</Text>
       </TouchableOpacity>
 
       {/* Category Filters */}
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.categories}
       >
@@ -123,46 +115,44 @@ export default function ContentIdeasScreen() {
       </ScrollView>
 
       {/* Ideas List */}
-      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-        <ScrollView 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {filteredIdeas.map((idea) => (
-            <TouchableOpacity key={idea.id} style={styles.ideaCard}>
-              <View style={styles.ideaHeader}>
-                <Text style={styles.ideaCategory}>{idea.category}</Text>
-                <View style={styles.badges}>
-                  <View style={[styles.badge, { backgroundColor: getEngagementColor(idea.engagement) + '20' }]}>
-                    <Text style={[styles.badgeText, { color: getEngagementColor(idea.engagement) }]}>
-                      {idea.engagement}
-                    </Text>
-                  </View>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{idea.difficulty}</Text>
-                  </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {filteredIdeas.map((idea) => (
+          <TouchableOpacity key={idea.id} style={styles.ideaCard}>
+            <View style={styles.ideaHeader}>
+              <Text style={styles.ideaCategory}>{idea.category}</Text>
+              <View style={styles.badges}>
+                <View style={[styles.badge, { backgroundColor: getEngagementColor(idea.engagement) + '20' }]}>
+                  <Text style={[styles.badgeText, { color: getEngagementColor(idea.engagement) }]}>
+                    {idea.engagement}
+                  </Text>
+                </View>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{idea.difficulty}</Text>
                 </View>
               </View>
+            </View>
 
-              <Text style={styles.ideaTitle}>{idea.title}</Text>
-              <Text style={styles.ideaDescription}>{idea.description}</Text>
+            <Text style={styles.ideaTitle}>{idea.title}</Text>
+            <Text style={styles.ideaDescription}>{idea.description}</Text>
 
-              <View style={styles.ideaActions}>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Text style={styles.actionIcon}>❤️</Text>
-                  <Text style={styles.actionText}>Save</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionButton, styles.primaryAction]}>
-                  <Text style={styles.actionIcon}>✍️</Text>
-                  <Text style={[styles.actionText, styles.primaryActionText]}>Use This</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          ))}
+            <View style={styles.ideaActions}>
+              <TouchableOpacity style={styles.actionButton}>
+                <Ionicons name="heart-outline" size={16} color={COLORS.textMuted} />
+                <Text style={styles.actionText}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.actionButton, styles.primaryAction]}>
+                <Ionicons name="create-outline" size={16} color={COLORS.background} />
+                <Text style={[styles.actionText, styles.primaryActionText]}>Use This</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        ))}
 
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      </Animated.View>
+        <View style={{ height: 100 }} />
+      </ScrollView>
     </View>
   );
 }
@@ -170,90 +160,84 @@ export default function ContentIdeasScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: SPACING.lg,
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: SPACING.md,
   },
-  backButton: {
-    fontSize: 28,
-    color: '#ffffff',
-    fontWeight: '600',
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#ffffff',
+    fontWeight: '700',
+    color: COLORS.text,
   },
-  icon: {
-    fontSize: 24,
+  headerIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.goldMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-
-  // AI Button
   aiButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#00D9FF',
-    marginHorizontal: 24,
-    marginBottom: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
-  },
-  aiEmoji: {
-    fontSize: 20,
-    marginRight: 8,
+    backgroundColor: COLORS.gold,
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.md,
+    paddingVertical: 14,
+    borderRadius: RADIUS.md,
+    gap: SPACING.sm,
   },
   aiText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#000000',
+    color: COLORS.background,
   },
-
-  // Categories
   categories: {
-    paddingHorizontal: 24,
-    gap: 10,
-    marginBottom: 20,
+    paddingHorizontal: SPACING.lg,
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
   },
   categoryChip: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surface,
   },
   categoryChipActive: {
-    backgroundColor: '#00D9FF',
-    borderColor: '#00D9FF',
+    backgroundColor: COLORS.gold,
   },
   categoryText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.6)',
+    color: COLORS.textMuted,
   },
   categoryTextActive: {
-    color: '#000000',
+    color: COLORS.background,
   },
-
-  // Ideas List
   scrollContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: SPACING.lg,
     paddingBottom: 40,
   },
   ideaCard: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
   },
   ideaHeader: {
     flexDirection: 'row',
@@ -262,39 +246,39 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   ideaCategory: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#00D9FF',
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.gold,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
   badges: {
     flexDirection: 'row',
-    gap: 8,
+    gap: SPACING.sm,
   },
   badge: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingVertical: 3,
+    borderRadius: RADIUS.full,
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   badgeText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.6)',
+    fontWeight: '600',
+    color: COLORS.textMuted,
   },
   ideaTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#ffffff',
-    marginBottom: 8,
+    fontSize: 17,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: SPACING.sm,
     lineHeight: 24,
   },
   ideaDescription: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
+    color: COLORS.textMuted,
     lineHeight: 20,
-    marginBottom: 16,
+    marginBottom: SPACING.md,
   },
   ideaActions: {
     flexDirection: 'row',
@@ -305,26 +289,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    paddingVertical: 10,
+    borderRadius: RADIUS.sm,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    gap: 6,
   },
   primaryAction: {
-    backgroundColor: '#00D9FF',
-    borderColor: '#00D9FF',
-  },
-  actionIcon: {
-    fontSize: 16,
-    marginRight: 6,
+    backgroundColor: COLORS.gold,
   },
   actionText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.8)',
+    color: COLORS.textMuted,
   },
   primaryActionText: {
-    color: '#000000',
+    color: COLORS.background,
   },
 });

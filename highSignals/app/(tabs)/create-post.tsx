@@ -1,1047 +1,494 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Modal,
   ActivityIndicator,
   Alert,
-  Dimensions,
+  Keyboard,
+  ScrollView,
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
-import DateTimePicker from '@react-native-community/datetimepicker'
-import { LinearGradient } from 'expo-linear-gradient'
 import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
+import { COLORS, SPACING, RADIUS } from '@/constants/theme'
 
-const { width } = Dimensions.get('window')
-
-type PublishOption = 'immediate' | 'schedule' | 'draft'
-type TextFormat = 'bold' | 'italic' | 'underline' | 'strikethrough'
-
-interface FormattedSegment {
-  text: string
-  formats: Set<TextFormat>
-}
+const TEXT_COLORS = [
+  { label: 'Default', value: COLORS.text },
+  { label: 'Gold', value: COLORS.gold },
+  { label: 'Red', value: '#ef4444' },
+  { label: 'Orange', value: '#f97316' },
+  { label: 'Yellow', value: '#eab308' },
+  { label: 'Green', value: '#22c55e' },
+  { label: 'Blue', value: '#3b82f6' },
+  { label: 'Purple', value: '#a855f7' },
+  { label: 'Pink', value: '#ec4899' },
+  { label: 'Gray', value: '#9ca3af' },
+]
 
 export default function CreatePostScreen() {
   const router = useRouter()
   const { isAuthenticated } = useAuth()
-  const [content, setContent] = useState('')
+  const contentRef = useRef<TextInput>(null)
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const [title, setTitle] = useState('')
-  const [platform, setPlatform] = useState('LINKEDIN')
-  const [aiScore, setAiScore] = useState<number | null>(null)
-  const [aiFeedback, setAiFeedback] = useState<string[]>([])
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [content, setContent] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [savedPostId, setSavedPostId] = useState<string | null>(null)
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
+  const [keyboardVisible, setKeyboardVisible] = useState(false)
+  const [showColorPicker, setShowColorPicker] = useState(false)
+  const [selectedColor, setSelectedColor] = useState<string>(COLORS.text)
 
-  // Publishing options
-  const [publishOption, setPublishOption] = useState<PublishOption>('draft')
-  const [scheduleDate, setScheduleDate] = useState(new Date())
-  const [showDatePicker, setShowDatePicker] = useState(false)
-  const [showPublishModal, setShowPublishModal] = useState(false)
-
-  // Text formatting
-  const [fontSize, setFontSize] = useState(16)
-  const [activeFormats, setActiveFormats] = useState<Set<TextFormat>>(new Set())
-  const [selectedColor, setSelectedColor] = useState('#ffffff')
-  const [editHistory, setEditHistory] = useState<string[]>([content])
+  // Undo/Redo
+  const [history, setHistory] = useState<string[]>([''])
   const [historyIndex, setHistoryIndex] = useState(0)
 
-  const characterLimit = 2000
-  const characterPercentage = Math.min((content.length / characterLimit) * 100, 100)
-  const wordCount = content.split(' ').filter(Boolean).length
-
-  // Formatting utilities
-  const toggleFormat = (format: TextFormat) => {
-    const newFormats = new Set(activeFormats)
-    if (newFormats.has(format)) {
-      newFormats.delete(format)
-    } else {
-      newFormats.add(format)
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true))
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false)
+      setShowColorPicker(false)
+    })
+    return () => {
+      showSub.remove()
+      hideSub.remove()
     }
-    setActiveFormats(newFormats)
+  }, [])
+
+  // Auto-save on content/title change (debounced 1.5s)
+  useEffect(() => {
+    if (!title && !content) return
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    autoSaveTimer.current = setTimeout(() => {
+      autoSave()
+    }, 1500)
+    return () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    }
+  }, [title, content])
+
+  const autoSave = async () => {
+    if (!isAuthenticated || (!title && !content)) return
+    if (isSaving) return
+
+    try {
+      setIsSaving(true)
+      if (savedPostId) {
+        await api.posts.update(savedPostId, {
+          title: title || undefined,
+          content,
+        })
+      } else {
+        const result = await api.posts.create({
+          title: title || undefined,
+          content,
+          platforms: [],
+          hashtags: [],
+          mediaUrls: [],
+        })
+        if (result?.id) {
+          setSavedPostId(result.id)
+        }
+      }
+      setLastSavedAt(new Date())
+    } catch {
+      // Silent fail for auto-save
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const updateContentHistory = (newContent: string) => {
-    const newHistory = editHistory.slice(0, historyIndex + 1)
-    newHistory.push(newContent)
-    setEditHistory(newHistory)
+  const updateContent = useCallback((text: string) => {
+    setContent(text)
+    const newHistory = history.slice(0, historyIndex + 1)
+    newHistory.push(text)
+    if (newHistory.length > 50) newHistory.shift()
+    setHistory(newHistory)
     setHistoryIndex(newHistory.length - 1)
-    setContent(newContent)
-  }
+  }, [history, historyIndex])
 
   const undo = () => {
     if (historyIndex > 0) {
-      setHistoryIndex(historyIndex - 1)
-      setContent(editHistory[historyIndex - 1])
+      const newIndex = historyIndex - 1
+      setHistoryIndex(newIndex)
+      setContent(history[newIndex])
     }
   }
 
   const redo = () => {
-    if (historyIndex < editHistory.length - 1) {
-      setHistoryIndex(historyIndex + 1)
-      setContent(editHistory[historyIndex + 1])
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1
+      setHistoryIndex(newIndex)
+      setContent(history[newIndex])
     }
   }
 
-  const insertLink = () => {
-    Alert.prompt(
-      'Add Link',
-      'Enter URL:',
-      (url) => {
-        if (url) {
-          updateContentHistory(content + `\n🔗 ${url}`)
-        }
-      },
-      'plain-text'
-    )
+  const insertText = (prefix: string, suffix: string = '') => {
+    const newContent = content + prefix + suffix
+    updateContent(newContent)
   }
 
-  const insertBulletList = () => {
-    updateContentHistory(content + '\n• Item 1\n• Item 2\n• Item 3')
+  const insertBlock = (block: string) => {
+    const separator = content && !content.endsWith('\n') ? '\n' : ''
+    updateContent(content + separator + block)
   }
 
-  const insertNumberedList = () => {
-    updateContentHistory(content + '\n1. Item 1\n2. Item 2\n3. Item 3')
-  }
-
-  const insertHeading = () => {
-    updateContentHistory(content + '\n\n📌 HEADING\n')
-  }
-
-  const increaseFontSize = () => {
-    if (fontSize < 28) setFontSize(fontSize + 2)
-  }
-
-  const decreaseFontSize = () => {
-    if (fontSize > 12) setFontSize(fontSize - 2)
-  }
-
-  const handleAnalyze = async () => {
-    if (!content) {
-      Alert.alert('Error', 'Please write some content first')
+  const handleDone = async () => {
+    if (!title.trim()) {
+      Alert.alert('Title required', 'Please add a title for your content')
+      return
+    }
+    if (!content.trim()) {
+      Alert.alert('Content required', 'Please write some content')
       return
     }
 
-    setIsAnalyzing(true)
-
-    try {
-      // TODO: Call AI API for content analysis
-      // For now, simulate AI analysis
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
-      const score = Math.floor(Math.random() * 30) + 70 // Random score between 70-100
-      setAiScore(score)
-      setAiFeedback([
-        'Strong opening that captures attention',
-        `Consider adding a call-to-action`,
-        'Good use of key insights',
-      ])
-    } catch (error) {
-      Alert.alert('Error', 'Failed to analyze content')
-    } finally {
-      setIsAnalyzing(false)
-    }
-  }
-
-  const handlePublish = async () => {
-    if (!content) {
-      Alert.alert('Error', 'Please write some content')
-      return
-    }
-
-    if (!isAuthenticated) {
-      Alert.alert('Error', 'Please login first')
-      return
-    }
-
+    // Force a final save
     setIsSaving(true)
     try {
-      const scheduleTime =
-        publishOption === 'schedule' ? scheduleDate.toISOString() : null
-
-      const postData = {
-        title: title || undefined,
-        content,
-        platforms: [platform],
-        hashtags: [],
-        mediaUrls: [],
-        scheduledAt: scheduleTime,
+      if (savedPostId) {
+        await api.posts.update(savedPostId, { title, content })
+      } else {
+        await api.posts.create({
+          title,
+          content,
+          platforms: [],
+          hashtags: [],
+          mediaUrls: [],
+        })
       }
-
-      await api.posts.create(postData)
-
-      Alert.alert(
-        'Success',
-        publishOption === 'draft'
-          ? 'Post saved as draft'
-          : publishOption === 'schedule'
-          ? 'Post scheduled successfully'
-          : 'Post published successfully'
-      )
       router.back()
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to save post')
+      Alert.alert('Error', error.message || 'Failed to save')
     } finally {
       setIsSaving(false)
-      setShowPublishModal(false)
     }
   }
 
-  const increaseFontSize = () => {
-    if (fontSize < 24) setFontSize(fontSize + 2)
-  }
-
-  const decreaseFontSize = () => {
-    if (fontSize > 12) setFontSize(fontSize - 2)
+  const formatTimeAgo = (date: Date) => {
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+    if (seconds < 5) return 'Just now'
+    if (seconds < 60) return `${seconds}s ago`
+    return `${Math.floor(seconds / 60)}m ago`
   }
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Gradient Header */}
-      <LinearGradient
-        colors={['#0a192f', '#1a2f4f']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.headerGradient}
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+          <Ionicons name="chevron-back" size={22} color={COLORS.text} />
+        </TouchableOpacity>
+
+        <View style={styles.headerCenter}>
+          {isSaving ? (
+            <View style={styles.saveStatus}>
+              <ActivityIndicator size="small" color={COLORS.textSubtle} />
+              <Text style={styles.saveStatusText}>Saving...</Text>
+            </View>
+          ) : lastSavedAt ? (
+            <Text style={styles.saveStatusText}>Saved {formatTimeAgo(lastSavedAt)}</Text>
+          ) : null}
+        </View>
+
+        <TouchableOpacity
+          onPress={handleDone}
+          style={[styles.doneBtn, (!title.trim() || !content.trim()) && styles.doneBtnDisabled]}
+          disabled={isSaving}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.doneBtnText}>Done</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Editor */}
+      <ScrollView
+        style={styles.editorScroll}
+        contentContainerStyle={styles.editorContent}
+        keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
-            <Text style={styles.closeButton}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>✨ Create Content</Text>
-          <TouchableOpacity onPress={() => console.log('Save draft')} style={styles.headerButton}>
-            <Text style={styles.saveButton}>💾</Text>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+        <TextInput
+          style={styles.titleInput}
+          placeholder="Title"
+          placeholderTextColor={COLORS.textSubtle}
+          value={title}
+          onChangeText={setTitle}
+          multiline
+          scrollEnabled={false}
+        />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Platform Selector Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>🎯 Where to Post?</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.platformScrollView}>
-            {['LINKEDIN', 'TWITTER', 'INSTAGRAM', 'FACEBOOK', 'TIKTOK'].map((p) => (
-              <TouchableOpacity
-                key={p}
-                style={[styles.platformChip, platform === p && styles.platformChipActive]}
-                onPress={() => setPlatform(p)}
-              >
-                <Text style={styles.platformEmoji}>
-                  {p === 'LINKEDIN' && '💼'}
-                  {p === 'TWITTER' && '𝕏'}
-                  {p === 'INSTAGRAM' && '📸'}
-                  {p === 'FACEBOOK' && '👍'}
-                  {p === 'TIKTOK' && '🎵'}
-                </Text>
-                <Text style={[styles.platformText, platform === p && styles.platformTextActive]}>
-                  {p}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Title Section */}
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>📌 Title (Optional)</Text>
-          <TextInput
-            style={styles.titleInput}
-            placeholder="Add a catchy headline..."
-            placeholderTextColor="rgba(255,255,255,0.4)"
-            value={title}
-            onChangeText={setTitle}
-          />
-        </View>
-
-        {/* Formatting Toolbar Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>🎨 Formatting Tools</Text>
-          
-          {/* First Row - Font Size & Basic Formatting */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.toolbarGroup}>
-              <TouchableOpacity style={styles.toolButton} onPress={decreaseFontSize}>
-                <Text style={styles.toolIcon}>A</Text>
-                <Text style={styles.toolSubtext}>-</Text>
-              </TouchableOpacity>
-              <View style={styles.fontSizeContainer}>
-                <Text style={styles.fontSizeDisplay}>{fontSize}</Text>
-              </View>
-              <TouchableOpacity style={styles.toolButton} onPress={increaseFontSize}>
-                <Text style={styles.toolIcon}>A</Text>
-                <Text style={styles.toolSubtext}>+</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.toolDivider} />
-
-            <TouchableOpacity 
-              style={[styles.toolButton, activeFormats.has('bold') && styles.toolButtonActive]}
-              onPress={() => toggleFormat('bold')}
-            >
-              <Text style={[styles.toolIcon, { fontWeight: 'bold' }]}>B</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.toolButton, activeFormats.has('italic') && styles.toolButtonActive]}
-              onPress={() => toggleFormat('italic')}
-            >
-              <Text style={[styles.toolIcon, { fontStyle: 'italic' }]}>I</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.toolButton, activeFormats.has('underline') && styles.toolButtonActive]}
-              onPress={() => toggleFormat('underline')}
-            >
-              <Text style={[styles.toolIcon]}>U̲</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.toolButton, activeFormats.has('strikethrough') && styles.toolButtonActive]}
-              onPress={() => toggleFormat('strikethrough')}
-            >
-              <Text style={[styles.toolIcon]}>S̶</Text>
-            </TouchableOpacity>
-          </ScrollView>
-
-          {/* Second Row - Lists & Structure */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.toolbarSecondRow}>
-            <TouchableOpacity 
-              style={styles.toolButton}
-              onPress={insertHeading}
-            >
-              <Text style={styles.toolIcon}>H1</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.toolButton}
-              onPress={insertBulletList}
-            >
-              <Text style={styles.toolIcon}>◆</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.toolButton}
-              onPress={insertNumberedList}
-            >
-              <Text style={styles.toolIcon}>1.</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.toolButton}
-              onPress={insertLink}
-            >
-              <Text style={styles.toolIcon}>🔗</Text>
-            </TouchableOpacity>
-
-            <View style={styles.toolDivider} />
-
-            <TouchableOpacity 
-              style={styles.toolButton}
-              onPress={undo}
-              disabled={historyIndex <= 0}
-            >
-              <Text style={[styles.toolIcon, { fontSize: 18 }]}>↶</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.toolButton}
-              onPress={redo}
-              disabled={historyIndex >= editHistory.length - 1}
-            >
-              <Text style={[styles.toolIcon, { fontSize: 18 }]}>↷</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-
-        {/* Content Editor Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>✍️ Your Content</Text>
-          <View style={styles.editorSection}>
-            <TextInput
-              style={[
-                styles.contentInput,
-                { 
-                  fontSize,
-                  fontWeight: activeFormats.has('bold') ? 'bold' : 'normal',
-                  fontStyle: activeFormats.has('italic') ? 'italic' : 'normal',
-                  color: selectedColor,
-                }
-              ]}
-              placeholder="Write your thoughts, insights, or ideas here..."
-              placeholderTextColor="rgba(255,255,255,0.3)"
-              value={content}
-              onChangeText={updateContentHistory}
-              multiline
-              textAlignVertical="top"
-            />
-          </View>
-
-          {/* Character Count Progress */}
-          <View style={styles.statsContainer}>
-            <View style={styles.progressBar}>
-              <View 
-                style={[
-                  styles.progressFill, 
-                  { 
-                    width: `${characterPercentage}%`,
-                    backgroundColor: characterPercentage > 80 ? '#ff6b6b' : '#d4af37'
-                  }
-                ]} 
-              />
-            </View>
-            <View style={styles.statsRow}>
-              <Text style={styles.statText}>
-                {content.length}/{characterLimit} chars
-              </Text>
-              <Text style={styles.statText}>
-                {wordCount} words
-              </Text>
-              <Text style={styles.readingTime}>
-                ~{Math.ceil(wordCount / 200)} min read
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* AI Score Card */}
-        {aiScore !== null && (
-          <LinearGradient
-            colors={['#1a1a2e', '#16213e']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.aiResultCard}
-          >
-            <View style={styles.scoreSection}>
-              <View style={styles.scoreCircle}>
-                <Text style={styles.scoreValue}>{aiScore}</Text>
-                <Text style={styles.scoreMax}>/100</Text>
-              </View>
-              <View style={styles.scoreInfo}>
-                <Text style={styles.scoreTitle}>AI Content Score</Text>
-                <View style={styles.scoreBar}>
-                  <View 
-                    style={[
-                      styles.scoreBarFill,
-                      { width: `${aiScore}%` }
-                    ]}
-                  />
-                </View>
-                <Text style={styles.scoreQuality}>
-                  {aiScore >= 80 ? '🔥 Excellent' : aiScore >= 60 ? '👍 Good' : '🤔 Could be better'}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.feedbackSection}>
-              <Text style={styles.feedbackTitle}>💡 AI Suggestions</Text>
-              {aiFeedback.map((feedback, index) => (
-                <View key={index} style={styles.feedbackItem}>
-                  <Text style={styles.feedbackBullet}>→</Text>
-                  <Text style={styles.feedbackText}>{feedback}</Text>
-                </View>
-              ))}
-            </View>
-          </LinearGradient>
-        )}
-
-        <View style={{ height: 180 }} />
+        <TextInput
+          ref={contentRef}
+          style={[styles.contentInput, { color: selectedColor }]}
+          placeholder="Start writing..."
+          placeholderTextColor={COLORS.textSubtle}
+          value={content}
+          onChangeText={updateContent}
+          multiline
+          textAlignVertical="top"
+          scrollEnabled={false}
+        />
       </ScrollView>
 
-      {/* Bottom Action Bar */}
-      <LinearGradient
-        colors={['rgba(10, 25, 47, 0)', '#0a192f']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.bottomBar}
-      >
-        {aiScore === null ? (
-          <TouchableOpacity 
-            style={[styles.analyzeButton, (!content || isAnalyzing) && styles.buttonDisabled]}
-            onPress={handleAnalyze}
-            disabled={!content || isAnalyzing}
-          >
-            {isAnalyzing ? (
-              <>
-                <ActivityIndicator color='#0a192f' size='small' />
-                <Text style={styles.analyzeButtonText}>   Analyzing...</Text>
-              </>
-            ) : (
-              <Text style={styles.analyzeButtonText}>🤖 Get AI Feedback</Text>
-            )}
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity 
-            style={styles.publishOptionsButton}
-            onPress={() => setShowPublishModal(true)}
-          >
-            <Text style={styles.publishOptionsText}>✅ Ready to Publish →</Text>
-          </TouchableOpacity>
-        )}
-      </LinearGradient>
-
-      {/* Publish Options Modal */}
-      <Modal
-        visible={showPublishModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowPublishModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <LinearGradient
-            colors={['#ffffff', '#f5f5f5']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={styles.modalContent}
-          >
-            <Text style={styles.modalTitle}>📤 How would you like to publish?</Text>
-
-            {/* Immediate */}
-            <TouchableOpacity
-              style={[styles.option, publishOption === 'immediate' && styles.optionSelected]}
-              onPress={() => setPublishOption('immediate')}
+      {/* Formatting Toolbar — only visible when keyboard is up */}
+      {keyboardVisible && (
+        <View style={styles.toolbar}>
+          {showColorPicker ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.colorPickerRow}
             >
-              <View style={styles.optionLeft}>
-                <Text style={styles.optionIcon}>⚡</Text>
-                <View>
-                  <Text style={styles.optionTitle}>Publish Immediately</Text>
-                  <Text style={styles.optionDesc}>Go live right now</Text>
-                </View>
-              </View>
-              <View style={[styles.radioButton, publishOption === 'immediate' && styles.radioButtonActive]}>
-                {publishOption === 'immediate' && <View style={styles.radioDot} />}
-              </View>
-            </TouchableOpacity>
-
-            {/* Schedule */}
-            <TouchableOpacity
-              style={[styles.option, publishOption === 'schedule' && styles.optionSelected]}
-              onPress={() => {
-                setPublishOption('schedule');
-                setShowDatePicker(true);
-              }}
+              <TouchableOpacity onPress={() => setShowColorPicker(false)} style={styles.toolBtn}>
+                <Ionicons name="chevron-back" size={18} color={COLORS.textMuted} />
+              </TouchableOpacity>
+              {TEXT_COLORS.map((c) => (
+                <TouchableOpacity
+                  key={c.value}
+                  style={[
+                    styles.colorDot,
+                    { backgroundColor: c.value },
+                    selectedColor === c.value && styles.colorDotActive,
+                  ]}
+                  onPress={() => {
+                    setSelectedColor(c.value)
+                    setShowColorPicker(false)
+                  }}
+                />
+              ))}
+            </ScrollView>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.toolbarRow}
+              keyboardShouldPersistTaps="handled"
             >
-              <View style={styles.optionLeft}>
-                <Text style={styles.optionIcon}>📅</Text>
-                <View>
-                  <Text style={styles.optionTitle}>Schedule for Later</Text>
-                  <Text style={styles.optionDesc}>
-                    {publishOption === 'schedule' 
-                      ? scheduleDate.toLocaleString()
-                      : 'Pick a date & time'}
-                  </Text>
-                </View>
-              </View>
-              <View style={[styles.radioButton, publishOption === 'schedule' && styles.radioButtonActive]}>
-                {publishOption === 'schedule' && <View style={styles.radioDot} />}
-              </View>
-            </TouchableOpacity>
+              {/* Text Styles */}
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('\n# ')}>
+                <Text style={styles.toolText}>H1</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('\n## ')}>
+                <Text style={styles.toolText}>H2</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('\n### ')}>
+                <Text style={styles.toolText}>H3</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('\n')}>
+                <Text style={styles.toolTextSmall}>Aa</Text>
+              </TouchableOpacity>
 
-            {/* Draft */}
-            <TouchableOpacity
-              style={[styles.option, publishOption === 'draft' && styles.optionSelected]}
-              onPress={() => setPublishOption('draft')}
-            >
-              <View style={styles.optionLeft}>
-                <Text style={styles.optionIcon}>📝</Text>
-                <View>
-                  <Text style={styles.optionTitle}>Save as Draft</Text>
-                  <Text style={styles.optionDesc}>Edit and publish later</Text>
-                </View>
-              </View>
-              <View style={[styles.radioButton, publishOption === 'draft' && styles.radioButtonActive]}>
-                {publishOption === 'draft' && <View style={styles.radioDot} />}
-              </View>
-            </TouchableOpacity>
+              <View style={styles.toolDivider} />
 
-            {/* Action Buttons */}
-            <View style={styles.modalActions}>
+              {/* Inline Formatting */}
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertText('**', '**')}>
+                <Text style={[styles.toolText, { fontWeight: '800' }]}>B</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertText('*', '*')}>
+                <Text style={[styles.toolText, { fontStyle: 'italic' }]}>I</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertText('__', '__')}>
+                <Text style={[styles.toolText, { textDecorationLine: 'underline' }]}>U</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertText('~~', '~~')}>
+                <Text style={[styles.toolText, { textDecorationLine: 'line-through' }]}>S</Text>
+              </TouchableOpacity>
+
+              <View style={styles.toolDivider} />
+
+              {/* Blocks */}
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('- [ ] ')}>
+                <Ionicons name="checkbox-outline" size={18} color={COLORS.textMuted} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('• ')}>
+                <Ionicons name="list" size={18} color={COLORS.textMuted} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('1. ')}>
+                <Text style={styles.toolTextSmall}>1.</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('\n---\n')}>
+                <Ionicons name="remove-outline" size={18} color={COLORS.textMuted} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.toolBtn} onPress={() => insertText('[', '](url)')}>
+                <Ionicons name="link-outline" size={18} color={COLORS.textMuted} />
+              </TouchableOpacity>
+
+              <View style={styles.toolDivider} />
+
+              {/* Color */}
+              <TouchableOpacity style={styles.toolBtn} onPress={() => setShowColorPicker(true)}>
+                <View style={[styles.colorIndicator, { backgroundColor: selectedColor }]} />
+              </TouchableOpacity>
+
+              <View style={styles.toolDivider} />
+
+              {/* Undo / Redo */}
               <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setShowPublishModal(false)}
+                style={[styles.toolBtn, historyIndex <= 0 && styles.toolBtnDisabled]}
+                onPress={undo}
+                disabled={historyIndex <= 0}
               >
-                <Text style={styles.cancelText}>Cancel</Text>
+                <Ionicons name="arrow-undo" size={18} color={historyIndex <= 0 ? COLORS.textSubtle : COLORS.textMuted} />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.confirmButton, isSaving && styles.buttonDisabled]}
-                onPress={handlePublish}
-                disabled={isSaving}
+                style={[styles.toolBtn, historyIndex >= history.length - 1 && styles.toolBtnDisabled]}
+                onPress={redo}
+                disabled={historyIndex >= history.length - 1}
               >
-                {isSaving ? (
-                  <ActivityIndicator color='#0a192f' size='small' />
-                ) : (
-                  <Text style={styles.confirmText}>Confirm & Publish</Text>
-                )}
+                <Ionicons name="arrow-redo" size={18} color={historyIndex >= history.length - 1 ? COLORS.textSubtle : COLORS.textMuted} />
               </TouchableOpacity>
-            </View>
-          </LinearGradient>
+            </ScrollView>
+          )}
         </View>
-      </Modal>
-
-      {/* Date Picker */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={scheduleDate}
-          mode="datetime"
-          display="default"
-          onChange={(event, selectedDate) => {
-            setShowDatePicker(false);
-            if (selectedDate) setScheduleDate(selectedDate);
-          }}
-        />
       )}
     </KeyboardAvoidingView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a192f',
+    backgroundColor: COLORS.background,
   },
-  headerGradient: {
-    paddingTop: 60,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(212,175,55,0.2)',
-  },
+
+  // Header
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.md,
+    paddingTop: 56,
+    paddingBottom: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
   },
-  headerButton: {
-    padding: 8,
+  headerBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  closeButton: {
-    fontSize: 16,
-    color: '#ffffff',
-    fontWeight: '600',
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#d4af37',
-    letterSpacing: 0.5,
-  },
-  saveButton: {
-    fontSize: 20,
-  },
-
-  // Cards
-  card: {
-    marginHorizontal: 16,
-    marginVertical: 12,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.2)',
-  },
-  cardLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#d4af37',
-    letterSpacing: 0.5,
-    marginBottom: 12,
-    textTransform: 'uppercase',
-  },
-
-  // Platform Selector
-  platformScrollView: {
-    marginHorizontal: -4,
-    paddingHorizontal: 4,
-  },
-  platformChip: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 24,
-    marginRight: 10,
-    borderWidth: 1.5,
-    borderColor: 'rgba(212,175,55,0.3)',
+  saveStatus: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  platformChipActive: {
-    backgroundColor: '#d4af37',
-    borderColor: '#d4af37',
+  saveStatusText: {
+    fontSize: 12,
+    color: COLORS.textSubtle,
   },
-  platformEmoji: {
-    fontSize: 16,
+  doneBtn: {
+    backgroundColor: COLORS.gold,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.sm,
   },
-  platformText: {
-    fontSize: 13,
+  doneBtnDisabled: {
+    opacity: 0.4,
+  },
+  doneBtnText: {
+    fontSize: 14,
     fontWeight: '600',
-    color: '#ffffff',
-  },
-  platformTextActive: {
-    color: '#0a192f',
-  },
-
-  // Title
-  titleInput: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#ffffff',
-    paddingVertical: 8,
-  },
-
-  // Toolbar
-  toolbarGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  toolbarSecondRow: {
-    marginTop: 8,
-  },
-  toolButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.1)',
-  },
-  toolButtonActive: {
-    backgroundColor: '#d4af37',
-    borderColor: '#d4af37',
-  },
-  toolIcon: {
-    fontSize: 16,
-    color: '#ffffff',
-    fontWeight: '700',
-  },
-  toolSubtext: {
-    fontSize: 10,
-    color: '#ffffff',
-    fontWeight: '700',
-    marginTop: -2,
-  },
-  fontSizeContainer: {
-    backgroundColor: 'rgba(212,175,55,0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  fontSizeDisplay: {
-    fontSize: 13,
-    color: '#d4af37',
-    fontWeight: '700',
-  },
-  toolDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: 'rgba(212,175,55,0.2)',
-    marginRight: 8,
+    color: COLORS.background,
   },
 
   // Editor
-  editorSection: {
-    minHeight: 280,
-    paddingVertical: 8,
+  editorScroll: {
+    flex: 1,
+  },
+  editorContent: {
+    padding: SPACING.lg,
+    paddingBottom: 200,
+  },
+  titleInput: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: COLORS.text,
+    lineHeight: 34,
+    marginBottom: SPACING.md,
   },
   contentInput: {
-    color: '#ffffff',
-    lineHeight: 28,
+    fontSize: 16,
+    lineHeight: 26,
+    color: COLORS.text,
+    minHeight: 400,
   },
 
-  // Stats
-  statsContainer: {
-    marginTop: 16,
-    paddingTop: 16,
+  // Toolbar
+  toolbar: {
+    backgroundColor: COLORS.surface,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(212,175,55,0.2)',
+    borderTopColor: 'rgba(255,255,255,0.06)',
+    paddingVertical: SPACING.sm,
   },
-  progressBar: {
-    height: 6,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  toolbarRow: {
+    paddingHorizontal: SPACING.md,
+    gap: 2,
     alignItems: 'center',
   },
-  statText: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
-    fontWeight: '500',
+  toolBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  readingTime: {
-    fontSize: 12,
-    color: '#d4af37',
+  toolBtnDisabled: {
+    opacity: 0.3,
+  },
+  toolText: {
+    fontSize: 15,
     fontWeight: '600',
+    color: COLORS.textMuted,
+  },
+  toolTextSmall: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.textMuted,
+  },
+  toolDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginHorizontal: 4,
   },
 
-  // AI Results
-  aiResultCard: {
-    marginHorizontal: 16,
-    borderRadius: 16,
-    padding: 20,
-    marginTop: 16,
-    marginBottom: 16,
+  // Color picker
+  colorPickerRow: {
+    paddingHorizontal: SPACING.md,
+    gap: SPACING.sm,
+    alignItems: 'center',
+  },
+  colorDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  colorDotActive: {
+    borderWidth: 2,
+    borderColor: COLORS.text,
+  },
+  colorIndicator: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.3)',
+    borderColor: 'rgba(255,255,255,0.2)',
   },
-  scoreSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(212,175,55,0.2)',
-  },
-  scoreCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(212,175,55,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  scoreValue: {
-    fontSize: 40,
-    fontWeight: '800',
-    color: '#d4af37',
-  },
-  scoreMax: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(212,175,55,0.8)',
-  },
-  scoreInfo: {
-    flex: 1,
-  },
-  scoreTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.8)',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
-  scoreBar: {
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 2,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  scoreBarFill: {
-    height: '100%',
-    backgroundColor: '#d4af37',
-    borderRadius: 2,
-  },
-  scoreQuality: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#d4af37',
-  },
-  feedbackSection: {
-    marginTop: 0,
-  },
-  feedbackTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#ffffff',
-    marginBottom: 12,
-  },
-  feedbackItem: {
-    flexDirection: 'row',
-    marginBottom: 10,
-    alignItems: 'flex-start',
-  },
-  feedbackBullet: {
-    fontSize: 14,
-    color: '#d4af37',
-    marginRight: 10,
-    fontWeight: '700',
-    marginTop: 1,
-  },
-  feedbackText: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
-    lineHeight: 18,
-    flex: 1,
-  },
-
-  // Bottom Bar
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 32,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(212,175,55,0.1)',
-  },
-  analyzeButton: {
-    backgroundColor: '#d4af37',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  analyzeButtonText: {
-    color: '#0a192f',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  buttonDisabled: {
-    backgroundColor: 'rgba(212,175,55,0.4)',
-  },
-  publishOptionsButton: {
-    backgroundColor: '#d4af37',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#d4af37',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  publishOptionsText: {
-    color: '#0a192f',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0a192f',
-    marginBottom: 20,
-  },
-  option: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#F5F5F5',
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  optionSelected: {
-    borderColor: '#d4af37',
-    backgroundColor: 'rgba(212,175,55,0.08)',
-  },
-  optionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  optionIcon: {
-    fontSize: 28,
-    marginRight: 16,
-  },
-  optionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0a192f',
-    marginBottom: 4,
-  },
-  optionDesc: {
-    fontSize: 13,
-    color: '#666',
-  },
-  radioButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#d4af37',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioButtonActive: {
-    borderColor: '#d4af37',
-  },
-  radioDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#d4af37',
-  },
-  checkmark: {
-    fontSize: 20,
-    color: '#d4af37',
-    fontWeight: '800',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    backgroundColor: '#E8E8E8',
-  },
-  cancelText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#666',
-  },
-  confirmButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    backgroundColor: '#d4af37',
-  },
-  confirmText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0a192f',
-  },
-});
+})

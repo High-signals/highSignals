@@ -319,13 +319,13 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#00D9FF',
+    backgroundColor: '#d4af37',
     borderRadius: 3,
   },
   progressText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#00D9FF',
+    color: '#d4af37',
   },
 
   // Type Selection
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   },
   typeArrow: {
     fontSize: 24,
-    color: '#00D9FF',
+    color: '#d4af37',
     fontWeight: '600',
   },
 
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
   },
   optionButtonSelected: {
     backgroundColor: 'rgba(0,217,255,0.1)',
-    borderColor: '#00D9FF',
+    borderColor: '#d4af37',
   },
   optionText: {
     fontSize: 16,
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
   },
   optionCheck: {
     fontSize: 18,
-    color: '#00D9FF',
+    color: '#d4af37',
     fontWeight: '800',
   },
 
@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     flex: 2,
-    backgroundColor: '#00D9FF',
+    backgroundColor: '#d4af37',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',

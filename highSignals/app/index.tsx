@@ -12,13 +12,13 @@ export default function RootRedirect() {
 
     // If authenticated, go to dashboard
     if (isAuthenticated) {
-      router.replace('/(tabs)/dashboard')
+      router.replace('/(tabs)/dashboard' as any)
     } else if (hasLoggedInBefore) {
       // Returning user - go straight to login (skip welcome)
       router.replace('/signup-login')
     } else {
       // First-time user - show welcome/get started page
-      router.replace('/auth')
+      router.replace('/auth' as any)
     }
   }, [isAuthenticated, loading, hasLoggedInBefore])
 
