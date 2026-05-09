@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/PreshCodes/Documents/highSignals/highSignals/highSignals/app -type f -name *.tsx -o -name *.ts -o -name *.json)",
+      "Bash(ls -la \"/c/Users/PreshCodes/Documents/highSignals/highSignals/highSignals/app/\\(tabs\\)/\")",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(cat \"/c/Users/PreshCodes/Documents/highSignals/highSignals/highSignals/app/\\(tabs\\)/Content calendar.tsx\")",
+      "Bash(cat \"/c/Users/PreshCodes/Documents/highSignals/highSignals/highSignals/app/\\(tabs\\)/Content ideas.tsx\")",
+      "Bash(cat \"/c/Users/PreshCodes/Documents/highSignals/highSignals/highSignals/app/\\(tabs\\)/Content library.tsx\")",
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(npx expo:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node --check src/module/auth/auth.service.js)"
+    ]
+  }
+}

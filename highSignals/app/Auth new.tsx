@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+
 } from 'react-native';
 import { useRouter } from 'expo-router';
 
@@ -59,7 +60,7 @@ export default function AuthScreen() {
         <View style={styles.otpContainer}>
           {/* Logo */}
           <View style={styles.logo}>
-            <Text style={styles.logoText}>⚡</Text>
+            <Text style={styles.logoText}>HS</Text>
           </View>
 
           <Text style={styles.otpTitle}>Enter OTP</Text>
@@ -112,7 +113,7 @@ export default function AuthScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Logo */}
         <View style={styles.logo}>
-          <Text style={styles.logoText}>⚡</Text>
+          <Text style={styles.logoText}>HS</Text>
         </View>
 
         {/* Title */}
@@ -122,7 +123,7 @@ export default function AuthScreen() {
 
         {/* Email */}
         <View style={styles.inputGroup}>
-          <Text style={styles.inputIcon}>✉️</Text>
+          <Text style={styles.inputIcon}>@</Text>
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -257,7 +258,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#00D9FF',
+    backgroundColor: '#d4af37',
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
@@ -326,8 +327,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#00D9FF',
-    borderColor: '#00D9FF',
+    backgroundColor: '#d4af37',
+    borderColor: '#d4af37',
   },
   checkmark: {
     color: '#000000',
@@ -340,13 +341,13 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 13,
-    color: '#00D9FF',
+    color: '#d4af37',
     fontWeight: '600',
   },
 
   // Buttons
   primaryButton: {
-    backgroundColor: '#00D9FF',
+    backgroundColor: '#d4af37',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -440,7 +441,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 2,
-    borderColor: '#00D9FF',
+    borderColor: '#d4af37',
     textAlign: 'center',
     fontSize: 24,
     fontWeight: '800',
