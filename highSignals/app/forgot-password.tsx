@@ -74,7 +74,7 @@ export default function ForgotPasswordScreen() {
 
 		setLoading(true)
 		try {
-			const response = await api.call(
+			await api.call(
 				'/api/auth/reset-password',
 				{
 					method: 'POST',
@@ -87,16 +87,8 @@ export default function ForgotPasswordScreen() {
 				false,
 			)
 
-			if (response.ok) {
-				Alert.alert('Success', 'Password has been reset successfully')
-				router.replace('/signup-login')
-			} else {
-				const error = await response.json()
-				Alert.alert(
-					'Error',
-					error.message || 'Failed to reset password',
-				)
-			}
+			Alert.alert('Success', 'Password has been reset successfully')
+			router.replace('/signup-login')
 		} catch (error: any) {
 			Alert.alert('Error', error.message || 'Failed to reset password')
 		} finally {
