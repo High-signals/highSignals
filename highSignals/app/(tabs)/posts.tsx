@@ -12,7 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useFocusEffect } from '@react-navigation/native'
-import { api } from '@/services/api'
+import { api, postsEvents } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
 import { COLORS, SPACING, RADIUS } from '@/constants/theme'
 
@@ -69,6 +69,13 @@ export default function PostsScreen() {
       fetchPosts()
     }, [fetchPosts])
   )
+
+  useEffect(() => {
+    const unsubscribe = postsEvents.onChange(() => {
+      fetchPosts()
+    })
+    return unsubscribe
+  }, [fetchPosts])
 
   useEffect(() => {
     if (allPosts.length > 0) {

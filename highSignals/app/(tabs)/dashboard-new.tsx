@@ -11,8 +11,11 @@ import {
 	View,
 } from 'react-native'
 import { useRouter } from 'expo-router'
-import { api } from '@/services/api'
+import { Ionicons } from '@expo/vector-icons'
+import { api, postsEvents } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
+
+const BRAND = '#d4af37'
 
 type Post = {
 	id: string
@@ -72,10 +75,20 @@ export default function DashboardScreen() {
 			}
 		}
 
+		const reloadPosts = async () => {
+			try {
+				const postsData = await api.posts.getAll().catch(() => [])
+				if (mounted) setPosts(postsData || [])
+			} catch {}
+		}
+
 		loadDashboard()
+
+		const unsubscribe = postsEvents.onChange(reloadPosts)
 
 		return () => {
 			mounted = false
+			unsubscribe()
 		}
 	}, [])
 
@@ -137,11 +150,6 @@ export default function DashboardScreen() {
 	)
 
 	const hasPosts = posts.length > 0
-	const isProfileComplete = !!profile?.bio && !!icp
-	const mainActionTitle = isProfileComplete ? 'New content' : 'Complete setup'
-	const mainActionSubtitle = isProfileComplete
-		? 'Start a new post with your current ICP'
-		: 'Finish your profile and ICP first'
 
 	return (
 		<SafeAreaView style={styles.safeArea}>
@@ -167,10 +175,11 @@ export default function DashboardScreen() {
 
 						<View style={styles.headerRight}>
 							<TouchableOpacity style={styles.iconButton}>
-								<Text style={styles.icon}>⚡</Text>
-							</TouchableOpacity>
-							<TouchableOpacity style={styles.iconButton}>
-								<Text style={styles.icon}>🔔</Text>
+								<Ionicons
+									name='notifications'
+									size={20}
+									color={BRAND}
+								/>
 							</TouchableOpacity>
 						</View>
 					</Animated.View>
@@ -185,7 +194,11 @@ export default function DashboardScreen() {
 					<View style={styles.insightCard}>
 						<View style={styles.insightHeader}>
 							<View style={styles.insightIcon}>
-								<Text style={styles.insightEmoji}>✨</Text>
+								<Ionicons
+									name='sparkles'
+									size={16}
+									color={BRAND}
+								/>
 							</View>
 							<Text style={styles.insightTitle}>
 								Dashboard Insight
@@ -203,6 +216,83 @@ export default function DashboardScreen() {
 											).toLocaleString()}`
 										: 'Your content pipeline is active. Schedule the next post to stay consistent.'}
 						</Text>
+
+						<View style={styles.insightDivider} />
+
+						<View style={styles.insightRecentHeader}>
+							<Text style={styles.insightRecentTitle}>
+								Recent posts
+							</Text>
+							<TouchableOpacity
+								onPress={() => router.push('/posts')}
+							>
+								<Text style={styles.sectionLink}>View all</Text>
+							</TouchableOpacity>
+						</View>
+
+						{loadingData ? (
+							<ActivityIndicator color={BRAND} />
+						) : recentPosts.length > 0 ? (
+							recentPosts.map((post, idx) => (
+								<TouchableOpacity
+									key={post.id}
+									style={[
+										styles.activityRow,
+										idx === recentPosts.length - 1 &&
+											styles.activityRowLast,
+									]}
+									onPress={() =>
+										router.push(
+											`/(tabs)/post-detail?postId=${post.id}` as any,
+										)
+									}
+									activeOpacity={0.8}
+								>
+									<View
+										style={[
+											styles.activityDot,
+											{
+												backgroundColor:
+													post.status === 'PUBLISHED'
+														? BRAND
+														: post.status ===
+															  'SCHEDULED'
+															? BRAND
+															: post.status ===
+																  'FAILED'
+																? '#FF6B6B'
+																: 'rgba(212,175,55,0.4)',
+											},
+										]}
+									/>
+									<View style={styles.activityContent}>
+										<Text
+											style={styles.activityTitle}
+											numberOfLines={1}
+										>
+											{post.title || 'Untitled Post'}
+										</Text>
+										<Text
+											style={styles.activitySubtitle}
+											numberOfLines={1}
+										>
+											{post.status} on{' '}
+											{post.platforms.join(', ')}
+										</Text>
+									</View>
+									<Text style={styles.activityTime}>
+										{new Date(
+											post.createdAt,
+										).toLocaleDateString()}
+									</Text>
+								</TouchableOpacity>
+							))
+						) : (
+							<Text style={styles.emptyActivityText}>
+								No posts yet. Create your first post to start
+								seeing activity here.
+							</Text>
+						)}
 					</View>
 
 					{/* {nextScheduledPost ? (
@@ -257,27 +347,6 @@ export default function DashboardScreen() {
 						</View>
 					)} */}
 
-					{!isProfileComplete && (
-						<TouchableOpacity
-							style={styles.setupPrompt}
-							onPress={() => router.push('/profile')}
-							activeOpacity={0.85}
-						>
-							<View style={styles.setupPromptIcon}>
-								<Text style={styles.setupPromptEmoji}>🧭</Text>
-							</View>
-							<View style={styles.setupPromptContent}>
-								<Text style={styles.setupPromptTitle}>
-									Finish your setup
-								</Text>
-								<Text style={styles.setupPromptSubtitle}>
-									Complete profile and ICP for better
-									recommendations.
-								</Text>
-							</View>
-						</TouchableOpacity>
-					)}
-
 					<Animated.View
 						style={[
 							styles.mainCards,
@@ -288,41 +357,16 @@ export default function DashboardScreen() {
 						]}
 					>
 						<TouchableOpacity
-							style={[styles.actionCard, styles.greenCard]}
-							onPress={() =>
-								router.push(
-									isProfileComplete
-										? '/create-post'
-										: '/profile',
-								)
-							}
-							activeOpacity={0.8}
-						>
-							<View style={styles.cardHeader}>
-								<Text style={styles.cardIcon}>+</Text>
-								<Text style={styles.cardTitle}>
-									{mainActionTitle}
-								</Text>
-							</View>
-							<Text style={styles.cardSubtitle}>
-								{mainActionSubtitle}
-							</Text>
-							<View style={styles.cardIllustration}>
-								<View style={styles.illustrationBox}>
-									<View style={styles.illustrationLine} />
-									<View style={styles.illustrationLine} />
-									<View style={styles.illustrationLine} />
-								</View>
-							</View>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={[styles.actionCard, styles.purpleCard]}
+							style={[styles.actionCard, styles.fullWidthCard, styles.brandCard]}
 							onPress={() => router.push('/GetContent')}
 							activeOpacity={0.8}
 						>
 							<View style={styles.cardHeader}>
-								<Text style={styles.cardIcon}>+</Text>
+								<Ionicons
+									name='document-text'
+									size={22}
+									color='#000000'
+								/>
 								<Text style={styles.cardTitle}>
 									View drafts
 								</Text>
@@ -334,9 +378,11 @@ export default function DashboardScreen() {
 								<View style={styles.draftIllustration}>
 									<View style={styles.draftItem}>
 										<View style={styles.draftCheck}>
-											<Text style={styles.checkmark}>
-												✓
-											</Text>
+											<Ionicons
+												name='checkmark'
+												size={14}
+												color='#000000'
+											/>
 										</View>
 										<View style={styles.draftLines}>
 											<View style={styles.draftLine} />
@@ -347,52 +393,6 @@ export default function DashboardScreen() {
 							</View>
 						</TouchableOpacity>
 					</Animated.View>
-
-					<View style={styles.quickActions}>
-						<TouchableOpacity
-							style={styles.quickActionItem}
-							onPress={() => router.push('/GetContent')}
-						>
-							<View style={styles.quickActionIcon}>
-								<Text style={styles.quickIcon}>📅</Text>
-							</View>
-							<Text style={styles.quickActionLabel}>
-								Schedule
-							</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={styles.quickActionItem}
-							onPress={() => router.push('/Analytics')}
-						>
-							<View style={styles.quickActionIcon}>
-								<Text style={styles.quickIcon}>📊</Text>
-							</View>
-							<Text style={styles.quickActionLabel}>
-								Analytics
-							</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={styles.quickActionItem}
-							onPress={() => router.push('/Content-ideas')}
-						>
-							<View style={styles.quickActionIcon}>
-								<Text style={styles.quickIcon}>🎙️</Text>
-							</View>
-							<Text style={styles.quickActionLabel}>Ideas</Text>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={styles.quickActionItem}
-							onPress={() => router.push('/dashboard-new')}
-						>
-							<View style={styles.quickActionIcon}>
-								<Text style={styles.quickIcon}>📸</Text>
-							</View>
-							<Text style={styles.quickActionLabel}>Media</Text>
-						</TouchableOpacity>
-					</View>
 
 					<View style={styles.statusStrip}>
 						<View style={styles.statusCard}>
@@ -421,74 +421,6 @@ export default function DashboardScreen() {
 						</View>
 					</View>
 
-					<View style={styles.sectionHeader}>
-						<Text style={styles.sectionTitle}>Recent activity</Text>
-						<TouchableOpacity onPress={() => router.push('/posts')}>
-							<Text style={styles.sectionLink}>View all</Text>
-						</TouchableOpacity>
-					</View>
-
-					<View style={styles.activityCard}>
-						{loadingData ? (
-							<ActivityIndicator color='#d4af37' />
-						) : recentPosts.length > 0 ? (
-							recentPosts.map((post) => (
-								<TouchableOpacity
-									key={post.id}
-									style={styles.activityRow}
-									onPress={() =>
-										router.push(
-											`/(tabs)/post-detail?postId=${post.id}` as any,
-										)
-									}
-									activeOpacity={0.8}
-								>
-									<View
-										style={[
-											styles.activityDot,
-											{
-												backgroundColor:
-													post.status === 'PUBLISHED'
-														? '#34C759'
-														: post.status ===
-															  'SCHEDULED'
-															? '#FFB800'
-															: post.status ===
-																  'FAILED'
-																? '#FF6B6B'
-																: '#8E8E93',
-											},
-										]}
-									/>
-									<View style={styles.activityContent}>
-										<Text
-											style={styles.activityTitle}
-											numberOfLines={1}
-										>
-											{post.title || 'Untitled Post'}
-										</Text>
-										<Text
-											style={styles.activitySubtitle}
-											numberOfLines={1}
-										>
-											{post.status} on{' '}
-											{post.platforms.join(', ')}
-										</Text>
-									</View>
-									<Text style={styles.activityTime}>
-										{new Date(
-											post.createdAt,
-										).toLocaleDateString()}
-									</Text>
-								</TouchableOpacity>
-							))
-						) : (
-							<Text style={styles.emptyActivityText}>
-								No posts yet. Create your first post to start
-								seeing activity here.
-							</Text>
-						)}
-					</View>
 				</ScrollView>
 			</View>
 		</SafeAreaView>
@@ -523,7 +455,7 @@ const styles = StyleSheet.create({
 		width: 50,
 		height: 50,
 		borderRadius: 25,
-		backgroundColor: '#00FF00',
+		backgroundColor: BRAND,
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
@@ -651,6 +583,24 @@ const styles = StyleSheet.create({
 		lineHeight: 20,
 		color: 'rgba(255,255,255,0.85)',
 	},
+	insightDivider: {
+		height: 1,
+		backgroundColor: 'rgba(212,175,55,0.18)',
+		marginVertical: 14,
+	},
+	insightRecentHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		marginBottom: 6,
+	},
+	insightRecentTitle: {
+		fontSize: 13,
+		fontWeight: '800',
+		color: '#ffffff',
+		textTransform: 'uppercase',
+		letterSpacing: 0.6,
+	},
 	nextCard: {
 		marginHorizontal: 24,
 		marginBottom: 18,
@@ -739,10 +689,13 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		gap: 12,
-		paddingVertical: 14,
-		paddingHorizontal: 12,
+		paddingVertical: 12,
+		paddingHorizontal: 4,
 		borderBottomWidth: 1,
-		borderBottomColor: 'rgba(255,255,255,0.05)',
+		borderBottomColor: 'rgba(212,175,55,0.12)',
+	},
+	activityRowLast: {
+		borderBottomWidth: 0,
 	},
 	activityDot: {
 		width: 10,
@@ -774,43 +727,6 @@ const styles = StyleSheet.create({
 		lineHeight: 19,
 		color: 'rgba(255,255,255,0.6)',
 	},
-	setupPrompt: {
-		marginHorizontal: 24,
-		marginBottom: 18,
-		padding: 16,
-		borderRadius: 18,
-		backgroundColor: 'rgba(255,255,255,0.05)',
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.08)',
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 12,
-	},
-	setupPromptIcon: {
-		width: 40,
-		height: 40,
-		borderRadius: 12,
-		backgroundColor: 'rgba(212,175,55,0.12)',
-		justifyContent: 'center',
-		alignItems: 'center',
-	},
-	setupPromptEmoji: {
-		fontSize: 18,
-	},
-	setupPromptContent: {
-		flex: 1,
-	},
-	setupPromptTitle: {
-		fontSize: 15,
-		fontWeight: '800',
-		color: '#ffffff',
-		marginBottom: 3,
-	},
-	setupPromptSubtitle: {
-		fontSize: 12,
-		lineHeight: 18,
-		color: 'rgba(255,255,255,0.6)',
-	},
 	mainCards: {
 		flexDirection: 'row',
 		paddingHorizontal: 24,
@@ -824,11 +740,11 @@ const styles = StyleSheet.create({
 		minHeight: 180,
 		justifyContent: 'space-between',
 	},
-	greenCard: {
-		backgroundColor: '#00FF00',
+	fullWidthCard: {
+		width: '100%',
 	},
-	purpleCard: {
-		backgroundColor: '#9D4EDD',
+	brandCard: {
+		backgroundColor: BRAND,
 	},
 	cardHeader: {
 		flexDirection: 'row',
@@ -854,17 +770,6 @@ const styles = StyleSheet.create({
 	},
 	cardIllustration: {
 		marginTop: 20,
-	},
-	illustrationBox: {
-		backgroundColor: 'rgba(0,0,0,0.2)',
-		borderRadius: 12,
-		padding: 12,
-		gap: 6,
-	},
-	illustrationLine: {
-		height: 4,
-		backgroundColor: 'rgba(0,0,0,0.3)',
-		borderRadius: 2,
 	},
 	draftIllustration: {},
 	draftItem: {
@@ -895,33 +800,5 @@ const styles = StyleSheet.create({
 		height: 4,
 		backgroundColor: 'rgba(0,0,0,0.3)',
 		borderRadius: 2,
-	},
-	quickActions: {
-		flexDirection: 'row',
-		paddingHorizontal: 24,
-		gap: 16,
-	},
-	quickActionItem: {
-		flex: 1,
-		alignItems: 'center',
-	},
-	quickActionIcon: {
-		width: 70,
-		height: 70,
-		borderRadius: 16,
-		backgroundColor: 'rgba(255,255,255,0.05)',
-		justifyContent: 'center',
-		alignItems: 'center',
-		marginBottom: 8,
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.1)',
-	},
-	quickIcon: {
-		fontSize: 28,
-	},
-	quickActionLabel: {
-		fontSize: 13,
-		fontWeight: '600',
-		color: '#ffffff',
 	},
 })

@@ -10,14 +10,10 @@ import {
 	Alert,
 } from 'react-native'
 import { useRouter } from 'expo-router'
-import { useAuth } from '@/context/AuthContext'
 
 export default function SettingsScreen() {
 	const router = useRouter()
-	const { logout } = useAuth()
 	const [notifications, setNotifications] = useState(true)
-	const [darkMode, setDarkMode] = useState(true)
-	const [autoSave, setAutoSave] = useState(true)
 	const slideAnim = new Animated.Value(-300)
 
 	const handleNavigate = (route?: string) => {
@@ -37,11 +33,6 @@ export default function SettingsScreen() {
 			useNativeDriver: true,
 		}).start()
 	}, [])
-
-	const handleLogout = () => {
-		logout()
-		router.replace('/')
-	}
 
 	return (
 		<View style={styles.container}>
@@ -126,33 +117,6 @@ export default function SettingsScreen() {
 						/>
 					</View>
 
-					<View style={styles.menuItem}>
-						<View style={styles.menuLeft}>
-							<Text style={styles.menuIcon}>🌙</Text>
-							<Text style={styles.menuText}>Dark Mode</Text>
-						</View>
-						<Switch
-							value={darkMode}
-							onValueChange={setDarkMode}
-							trackColor={{ false: '#3e3e3e', true: '#00D9FF' }}
-							thumbColor={darkMode ? '#ffffff' : '#f4f3f4'}
-						/>
-					</View>
-
-					<View style={styles.menuItem}>
-						<View style={styles.menuLeft}>
-							<Text style={styles.menuIcon}>💾</Text>
-							<Text style={styles.menuText}>
-								Auto-save Drafts
-							</Text>
-						</View>
-						<Switch
-							value={autoSave}
-							onValueChange={setAutoSave}
-							trackColor={{ false: '#3e3e3e', true: '#00D9FF' }}
-							thumbColor={autoSave ? '#ffffff' : '#f4f3f4'}
-						/>
-					</View>
 				</View>
 
 				{/* Content */}
@@ -231,14 +195,6 @@ export default function SettingsScreen() {
 						</Text>
 					</View>
 					<Text style={styles.premiumArrow}>→</Text>
-				</TouchableOpacity>
-
-				{/* Logout */}
-				<TouchableOpacity
-					style={styles.logoutButton}
-					onPress={handleLogout}
-				>
-					<Text style={styles.logoutText}>Log Out</Text>
 				</TouchableOpacity>
 
 				{/* Version */}
@@ -363,23 +319,6 @@ const styles = StyleSheet.create({
 		fontSize: 24,
 		color: '#ffffff',
 		fontWeight: '600',
-	},
-
-	// Logout
-	logoutButton: {
-		marginHorizontal: 24,
-		backgroundColor: 'rgba(255,59,48,0.1)',
-		borderRadius: 12,
-		paddingVertical: 16,
-		alignItems: 'center',
-		borderWidth: 1,
-		borderColor: 'rgba(255,59,48,0.3)',
-		marginBottom: 20,
-	},
-	logoutText: {
-		fontSize: 16,
-		fontWeight: '700',
-		color: '#FF3B30',
 	},
 
 	// Version

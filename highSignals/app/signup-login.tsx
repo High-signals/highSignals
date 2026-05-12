@@ -76,11 +76,6 @@ export default function SignupLoginScreen() {
 		// TODO: Implement Google OAuth
 	}
 
-	const handleFacebookAuth = () => {
-		Alert.alert('Coming Soon', 'Facebook OAuth implementation coming soon')
-		// TODO: Implement Facebook OAuth
-	}
-
 	return (
 		<KeyboardAvoidingView
 			style={styles.container}
@@ -365,18 +360,6 @@ export default function SignupLoginScreen() {
 							</View>
 							<Text style={styles.socialButtonText}>Google</Text>
 						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={styles.socialButton}
-							onPress={handleFacebookAuth}
-						>
-							<View style={styles.facebookIconCircle}>
-								<Text style={styles.facebookF}>f</Text>
-							</View>
-							<Text style={styles.socialButtonText}>
-								Facebook
-							</Text>
-						</TouchableOpacity>
 					</View>
 				</View>
 			</ScrollView>
@@ -600,20 +583,6 @@ const styles = StyleSheet.create({
 	googleG: {
 		color: '#ffffff',
 		fontSize: 14,
-		fontWeight: '800',
-	},
-	facebookIconCircle: {
-		width: 24,
-		height: 24,
-		borderRadius: 12,
-		backgroundColor: '#1877F2',
-		justifyContent: 'center',
-		alignItems: 'center',
-		marginRight: 8,
-	},
-	facebookF: {
-		color: '#ffffff',
-		fontSize: 16,
 		fontWeight: '800',
 	},
 	socialButtonText: {

@@ -75,12 +75,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const response = await api.profile.get()
       setUser(response)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch user:', error)
-      api.clearTokens()
-      await AsyncStorage.removeItem(AUTH_TOKEN_KEY)
-      setToken(null)
-      setUser(null)
+      // Only sign out for explicit auth failures. Transient errors
+      // (offline, 5xx) should keep the session so the user doesn't get
+      // bounced back to login every time the network blips.
+      if (error?.status === 401 || error?.status === 403) {
+        api.clearTokens()
+        await AsyncStorage.removeItem(AUTH_TOKEN_KEY)
+        setToken(null)
+        setUser(null)
+      }
     } finally {
       setLoading(false)
     }

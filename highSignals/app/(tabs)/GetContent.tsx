@@ -11,7 +11,7 @@ import {
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
-import { api } from '@/services/api'
+import { api, postsEvents } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
 
 type FilterType = 'all' | 'PUBLISHED' | 'SCHEDULED' | 'DRAFT' | 'FAILED'
@@ -80,10 +80,14 @@ export default function GetContentScreen() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchPosts()
-      return
+    } else {
+      setLoading(false)
     }
 
-    setLoading(false)
+    const unsubscribe = postsEvents.onChange(() => {
+      if (isAuthenticated) fetchPosts()
+    })
+    return unsubscribe
   }, [isAuthenticated, fetchPosts])
 
   const filteredPosts = posts.filter((post) => {

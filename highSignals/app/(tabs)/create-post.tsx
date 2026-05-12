@@ -159,7 +159,6 @@ export default function CreatePostScreen() {
 	const { isAuthenticated } = useAuth()
 	const [content, setContent] = useState('')
 	const [title, setTitle] = useState('')
-	const [platform, setPlatform] = useState('LINKEDIN')
 	const [aiScore, setAiScore] = useState<number | null>(null)
 	const [aiFeedback, setAiFeedback] = useState<string[]>([])
 	const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -364,6 +363,11 @@ export default function CreatePostScreen() {
 	}
 
 	const handlePublish = async () => {
+		if (!title.trim()) {
+			Alert.alert('Title required', 'Please add a title so you can find this post later.')
+			return
+		}
+
 		if (!content) {
 			Alert.alert('Error', 'Please write some content')
 			return
@@ -380,9 +384,8 @@ export default function CreatePostScreen() {
 				publishOption === 'schedule' ? scheduleDate.toISOString() : null
 
 			const postData = {
-				title: title || undefined,
+				title: title.trim(),
 				content,
-				platforms: [platform],
 				hashtags: [],
 				mediaUrls: [],
 				scheduledAt: scheduleTime,
@@ -440,53 +443,9 @@ export default function CreatePostScreen() {
 				showsVerticalScrollIndicator={false}
 				contentContainerStyle={styles.scrollContent}
 			>
-				{/* Platform Selector Card */}
-				<View style={styles.card}>
-					<Text style={styles.cardLabel}>🎯 Where to Post?</Text>
-					<ScrollView
-						horizontal
-						showsHorizontalScrollIndicator={false}
-						style={styles.platformScrollView}
-					>
-						{[
-							'LINKEDIN',
-							'TWITTER',
-							'INSTAGRAM',
-							'FACEBOOK',
-							'TIKTOK',
-						].map((p) => (
-							<TouchableOpacity
-								key={p}
-								style={[
-									styles.platformChip,
-									platform === p && styles.platformChipActive,
-								]}
-								onPress={() => setPlatform(p)}
-							>
-								<Text style={styles.platformEmoji}>
-									{p === 'LINKEDIN' && '💼'}
-									{p === 'TWITTER' && '𝕏'}
-									{p === 'INSTAGRAM' && '📸'}
-									{p === 'FACEBOOK' && '👍'}
-									{p === 'TIKTOK' && '🎵'}
-								</Text>
-								<Text
-									style={[
-										styles.platformText,
-										platform === p &&
-											styles.platformTextActive,
-									]}
-								>
-									{p}
-								</Text>
-							</TouchableOpacity>
-						))}
-					</ScrollView>
-				</View>
-
 				{/* Title Section */}
 				<View style={styles.card}>
-					<Text style={styles.cardLabel}>📌 Title (Optional)</Text>
+					<Text style={styles.cardLabel}>📌 Title</Text>
 					<TextInput
 						style={styles.titleInput}
 						placeholder='Add a catchy headline...'
@@ -960,39 +919,6 @@ const styles = StyleSheet.create({
 	},
 	scrollContent: {
 		paddingBottom: 220,
-	},
-
-	// Platform Selector
-	platformScrollView: {
-		marginHorizontal: -4,
-		paddingHorizontal: 4,
-	},
-	platformChip: {
-		backgroundColor: 'rgba(255,255,255,0.08)',
-		paddingHorizontal: 14,
-		paddingVertical: 10,
-		borderRadius: 24,
-		marginRight: 10,
-		borderWidth: 1.5,
-		borderColor: 'rgba(212,175,55,0.3)',
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 6,
-	},
-	platformChipActive: {
-		backgroundColor: '#d4af37',
-		borderColor: '#d4af37',
-	},
-	platformEmoji: {
-		fontSize: 16,
-	},
-	platformText: {
-		fontSize: 13,
-		fontWeight: '600',
-		color: '#ffffff',
-	},
-	platformTextActive: {
-		color: '#0a192f',
 	},
 
 	// Title

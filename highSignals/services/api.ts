@@ -10,6 +10,30 @@ let authTokens = {
 	refreshToken: '',
 }
 
+// Tiny pub/sub so list screens can react when posts change anywhere
+// in the app (create / edit / delete), without each screen having to
+// know about the others.
+type PostsChangeListener = () => void
+const postsChangeListeners = new Set<PostsChangeListener>()
+
+export const postsEvents = {
+	onChange(listener: PostsChangeListener) {
+		postsChangeListeners.add(listener)
+		return () => {
+			postsChangeListeners.delete(listener)
+		}
+	},
+	emit() {
+		postsChangeListeners.forEach((listener) => {
+			try {
+				listener()
+			} catch (err) {
+				console.error('postsEvents listener failed', err)
+			}
+		})
+	},
+}
+
 // API methods
 export const api = {
 	setTokens: (tokens: { accessToken: string; refreshToken?: string }) => {
@@ -49,7 +73,11 @@ export const api = {
 		const data = await response.json()
 
 		if (!response.ok) {
-			throw new Error(data.message || 'API Error')
+			const err: Error & { status?: number } = new Error(
+				data.message || 'API Error',
+			)
+			err.status = response.status
+			throw err
 		}
 
 		return data
@@ -175,7 +203,7 @@ export const api = {
 	// Posts endpoints
 	posts: {
 		create: async (postData: any) => {
-			return api.call(
+			const response = await api.call(
 				'/api/post',
 				{
 					method: 'POST',
@@ -183,6 +211,8 @@ export const api = {
 				},
 				true,
 			)
+			postsEvents.emit()
+			return response
 		},
 
 		getAll: async () => {
@@ -204,7 +234,7 @@ export const api = {
 		},
 
 		update: async (postId: string, postData: any) => {
-			return api.call(
+			const response = await api.call(
 				`/api/post/${postId}`,
 				{
 					method: 'PUT',
@@ -212,16 +242,20 @@ export const api = {
 				},
 				true,
 			)
+			postsEvents.emit()
+			return response
 		},
 
 		delete: async (postId: string) => {
-			return api.call(
+			const response = await api.call(
 				`/api/post/${postId}`,
 				{
 					method: 'DELETE',
 				},
 				true,
 			)
+			postsEvents.emit()
+			return response
 		},
 	},
 }
