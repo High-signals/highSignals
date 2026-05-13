@@ -109,20 +109,12 @@ export default function GetContentScreen() {
     return colors[status] || '#FFFFFF'
   }
 
-  const getPlatformIcon = (platform: string) => {
-    const iconMap: { [key: string]: any } = {
-      TWITTER: 'logo-twitter',
-      INSTAGRAM: 'logo-instagram',
-      FACEBOOK: 'logo-facebook',
-      TIKTOK: 'logo-tiktok',
-      YOUTUBE: 'logo-youtube',
-      LINKEDIN: 'logo-linkedin',
-    }
-    return iconMap[platform] || 'logo-social'
-  }
-
   const renderPost = ({ item }: { item: Post }) => (
-    <View style={styles.postCard}>
+    <TouchableOpacity
+      style={styles.postCard}
+      activeOpacity={0.75}
+      onPress={() => router.push(`/(tabs)/post-detail?postId=${item.id}`)}
+    >
       <View style={styles.postHeader}>
         <View style={styles.postLeft}>
           <View
@@ -131,14 +123,6 @@ export default function GetContentScreen() {
               { backgroundColor: getStatusColor(item.status) },
             ]}
           />
-          <Text style={styles.platformName}>{item.platforms?.[0] || 'N/A'}</Text>
-        </View>
-        <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: getStatusColor(item.status) + '20' },
-          ]}
-        >
           <Text
             style={[
               styles.statusText,
@@ -148,38 +132,19 @@ export default function GetContentScreen() {
             {item.status}
           </Text>
         </View>
+        <Text style={styles.postDate}>
+          {new Date(item.createdAt).toLocaleDateString()}
+        </Text>
       </View>
 
-      <TouchableOpacity
-        activeOpacity={0.75}
-        onPress={() => router.push(`/(tabs)/post-detail?postId=${item.id}`)}
-      >
-        <Text style={styles.postTitle} numberOfLines={2}>
-          {item.title || 'Untitled Post'}
-        </Text>
-      </TouchableOpacity>
+      <Text style={styles.postTitle} numberOfLines={2}>
+        {item.title || 'Untitled Post'}
+      </Text>
 
       <Text style={styles.postContent} numberOfLines={3}>
         {buildPreviewText(item.content)}
       </Text>
-
-      <View style={styles.postFooter}>
-        <Text style={styles.postDate}>
-          {new Date(item.createdAt).toLocaleDateString()}
-        </Text>
-        <View style={styles.platformTags}>
-          {item.platforms?.slice(0, 2).map((platform, idx) => (
-            <View key={idx} style={styles.platformTag}>
-              <Ionicons
-                name={getPlatformIcon(platform) as any}
-                size={12}
-                color='#d4af37'
-              />
-            </View>
-          ))}
-        </View>
-      </View>
-    </View>
+    </TouchableOpacity>
   )
 
   const emptyComponent = (
@@ -363,20 +328,11 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
-  platformName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.7)',
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
   statusText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   postTitle: {
     fontSize: 16,
@@ -389,30 +345,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.6)',
     lineHeight: 18,
-    marginBottom: 12,
-  },
-  postFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   postDate: {
     fontSize: 11,
     color: 'rgba(255,255,255,0.5)',
-  },
-  platformTags: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  platformTag: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(212,175,55,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.2)',
   },
   emptyState: {
     alignItems: 'center',

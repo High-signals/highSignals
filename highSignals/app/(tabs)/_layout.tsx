@@ -9,6 +9,13 @@ export default function TabsLayout() {
 	const router = useRouter()
 
 	const NAV_HEIGHT = 100 // 👈 controls spacing for navbar
+	const hideNavOnPaths = [
+		'/create-post',
+		'/(tabs)/create-post',
+		'/post-detail',
+		'/(tabs)/post-detail',
+	]
+	const showNav = !hideNavOnPaths.includes(pathname)
 
 	const tabs = [
 		{
@@ -42,11 +49,12 @@ export default function TabsLayout() {
 	return (
 		<SafeAreaView style={styles.container} edges={['top']}>
 			{/* MAIN CONTENT AREA */}
-			<View style={{ flex: 1, paddingBottom: NAV_HEIGHT }}>
+			<View style={{ flex: 1, paddingBottom: showNav ? NAV_HEIGHT : 0 }}>
 				<Stack screenOptions={{ headerShown: false }} />
 			</View>
 
 			{/* BOTTOM NAVBAR */}
+			{showNav && (
 			<View style={[styles.bottomNav, { height: NAV_HEIGHT }]}>
 				{tabs.map((tab) => {
 					const active = isActive(tab.href)
@@ -81,6 +89,7 @@ export default function TabsLayout() {
 					)
 				})}
 			</View>
+			)}
 		</SafeAreaView>
 	)
 }

@@ -276,8 +276,7 @@ export default function DashboardScreen() {
 											style={styles.activitySubtitle}
 											numberOfLines={1}
 										>
-											{post.status} on{' '}
-											{post.platforms.join(', ')}
+											{post.status}
 										</Text>
 									</View>
 									<Text style={styles.activityTime}>
