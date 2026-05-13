@@ -107,10 +107,7 @@ export default function ProfileEditScreen() {
 				</View>
 
 				<View style={styles.imageSection}>
-					<TouchableOpacity
-						style={styles.imageContainer}
-						onPress={handleImagePick}
-					>
+					<TouchableOpacity style={styles.imageContainer}>
 						{form.avatar ? (
 							<Image
 								source={{ uri: form.avatar }}
@@ -170,7 +167,10 @@ export default function ProfileEditScreen() {
 				</View>
 
 				<TouchableOpacity
-					style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+					style={[
+						styles.saveButton,
+						saving && styles.saveButtonDisabled,
+					]}
 					onPress={handleSave}
 					disabled={saving}
 				>

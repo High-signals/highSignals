@@ -215,9 +215,33 @@ export const api = {
 			return response
 		},
 
-		getAll: async () => {
+		getAll: async (queryParams?: {
+			page?: number
+			limit?: number
+			search?: string
+			status?: string
+		}) => {
+			// Build query string if params provided
+			let endpoint = '/api/post'
+			if (queryParams) {
+				const params = new URLSearchParams()
+				if (queryParams.page)
+					params.append('page', String(queryParams.page))
+				if (queryParams.limit)
+					params.append('limit', String(queryParams.limit))
+				if (queryParams.search)
+					params.append('search', queryParams.search)
+				if (queryParams.status)
+					params.append('status', queryParams.status)
+
+				const queryString = params.toString()
+				if (queryString) {
+					endpoint += `?${queryString}`
+				}
+			}
+
 			const response = await api.call(
-				'/api/post',
+				endpoint,
 				{
 					method: 'GET',
 				},
@@ -227,10 +251,8 @@ export const api = {
 		},
 
 		getByStatus: async (status: string) => {
-			const posts = await api.posts.getAll()
-			return Array.isArray(posts)
-				? posts.filter((post: any) => post.status === status)
-				: []
+			const posts = await api.posts.getAll({ status })
+			return Array.isArray(posts) ? posts : []
 		},
 
 		update: async (postId: string, postData: any) => {

@@ -1,13 +1,13 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react'
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  FlatList,
-  TextInput,
-  ActivityIndicator,
-  RefreshControl,
+	View,
+	Text,
+	TouchableOpacity,
+	StyleSheet,
+	FlatList,
+	TextInput,
+	ActivityIndicator,
+	RefreshControl,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -17,355 +17,495 @@ import { useAuth } from '@/context/AuthContext'
 type FilterType = 'all' | 'PUBLISHED' | 'SCHEDULED' | 'DRAFT' | 'FAILED'
 
 interface Post {
-  id: string
-  title?: string
-  content: string
-  status: string
-  platforms: string[]
-  createdAt: string
-  scheduledAt?: string
-  publishedAt?: string
+	id: string
+	title?: string
+	content: string
+	status: string
+	platforms: string[]
+	createdAt: string
+	scheduledAt?: string
+	publishedAt?: string
+}
+
+interface PaginationState {
+	currentPage: number
+	limit: number
+	hasMore: boolean
+	isLoadingMore: boolean
 }
 
 const buildPreviewText = (value?: string | null) => {
-  if (!value) return 'No content yet.'
+	if (!value) return 'No content yet.'
 
-  const withBreaks = value
-    .replace(/<\/(p|div|h1|h2|h3|h4|h5|h6)>/gi, '\n')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<li>/gi, '- ')
-    .replace(/<\/li>/gi, '\n')
+	const withBreaks = value
+		.replace(/<\/(p|div|h1|h2|h3|h4|h5|h6)>/gi, '\n')
+		.replace(/<br\s*\/?>/gi, '\n')
+		.replace(/<li>/gi, '- ')
+		.replace(/<\/li>/gi, '\n')
 
-  const plainText = withBreaks.replace(/<[^>]+>/g, ' ')
-  const compact = plainText.replace(/\s+/g, ' ').trim()
+	const plainText = withBreaks.replace(/<[^>]+>/g, ' ')
+	const compact = plainText.replace(/\s+/g, ' ').trim()
 
-  if (!compact) return 'No content yet.'
-  return compact.length > 160 ? `${compact.slice(0, 160)}...` : compact
+	if (!compact) return 'No content yet.'
+	return compact.length > 160 ? `${compact.slice(0, 160)}...` : compact
 }
 
 export default function GetContentScreen() {
-  const router = useRouter()
-  const { isAuthenticated } = useAuth()
-  const [filter, setFilter] = useState<FilterType>('all')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [posts, setPosts] = useState<Post[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
+	const router = useRouter()
+	const { isAuthenticated } = useAuth()
+	const [filter, setFilter] = useState<FilterType>('all')
+	const [searchQuery, setSearchQuery] = useState('')
+	const [posts, setPosts] = useState<Post[]>([])
+	const [loading, setLoading] = useState(true)
+	const [refreshing, setRefreshing] = useState(false)
+	const [pagination, setPagination] = useState<PaginationState>({
+		currentPage: 1,
+		limit: 10,
+		hasMore: true,
+		isLoadingMore: false,
+	})
 
-  const fetchPosts = useCallback(async () => {
-    try {
-      setLoading(true)
-      const allPosts = await api.posts.getAll()
-      setPosts(allPosts || [])
-    } catch (error) {
-      console.error('Error fetching posts:', error)
-      setPosts([])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+	// Fetch posts with pagination support
+	const fetchPosts = useCallback(
+		async (page: number = 1, append: boolean = false) => {
+			try {
+				if (page === 1) {
+					setLoading(true)
+				} else {
+					setPagination((prev) => ({ ...prev, isLoadingMore: true }))
+				}
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true)
-    try {
-      const allPosts = await api.posts.getAll()
-      setPosts(allPosts || [])
-    } catch (error) {
-      console.error('Error refreshing posts:', error)
-    } finally {
-      setRefreshing(false)
-    }
-  }, [])
+				// Build query parameters
+				const params = new URLSearchParams({
+					page: String(page),
+					limit: String(pagination.limit),
+					search: searchQuery,
+					// Only filter if not 'all'
+					...(filter !== 'all' && { status: filter }),
+				})
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchPosts()
-    } else {
-      setLoading(false)
-    }
+				const allPosts = await api.posts.getAll({
+					...Object.fromEntries(params),
+				})
 
-    const unsubscribe = postsEvents.onChange(() => {
-      if (isAuthenticated) fetchPosts()
-    })
-    return unsubscribe
-  }, [isAuthenticated, fetchPosts])
+				if (append) {
+					// Append new posts to existing list
+					setPosts((prevPosts) => [...prevPosts, ...(allPosts || [])])
+				} else {
+					// Replace entire list (for initial load or refresh)
+					setPosts(allPosts || [])
+				}
 
-  const filteredPosts = posts.filter((post) => {
-    const matchesFilter = filter === 'all' || post.status === filter
-    const matchesSearch = (post.title || 'Untitled')
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase()) ||
-      post.content.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesFilter && matchesSearch
-  })
+				// Determine if there are more posts to load
+				const hasMore = (allPosts?.length || 0) === pagination.limit
+				setPagination((prev) => ({
+					...prev,
+					currentPage: page,
+					hasMore,
+					isLoadingMore: false,
+				}))
+			} catch (error) {
+				console.error('Error fetching posts:', error)
+				if (!append) {
+					setPosts([])
+				}
+				setPagination((prev) => ({ ...prev, isLoadingMore: false }))
+			} finally {
+				setLoading(false)
+			}
+		},
+		[pagination.limit, searchQuery, filter],
+	)
 
-  const getStatusColor = (status: string) => {
-    const colors: { [key: string]: string } = {
-      PUBLISHED: '#4ade80',
-      SCHEDULED: '#FFD700',
-      DRAFT: '#888888',
-      FAILED: '#f87171',
-    }
-    return colors[status] || '#FFFFFF'
-  }
+	// Handle refresh (pull to refresh)
+	const onRefresh = useCallback(async () => {
+		setRefreshing(true)
+		setPagination((prev) => ({ ...prev, currentPage: 1, hasMore: true }))
+		try {
+			await fetchPosts(1, false)
+		} catch (error) {
+			console.error('Error refreshing posts:', error)
+		} finally {
+			setRefreshing(false)
+		}
+	}, [fetchPosts])
 
-  const renderPost = ({ item }: { item: Post }) => (
-    <TouchableOpacity
-      style={styles.postCard}
-      activeOpacity={0.75}
-      onPress={() => router.push(`/(tabs)/post-detail?postId=${item.id}`)}
-    >
-      <View style={styles.postHeader}>
-        <View style={styles.postLeft}>
-          <View
-            style={[
-              styles.statusDot,
-              { backgroundColor: getStatusColor(item.status) },
-            ]}
-          />
-          <Text
-            style={[
-              styles.statusText,
-              { color: getStatusColor(item.status) },
-            ]}
-          >
-            {item.status}
-          </Text>
-        </View>
-        <Text style={styles.postDate}>
-          {new Date(item.createdAt).toLocaleDateString()}
-        </Text>
-      </View>
+	// Handle reaching end of list (infinite scroll)
+	const onEndReached = useCallback(() => {
+		if (pagination.hasMore && !pagination.isLoadingMore && !loading) {
+			const nextPage = pagination.currentPage + 1
+			fetchPosts(nextPage, true)
+		}
+	}, [pagination, loading, fetchPosts])
 
-      <Text style={styles.postTitle} numberOfLines={2}>
-        {item.title || 'Untitled Post'}
-      </Text>
+	// Initial load and cleanup
+	useEffect(() => {
+		if (isAuthenticated) {
+			fetchPosts(1, false)
+		} else {
+			setLoading(false)
+		}
 
-      <Text style={styles.postContent} numberOfLines={3}>
-        {buildPreviewText(item.content)}
-      </Text>
-    </TouchableOpacity>
-  )
+		const unsubscribe = postsEvents.onChange(() => {
+			if (isAuthenticated) {
+				// Reset to first page when posts change
+				setPagination((prev) => ({
+					...prev,
+					currentPage: 1,
+					hasMore: true,
+				}))
+				fetchPosts(1, false)
+			}
+		})
+		return unsubscribe
+	}, [isAuthenticated, fetchPosts])
 
-  const emptyComponent = (
-    <View style={styles.emptyState}>
-      <Text style={styles.emptyEmoji}>*</Text>
-      <Text style={styles.emptyText}>
-        {filter === 'all' ? 'No content found' : `No ${filter.toLowerCase()} posts`}
-      </Text>
-      <Text style={styles.emptySubtext}>
-        {searchQuery ? 'Try adjusting your search' : 'Create your first post to get started'}
-      </Text>
-    </View>
-  )
+	// Reset pagination when filter or search changes
+	useEffect(() => {
+		if (isAuthenticated) {
+			setPagination((prev) => ({
+				...prev,
+				currentPage: 1,
+				hasMore: true,
+			}))
+			fetchPosts(1, false)
+		}
+	}, [filter, searchQuery, isAuthenticated, fetchPosts])
 
-  if (loading) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size='large' color='#d4af37' />
-      </View>
-    )
-  }
+	// Filter posts by current filter and search (client-side filtering)
+	const filteredPosts = posts.filter((post) => {
+		const matchesFilter = filter === 'all' || post.status === filter
+		const matchesSearch =
+			(post.title || 'Untitled')
+				.toLowerCase()
+				.includes(searchQuery.toLowerCase()) ||
+			post.content.toLowerCase().includes(searchQuery.toLowerCase())
+		return matchesFilter && matchesSearch
+	})
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Your Content</Text>
-          <Text style={styles.headerSubtitle}>
-            {filteredPosts.length} post{filteredPosts.length !== 1 ? 's' : ''}
-          </Text>
-        </View>
-        <TouchableOpacity onPress={() => router.push('/(tabs)/create-post')}>
-          <Ionicons name='add-circle-outline' size={28} color='#d4af37' />
-        </TouchableOpacity>
-      </View>
+	const getStatusColor = (status: string) => {
+		const colors: { [key: string]: string } = {
+			PUBLISHED: '#4ade80',
+			SCHEDULED: '#FFD700',
+			DRAFT: '#888888',
+			FAILED: '#f87171',
+		}
+		return colors[status] || '#FFFFFF'
+	}
 
-      <View style={styles.searchContainer}>
-        <Ionicons name='search-outline' size={20} color='rgba(255,255,255,0.4)' />
-        <TextInput
-          style={styles.searchInput}
-          placeholder='Search content...'
-          placeholderTextColor='rgba(255,255,255,0.4)'
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
+	const renderPost = ({ item }: { item: Post }) => (
+		<TouchableOpacity
+			style={styles.postCard}
+			activeOpacity={0.75}
+			onPress={() => router.push(`/(tabs)/post-detail?postId=${item.id}`)}
+		>
+			<View style={styles.postHeader}>
+				<View style={styles.postLeft}>
+					<View
+						style={[
+							styles.statusDot,
+							{ backgroundColor: getStatusColor(item.status) },
+						]}
+					/>
+					<Text
+						style={[
+							styles.statusText,
+							{ color: getStatusColor(item.status) },
+						]}
+					>
+						{item.status}
+					</Text>
+				</View>
+				<Text style={styles.postDate}>
+					{new Date(item.createdAt).toLocaleDateString()}
+				</Text>
+			</View>
 
-      <View style={styles.filters}>
-        {(['all', 'DRAFT', 'SCHEDULED', 'PUBLISHED', 'FAILED'] as FilterType[]).map((f) => (
-          <TouchableOpacity
-            key={f}
-            style={[styles.filterButton, filter === f && styles.filterButtonActive]}
-            onPress={() => setFilter(f)}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                filter === f && styles.filterTextActive,
-              ]}
-            >
-              {f === 'all' ? 'All' : f}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+			<Text style={styles.postTitle} numberOfLines={2}>
+				{item.title || 'Untitled Post'}
+			</Text>
 
-      {filteredPosts.length === 0 ? (
-        emptyComponent
-      ) : (
-        <FlatList
-          data={filteredPosts}
-          renderItem={renderPost}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor='#d4af37'
-            />
-          }
-        />
-      )}
-    </View>
-  )
+			<Text style={styles.postContent} numberOfLines={3}>
+				{buildPreviewText(item.content)}
+			</Text>
+		</TouchableOpacity>
+	)
+
+	// Footer component to show loading indicator when fetching more posts
+	const renderFooter = () => {
+		if (!pagination.isLoadingMore) return null
+		return (
+			<View style={styles.footerLoader}>
+				<ActivityIndicator size='small' color='#d4af37' />
+				<Text style={styles.footerText}>Loading more posts...</Text>
+			</View>
+		)
+	}
+
+	const emptyComponent = (
+		<View style={styles.emptyState}>
+			<Text style={styles.emptyEmoji}>*</Text>
+			<Text style={styles.emptyText}>
+				{filter === 'all'
+					? 'No content found'
+					: `No ${filter.toLowerCase()} posts`}
+			</Text>
+			<Text style={styles.emptySubtext}>
+				{searchQuery
+					? 'Try adjusting your search'
+					: 'Create your first post to get started'}
+			</Text>
+		</View>
+	)
+
+	if (loading) {
+		return (
+			<View
+				style={[
+					styles.container,
+					{ justifyContent: 'center', alignItems: 'center' },
+				]}
+			>
+				<ActivityIndicator size='large' color='#d4af37' />
+			</View>
+		)
+	}
+
+	return (
+		<View style={styles.container}>
+			<View style={styles.header}>
+				<View>
+					<Text style={styles.headerTitle}>Your Content</Text>
+					<Text style={styles.headerSubtitle}>
+						{filteredPosts.length} post
+						{filteredPosts.length !== 1 ? 's' : ''}
+					</Text>
+				</View>
+				<TouchableOpacity
+					onPress={() => router.push('/(tabs)/create-post')}
+				>
+					<Ionicons
+						name='add-circle-outline'
+						size={28}
+						color='#d4af37'
+					/>
+				</TouchableOpacity>
+			</View>
+
+			<View style={styles.searchContainer}>
+				<Ionicons
+					name='search-outline'
+					size={20}
+					color='rgba(255,255,255,0.4)'
+				/>
+				<TextInput
+					style={styles.searchInput}
+					placeholder='Search content...'
+					placeholderTextColor='rgba(255,255,255,0.4)'
+					value={searchQuery}
+					onChangeText={setSearchQuery}
+				/>
+			</View>
+
+			<View style={styles.filters}>
+				{(
+					[
+						'all',
+						'DRAFT',
+						'SCHEDULED',
+						'PUBLISHED',
+						'FAILED',
+					] as FilterType[]
+				).map((f) => (
+					<TouchableOpacity
+						key={f}
+						style={[
+							styles.filterButton,
+							filter === f && styles.filterButtonActive,
+						]}
+						onPress={() => setFilter(f)}
+					>
+						<Text
+							style={[
+								styles.filterText,
+								filter === f && styles.filterTextActive,
+							]}
+						>
+							{f === 'all' ? 'All' : f}
+						</Text>
+					</TouchableOpacity>
+				))}
+			</View>
+
+			{filteredPosts.length === 0 ? (
+				emptyComponent
+			) : (
+				<FlatList
+					data={filteredPosts}
+					renderItem={renderPost}
+					keyExtractor={(item) => item.id}
+					contentContainerStyle={styles.listContent}
+					showsVerticalScrollIndicator={false}
+					onEndReached={onEndReached}
+					onEndReachedThreshold={0.5}
+					ListFooterComponent={renderFooter}
+					refreshControl={
+						<RefreshControl
+							refreshing={refreshing}
+							onRefresh={onRefresh}
+							tintColor='#d4af37'
+						/>
+					}
+				/>
+			)}
+		</View>
+	)
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0a192f',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.5)',
-    marginTop: 4,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginHorizontal: 24,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.2)',
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    color: '#ffffff',
-    fontSize: 14,
-  },
-  filters: {
-    flexDirection: 'row',
-    paddingHorizontal: 24,
-    marginBottom: 16,
-    gap: 8,
-  },
-  filterButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  filterButtonActive: {
-    backgroundColor: '#d4af37',
-    borderColor: '#d4af37',
-  },
-  filterText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.6)',
-  },
-  filterTextActive: {
-    color: '#0a192f',
-  },
-  listContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 36,
-  },
-  postCard: {
-    backgroundColor: 'rgba(255,255,255,0.035)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.12)',
-  },
-  postHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  postLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  postTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 8,
-    lineHeight: 22,
-  },
-  postContent: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.6)',
-    lineHeight: 18,
-  },
-  postDate: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.5)',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingTop: 60,
-  },
-  emptyEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
-  },
+	container: {
+		flex: 1,
+		backgroundColor: '#0a192f',
+	},
+	header: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		paddingHorizontal: 24,
+		paddingTop: 16,
+		paddingBottom: 16,
+	},
+	headerTitle: {
+		fontSize: 24,
+		fontWeight: '700',
+		color: '#ffffff',
+	},
+	headerSubtitle: {
+		fontSize: 12,
+		color: 'rgba(255,255,255,0.5)',
+		marginTop: 4,
+	},
+	searchContainer: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		backgroundColor: 'rgba(255,255,255,0.05)',
+		borderRadius: 8,
+		paddingHorizontal: 12,
+		marginHorizontal: 24,
+		marginBottom: 16,
+		borderWidth: 1,
+		borderColor: 'rgba(212,175,55,0.2)',
+	},
+	searchInput: {
+		flex: 1,
+		paddingVertical: 10,
+		paddingHorizontal: 8,
+		color: '#ffffff',
+		fontSize: 14,
+	},
+	filters: {
+		flexDirection: 'row',
+		paddingHorizontal: 24,
+		marginBottom: 16,
+		gap: 8,
+	},
+	filterButton: {
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderRadius: 16,
+		backgroundColor: 'rgba(255,255,255,0.05)',
+		borderWidth: 1,
+		borderColor: 'rgba(255,255,255,0.1)',
+	},
+	filterButtonActive: {
+		backgroundColor: '#d4af37',
+		borderColor: '#d4af37',
+	},
+	filterText: {
+		fontSize: 12,
+		fontWeight: '600',
+		color: 'rgba(255,255,255,0.6)',
+	},
+	filterTextActive: {
+		color: '#0a192f',
+	},
+	listContent: {
+		paddingHorizontal: 24,
+		paddingBottom: 36,
+	},
+	postCard: {
+		backgroundColor: 'rgba(255,255,255,0.035)',
+		borderRadius: 16,
+		padding: 16,
+		marginBottom: 14,
+		borderWidth: 1,
+		borderColor: 'rgba(212,175,55,0.12)',
+	},
+	postHeader: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		marginBottom: 12,
+	},
+	postLeft: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+	},
+	statusDot: {
+		width: 8,
+		height: 8,
+		borderRadius: 4,
+	},
+	statusText: {
+		fontSize: 11,
+		fontWeight: '700',
+		textTransform: 'uppercase',
+		letterSpacing: 0.5,
+	},
+	postTitle: {
+		fontSize: 16,
+		fontWeight: '700',
+		color: '#ffffff',
+		marginBottom: 8,
+		lineHeight: 22,
+	},
+	postContent: {
+		fontSize: 13,
+		color: 'rgba(255,255,255,0.6)',
+		lineHeight: 18,
+	},
+	postDate: {
+		fontSize: 11,
+		color: 'rgba(255,255,255,0.5)',
+	},
+	emptyState: {
+		alignItems: 'center',
+		paddingTop: 60,
+	},
+	emptyEmoji: {
+		fontSize: 64,
+		marginBottom: 16,
+	},
+	emptyText: {
+		fontSize: 18,
+		fontWeight: '700',
+		color: '#ffffff',
+		marginBottom: 8,
+	},
+	emptySubtext: {
+		fontSize: 14,
+		color: 'rgba(255,255,255,0.5)',
+	},
+	footerLoader: {
+		flexDirection: 'row',
+		justifyContent: 'center',
+		alignItems: 'center',
+		paddingVertical: 16,
+		gap: 8,
+	},
+	footerText: {
+		fontSize: 12,
+		color: 'rgba(255,255,255,0.6)',
+	},
 })

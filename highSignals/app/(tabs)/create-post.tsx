@@ -24,6 +24,11 @@ import { useAuth } from '@/context/AuthContext'
 const BRAND = '#d4af37'
 const BG = '#000000'
 const PANEL = '#0f0f0f'
+const TOOLBAR_HEIGHT = 55
+const PUBLISH_STRIP_HEIGHT = 56
+// Padding inside the editor body so the cursor never sits flush against
+// the bottom — scrollToEnd then reliably parks the cursor above the toolbar.
+const EDITOR_BOTTOM_PADDING = 420
 
 type PublishOption = 'immediate' | 'schedule' | 'draft'
 
@@ -68,12 +73,10 @@ export default function CreatePostScreen() {
 		const hideEvent =
 			Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
 		const showSub = Keyboard.addListener(showEvent, (e) => {
-			const height = e.endCoordinates?.height ?? 0
-			setKeyboardHeight(height + 20)
-			console.log('🎹 Keyboard Height set:', setKeyboardHeight) // Add this line
+			setKeyboardHeight(e.endCoordinates?.height ?? 0)
 		})
 		const hideSub = Keyboard.addListener(hideEvent, () => {
-			setKeyboardHeight(0 + 0)
+			setKeyboardHeight(0)
 		})
 		return () => {
 			showSub.remove()
@@ -345,7 +348,8 @@ export default function CreatePostScreen() {
 				ref={scrollRef}
 				style={styles.editorScroll}
 				contentContainerStyle={{
-					paddingBottom: keyboardHeight + 20,
+					paddingBottom:
+						keyboardHeight + TOOLBAR_HEIGHT + PUBLISH_STRIP_HEIGHT,
 				}}
 				keyboardShouldPersistTaps='handled'
 			>
@@ -355,18 +359,18 @@ export default function CreatePostScreen() {
 					onChange={setContent}
 					onCursorPosition={(scrollY) => {
 						scrollRef.current?.scrollTo({
-							y: scrollY - 100,
+							y: Math.max(0, scrollY - 120),
 							animated: true,
 						})
 					}}
 					onHeightChange={(h) => {
 						if (h && h > 0) {
 							setEditorHeight(Math.max(h, 500))
-							setTimeout(() => {
+							requestAnimationFrame(() => {
 								scrollRef.current?.scrollToEnd({
 									animated: true,
 								})
-							}, 50)
+							})
 						}
 					}}
 					editorStyle={{
@@ -374,8 +378,7 @@ export default function CreatePostScreen() {
 						color: '#ffffff',
 						caretColor: BRAND,
 						placeholderColor: 'rgba(255,255,255,0.3)',
-						contentCSSText:
-							"font-size: 17px; line-height: 28px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #ffffff; padding: 8px 0;",
+						contentCSSText: `font-size: 17px; line-height: 28px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #ffffff; padding: 8px 0 ${EDITOR_BOTTOM_PADDING}px 0;`,
 					}}
 					placeholder='Start writing…'
 					useContainer={false}
@@ -383,17 +386,28 @@ export default function CreatePostScreen() {
 					style={[styles.richEditor, { height: editorHeight }]}
 				/>
 			</ScrollView>
-			{/* Floating dock: publish strip + color tray + toolbar, lifts above keyboard */}
-			<View style={styles.publishContainer}>
-				<TouchableOpacity
-					style={styles.publishStrip}
-					onPress={() => setShowPublishModal(true)}
-					activeOpacity={0.85}
+			{/* Publish strip — hidden while typing so the toolbar can sit at the bottom */}
+			{keyboardHeight === 0 && (
+				<View
+					style={[
+						styles.publishContainer,
+						{ bottom: TOOLBAR_HEIGHT },
+					]}
 				>
-					<Text style={styles.publishStripText}>Publish</Text>
-					<Ionicons name='arrow-forward' size={16} color='#000000' />
-				</TouchableOpacity>
-			</View>
+					<TouchableOpacity
+						style={styles.publishStrip}
+						onPress={() => setShowPublishModal(true)}
+						activeOpacity={0.85}
+					>
+						<Text style={styles.publishStripText}>Publish</Text>
+						<Ionicons
+							name='arrow-forward'
+							size={16}
+							color='#000000'
+						/>
+					</TouchableOpacity>
+				</View>
+			)}
 			<View
 				style={[styles.floatingDock, { bottom: keyboardHeight }]}
 				pointerEvents='box-none'
@@ -714,7 +728,7 @@ const styles = StyleSheet.create({
 		backgroundColor: BG,
 	},
 	floatingDock: {
-		position: 'fixed',
+		position: 'absolute',
 		left: 0,
 		right: 0,
 		backgroundColor: BG,
@@ -723,7 +737,6 @@ const styles = StyleSheet.create({
 		position: 'absolute',
 		left: 0,
 		right: 0,
-		bottom: 40,
 		zIndex: 900,
 	},
 	publishStrip: {

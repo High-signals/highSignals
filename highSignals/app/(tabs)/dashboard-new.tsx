@@ -191,6 +191,136 @@ export default function DashboardScreen() {
 						<Text style={styles.date}>{todayLabel}</Text>
 					</View>
 
+					{/* {nextScheduledPost ? (
+						<TouchableOpacity
+							style={styles.nextCard}
+							activeOpacity={0.85}
+							onPress={() =>
+								router.push(
+									`/(tabs)/post-detail?postId=${nextScheduledPost.id}` as any,
+								)
+							}
+						>
+							<View style={styles.nextCardTop}>
+								<Text style={styles.nextCardLabel}>
+									Next scheduled post
+								</Text>
+								<View style={styles.nextCardPill}>
+									<Text style={styles.nextCardPillText}>
+										{nextScheduledPost.status}
+									</Text>
+								</View>
+							</View>
+							<Text style={styles.nextCardTitle}>
+								{nextScheduledPost.title || 'Untitled Post'}
+							</Text>
+							<Text style={styles.nextCardMeta}>
+								{nextScheduledPost.platforms.join(', ')} on{' '}
+								{new Date(
+									nextScheduledPost.scheduledAt || '',
+								).toLocaleString()}
+							</Text>
+						</TouchableOpacity>
+					) : (
+						<View style={styles.nextCard}>
+							<View style={styles.nextCardTop}>
+								<Text style={styles.nextCardLabel}>
+									Next scheduled post
+								</Text>
+								<View style={styles.nextCardPillAlt}>
+									<Text style={styles.nextCardPillTextAlt}>
+										No schedule yet
+									</Text>
+								</View>
+							</View>
+							<Text style={styles.nextCardTitle}>
+								No upcoming post is scheduled
+							</Text>
+							<Text style={styles.nextCardMeta}>
+								Use Create to queue your next post and keep the
+								calendar full.
+							</Text>
+						</View>
+					)} */}
+
+					<Animated.View
+						style={[
+							styles.mainCards,
+							{
+								opacity: fadeAnim,
+								transform: [{ translateY: slideAnim }],
+							},
+						]}
+					>
+						<TouchableOpacity
+							style={[
+								styles.actionCard,
+								styles.fullWidthCard,
+								styles.brandCard,
+							]}
+							onPress={() => router.push('/GetContent')}
+							activeOpacity={0.8}
+						>
+							<View style={styles.cardHeader}>
+								<Ionicons
+									name='document-text'
+									size={22}
+									color='#000000'
+								/>
+								<Text style={styles.cardTitle}>
+									View drafts
+								</Text>
+							</View>
+							<Text style={styles.cardSubtitle}>
+								Monitor drafts, scheduled, and published posts
+							</Text>
+							<View style={styles.cardIllustration}>
+								<View style={styles.draftIllustration}>
+									<View style={styles.draftItem}>
+										<View style={styles.draftCheck}>
+											<Ionicons
+												name='checkmark'
+												size={14}
+												color='#000000'
+											/>
+										</View>
+										<View style={styles.draftLines}>
+											<View style={styles.draftLine} />
+											<View style={styles.draftLine} />
+										</View>
+									</View>
+								</View>
+							</View>
+						</TouchableOpacity>
+					</Animated.View>
+
+					<View style={styles.statusStrip}>
+						<View style={styles.statusCard}>
+							<Text style={styles.statusValue}>
+								{counts.DRAFT}
+							</Text>
+							<Text style={styles.statusLabel}>Drafts</Text>
+						</View>
+						<View style={styles.statusCard}>
+							<Text style={styles.statusValue}>
+								{counts.SCHEDULED}
+							</Text>
+							<Text style={styles.statusLabel}>Schedule</Text>
+						</View>
+						<View style={styles.statusCard}>
+							<Text style={styles.statusValue}>
+								{counts.PUBLISHED}
+							</Text>
+							<Text style={styles.statusLabel}>Published</Text>
+						</View>
+						<View style={styles.statusCard}>
+							<Text style={styles.statusValue}>
+								{counts.FAILED}
+							</Text>
+							<Text style={styles.statusLabel}>Failed</Text>
+						</View>
+					</View>
+
 					<View style={styles.insightCard}>
 						<View style={styles.insightHeader}>
 							<View style={styles.insightIcon}>
@@ -224,7 +354,7 @@ export default function DashboardScreen() {
 								Recent posts
 							</Text>
 							<TouchableOpacity
-								onPress={() => router.push('/posts')}
+								onPress={() => router.push('/GetContent')}
 							>
 								<Text style={styles.sectionLink}>View all</Text>
 							</TouchableOpacity>
@@ -293,133 +423,6 @@ export default function DashboardScreen() {
 							</Text>
 						)}
 					</View>
-
-					{/* {nextScheduledPost ? (
-						<TouchableOpacity
-							style={styles.nextCard}
-							activeOpacity={0.85}
-							onPress={() =>
-								router.push(
-									`/(tabs)/post-detail?postId=${nextScheduledPost.id}` as any,
-								)
-							}
-						>
-							<View style={styles.nextCardTop}>
-								<Text style={styles.nextCardLabel}>
-									Next scheduled post
-								</Text>
-								<View style={styles.nextCardPill}>
-									<Text style={styles.nextCardPillText}>
-										{nextScheduledPost.status}
-									</Text>
-								</View>
-							</View>
-							<Text style={styles.nextCardTitle}>
-								{nextScheduledPost.title || 'Untitled Post'}
-							</Text>
-							<Text style={styles.nextCardMeta}>
-								{nextScheduledPost.platforms.join(', ')} on{' '}
-								{new Date(
-									nextScheduledPost.scheduledAt || '',
-								).toLocaleString()}
-							</Text>
-						</TouchableOpacity>
-					) : (
-						<View style={styles.nextCard}>
-							<View style={styles.nextCardTop}>
-								<Text style={styles.nextCardLabel}>
-									Next scheduled post
-								</Text>
-								<View style={styles.nextCardPillAlt}>
-									<Text style={styles.nextCardPillTextAlt}>
-										No schedule yet
-									</Text>
-								</View>
-							</View>
-							<Text style={styles.nextCardTitle}>
-								No upcoming post is scheduled
-							</Text>
-							<Text style={styles.nextCardMeta}>
-								Use Create to queue your next post and keep the
-								calendar full.
-							</Text>
-						</View>
-					)} */}
-
-					<Animated.View
-						style={[
-							styles.mainCards,
-							{
-								opacity: fadeAnim,
-								transform: [{ translateY: slideAnim }],
-							},
-						]}
-					>
-						<TouchableOpacity
-							style={[styles.actionCard, styles.fullWidthCard, styles.brandCard]}
-							onPress={() => router.push('/GetContent')}
-							activeOpacity={0.8}
-						>
-							<View style={styles.cardHeader}>
-								<Ionicons
-									name='document-text'
-									size={22}
-									color='#000000'
-								/>
-								<Text style={styles.cardTitle}>
-									View drafts
-								</Text>
-							</View>
-							<Text style={styles.cardSubtitle}>
-								Monitor drafts, scheduled, and published posts
-							</Text>
-							<View style={styles.cardIllustration}>
-								<View style={styles.draftIllustration}>
-									<View style={styles.draftItem}>
-										<View style={styles.draftCheck}>
-											<Ionicons
-												name='checkmark'
-												size={14}
-												color='#000000'
-											/>
-										</View>
-										<View style={styles.draftLines}>
-											<View style={styles.draftLine} />
-											<View style={styles.draftLine} />
-										</View>
-									</View>
-								</View>
-							</View>
-						</TouchableOpacity>
-					</Animated.View>
-
-					<View style={styles.statusStrip}>
-						<View style={styles.statusCard}>
-							<Text style={styles.statusValue}>
-								{counts.DRAFT}
-							</Text>
-							<Text style={styles.statusLabel}>Drafts</Text>
-						</View>
-						<View style={styles.statusCard}>
-							<Text style={styles.statusValue}>
-								{counts.SCHEDULED}
-							</Text>
-							<Text style={styles.statusLabel}>Schedule</Text>
-						</View>
-						<View style={styles.statusCard}>
-							<Text style={styles.statusValue}>
-								{counts.PUBLISHED}
-							</Text>
-							<Text style={styles.statusLabel}>Published</Text>
-						</View>
-						<View style={styles.statusCard}>
-							<Text style={styles.statusValue}>
-								{counts.FAILED}
-							</Text>
-							<Text style={styles.statusLabel}>Failed</Text>
-						</View>
-					</View>
-
 				</ScrollView>
 			</View>
 		</SafeAreaView>

@@ -24,6 +24,10 @@ import { useAuth } from '@/context/AuthContext'
 const BRAND = '#d4af37'
 const BG = '#000000'
 const PANEL = '#0f0f0f'
+const TOOLBAR_HEIGHT = 52
+// Padding inside the editor body so the cursor never sits flush against
+// the bottom — scrollToEnd then reliably parks the cursor above the toolbar.
+const EDITOR_BOTTOM_PADDING = 360
 
 interface Post {
 	id: string
@@ -465,7 +469,7 @@ export default function PostDetailScreen() {
 					ref={scrollRef}
 					style={styles.editorScroll}
 					contentContainerStyle={{
-						paddingBottom: keyboardHeight + 120,
+						paddingBottom: keyboardHeight + TOOLBAR_HEIGHT,
 					}}
 					keyboardShouldPersistTaps='handled'
 				>
@@ -480,18 +484,18 @@ export default function PostDetailScreen() {
 						}
 						onCursorPosition={(scrollY) => {
 							scrollRef.current?.scrollTo({
-								y: scrollY - 100,
+								y: Math.max(0, scrollY - 120),
 								animated: true,
 							})
 						}}
 						onHeightChange={(h) => {
 							if (h && h > 0) {
 								setEditorHeight(Math.max(h, 500))
-								setTimeout(() => {
+								requestAnimationFrame(() => {
 									scrollRef.current?.scrollToEnd({
 										animated: true,
 									})
-								}, 50)
+								})
 							}
 						}}
 						editorStyle={{
@@ -499,8 +503,7 @@ export default function PostDetailScreen() {
 							color: '#ffffff',
 							caretColor: BRAND,
 							placeholderColor: 'rgba(255,255,255,0.3)',
-							contentCSSText:
-								"font-size: 17px; line-height: 28px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #ffffff; padding: 8px 0;",
+							contentCSSText: `font-size: 17px; line-height: 28px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #ffffff; padding: 8px 0 ${EDITOR_BOTTOM_PADDING}px 0;`,
 						}}
 						placeholder='Start writing…'
 						useContainer={false}
