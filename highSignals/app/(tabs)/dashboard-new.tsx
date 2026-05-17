@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import {
 	ActivityIndicator,
 	Animated,
+	Image,
 	SafeAreaView,
 	ScrollView,
 	StyleSheet,
@@ -95,6 +96,7 @@ export default function DashboardScreen() {
 	}, [])
 
 	const userName = profile?.name || user?.name || 'there'
+	const avatarUrl = profile?.avatar || user?.avatar || null
 	const firstName = userName.split(' ')[0] || userName
 	const userInitial =
 		userName
@@ -169,9 +171,16 @@ export default function DashboardScreen() {
 								style={styles.profileIcon}
 								onPress={() => router.push('/profile')}
 							>
-								<Text style={styles.profileInitial}>
-									{userInitial}
-								</Text>
+								{avatarUrl ? (
+									<Image
+										source={{ uri: avatarUrl }}
+										style={styles.profileAvatar}
+									/>
+								) : (
+									<Text style={styles.profileInitial}>
+										{userInitial}
+									</Text>
+								)}
 							</TouchableOpacity>
 						</View>
 
@@ -456,6 +465,11 @@ const styles = StyleSheet.create({
 		backgroundColor: BRAND,
 		justifyContent: 'center',
 		alignItems: 'center',
+		overflow: 'hidden',
+	},
+	profileAvatar: {
+		width: '100%',
+		height: '100%',
 	},
 	profileInitial: {
 		fontSize: 24,
