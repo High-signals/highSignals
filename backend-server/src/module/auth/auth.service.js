@@ -3,10 +3,16 @@ import bcrypt from 'bcrypt'
 import { randomInt } from 'crypto'
 import { generateAccessToken } from '../../shared/service/generateToken.js'
 import AppError from '../../shared/service/appError.js'
-import { verifyGoogleToken } from './../../shared/service/GoogleAuth.js'
+import { verifyFirebaseToken } from '../../shared/service/firebase.service.js'
 import { sendVerificationEmail } from '../../shared/service/sendVerificationEmail.js'
 
+const AUTH_PROVIDER = {
+	LOCAL: 'LOCAL',
+	GOOGLE: 'GOOGLE',
+}
+
 const OTP_EXPIRY_MINUTES = 10
+const GOOGLE_FIREBASE_PROVIDER = 'google.com'
 
 const normalizeEmail = (email) => email.trim().toLowerCase()
 
@@ -32,7 +38,7 @@ export async function registerUser(data) {
 			email: data.email,
 			password: hashedPassword,
 			name: data.name,
-			provider: ['LOCAL'],
+			provider: [AUTH_PROVIDER.LOCAL],
 		},
 	})
 
@@ -50,7 +56,7 @@ export async function loginUser(data) {
 		throw new AppError('Invalid credentials', 400)
 	}
 
-	if (!user.password && !user.provider.includes('LOCAL')) {
+	if (!user.password && !user.provider.includes(AUTH_PROVIDER.LOCAL)) {
 		throw new AppError(
 			'User registered with Google. Please login with Google',
 			400,
@@ -72,31 +78,63 @@ export async function googleAuth(data) {
 	const { idToken } = data
 
 	if (!idToken) {
-		throw new AppError('Google token required', 400)
+		throw new AppError('Firebase ID token required', 400)
 	}
 
-	const payload = await verifyGoogleToken(idToken)
+	const firebaseUser = await verifyFirebaseToken(idToken)
+	const {
+		googleId,
+		email: firebaseEmail,
+		name,
+		emailVerified,
+		provider,
+	} = firebaseUser
 
-	const { sub: googleId, email, name, email_verified } = payload
+	if (provider !== GOOGLE_FIREBASE_PROVIDER) {
+		throw new AppError('Firebase token is not from Google sign-in', 400)
+	}
 
-	if (!email_verified) {
+	if (!firebaseEmail) {
+		throw new AppError('Google account email is required', 400)
+	}
+
+	if (!emailVerified) {
 		throw new AppError('Google email not verified', 400)
 	}
 
-	let user = await prisma.user.findUnique({
-		where: { email },
-	})
+	const email = normalizeEmail(firebaseEmail)
+	const displayName = name?.trim() || email.split('@')[0]
 
-	// USER EXISTS
+	const [userByGoogleId, userByEmail] = await Promise.all([
+		prisma.user.findUnique({
+			where: { googleId },
+		}),
+		prisma.user.findUnique({
+			where: { email },
+		}),
+	])
+
+	if (userByGoogleId && userByEmail && userByGoogleId.id !== userByEmail.id) {
+		throw new AppError('Google account is already linked to another user', 409)
+	}
+
+	let user = userByGoogleId || userByEmail
+
 	if (user) {
-		if (!user.provider.includes(PROVIDER.GOOGLE)) {
+		const currentProviders = Array.isArray(user.provider) ? user.provider : []
+		const providers = currentProviders.includes(AUTH_PROVIDER.GOOGLE)
+			? currentProviders
+			: [...currentProviders, AUTH_PROVIDER.GOOGLE]
+
+		if (
+			user.googleId !== googleId ||
+			providers.length !== currentProviders.length
+		) {
 			user = await prisma.user.update({
 				where: { id: user.id },
 				data: {
-					provider: {
-						push: PROVIDER.GOOGLE,
-					},
 					googleId,
+					provider: providers,
 				},
 			})
 		}
@@ -104,9 +142,9 @@ export async function googleAuth(data) {
 		user = await prisma.user.create({
 			data: {
 				email,
-				name: name.replace(/\s+/g, '').toLowerCase(),
+				name: displayName,
 				googleId,
-				provider: [PROVIDER.GOOGLE],
+				provider: [AUTH_PROVIDER.GOOGLE],
 			},
 		})
 	}

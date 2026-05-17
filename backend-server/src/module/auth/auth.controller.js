@@ -34,7 +34,7 @@ export const login = asyncHandler(async (req, res) => {
 export const googleLogin = asyncHandler(async (req, res) => {
 	const { idToken } = req.body
 	if (!idToken) {
-		return res.status(400).json({ message: 'Google token is required' })
+		return res.status(400).json({ message: 'Firebase ID token is required' })
 	}
 	const result = await googleAuth({ idToken })
 	return res.status(200).json(result)
