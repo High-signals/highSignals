@@ -3,6 +3,8 @@ import {
 	getUserProfile,
 	updateUserProfile,
 	deleteUserProfile,
+	uploadUserAvatar,
+	deleteUserAvatar,
 } from './userProfile.service.js'
 
 export const getUserProfileController = asyncWrapper(async (req, res) => {
@@ -44,4 +46,16 @@ export const deleteUserProfileController = asyncWrapper(async (req, res) => {
 	const userId = req.user.id
 	const deletes = await deleteUserProfile(userId)
 	res.json(deletes)
+})
+
+export const uploadAvatarController = asyncWrapper(async (req, res) => {
+	const userId = req.user.id
+	const updated = await uploadUserAvatar(userId, req.file)
+	res.json(updated)
+})
+
+export const deleteAvatarController = asyncWrapper(async (req, res) => {
+	const userId = req.user.id
+	const updated = await deleteUserAvatar(userId)
+	res.json(updated)
 })

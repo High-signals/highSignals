@@ -14,10 +14,15 @@ import {
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useAuth } from '@/context/AuthContext'
+import { useFirebaseGoogleSignIn } from '@/hooks/useFirebaseGoogleSignIn'
 
 export default function SignupLoginScreen() {
 	const router = useRouter()
-	const { login, register } = useAuth()
+	const { login, register, googleLogin } = useAuth()
+	const {
+		loading: googleLoading,
+		signInWithGoogle,
+	} = useFirebaseGoogleSignIn()
 	const [activeTab, setActiveTab] = useState<'login' | 'register'>('login')
 	const [rememberMe, setRememberMe] = useState(false)
 	const [showPassword, setShowPassword] = useState(false)
@@ -71,9 +76,19 @@ export default function SignupLoginScreen() {
 		}
 	}
 
-	const handleGoogleAuth = () => {
-		Alert.alert('Coming Soon', 'Google OAuth implementation coming soon')
-		// TODO: Implement Google OAuth
+	const handleGoogleAuth = async () => {
+		try {
+			const idToken = await signInWithGoogle()
+			if (!idToken) return
+
+			await googleLogin(idToken)
+			router.replace('/(tabs)/dashboard-new')
+		} catch (error: any) {
+			Alert.alert(
+				'Google Sign-In Failed',
+				error.message || 'Failed to sign in with Google',
+			)
+		}
 	}
 
 	return (
@@ -354,11 +369,20 @@ export default function SignupLoginScreen() {
 						<TouchableOpacity
 							style={styles.socialButton}
 							onPress={handleGoogleAuth}
+							disabled={googleLoading}
 						>
-							<View style={styles.googleIconCircle}>
-								<Text style={styles.googleG}>G</Text>
-							</View>
-							<Text style={styles.socialButtonText}>Google</Text>
+							{googleLoading ? (
+								<ActivityIndicator color='#0a192f' />
+							) : (
+								<>
+									<View style={styles.googleIconCircle}>
+										<Text style={styles.googleG}>G</Text>
+									</View>
+									<Text style={styles.socialButtonText}>
+										Google
+									</Text>
+								</>
+							)}
 						</TouchableOpacity>
 					</View>
 				</View>

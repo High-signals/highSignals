@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import {
 	Animated,
 	StatusBar,
@@ -11,11 +11,12 @@ import {
 	Alert,
 } from 'react-native'
 import { useAuth } from '@/context/AuthContext'
+import { useFirebaseGoogleSignIn } from '@/hooks/useFirebaseGoogleSignIn'
 
 export default function AuthScreen() {
 	const router = useRouter()
 	const { googleLogin } = useAuth()
-	const [loading, setLoading] = useState(false)
+	const { loading, signInWithGoogle } = useFirebaseGoogleSignIn()
 
 	// Animation
 	const fadeAnim = useRef(new Animated.Value(0)).current
@@ -37,22 +38,17 @@ export default function AuthScreen() {
 	}, [])
 
 	const handleGoogleSignIn = async () => {
-		setLoading(true)
 		try {
-			// TODO: Implement Google Sign-In SDK
-			// For now, show alert
-			Alert.alert('Coming Soon', 'Google Sign-In integration coming soon')
-			// Once implemented:
-			// const idToken = await getGoogleIdToken()
-			// await googleLogin(idToken)
-			// router.replace('/(tabs)/dashboard')
+			const idToken = await signInWithGoogle()
+			if (!idToken) return
+
+			await googleLogin(idToken)
+			router.replace('/(tabs)/dashboard-new')
 		} catch (error: any) {
 			Alert.alert(
 				'Error',
 				error.message || 'Failed to sign in with Google',
 			)
-		} finally {
-			setLoading(false)
 		}
 	}
 

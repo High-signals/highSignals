@@ -20,6 +20,7 @@ export default function ProfileEditScreen() {
 	const { isAuthenticated } = useAuth()
 	const [loading, setLoading] = useState(true)
 	const [saving, setSaving] = useState(false)
+	const [uploadingAvatar, setUploadingAvatar] = useState(false)
 	const [form, setForm] = useState({
 		name: '',
 		email: '',
@@ -52,6 +53,16 @@ export default function ProfileEditScreen() {
 	}
 
 	const handleImagePick = async () => {
+		const permission =
+			await ImagePicker.requestMediaLibraryPermissionsAsync()
+		if (!permission.granted) {
+			Alert.alert(
+				'Permission needed',
+				'Please allow photo access to change your avatar.',
+			)
+			return
+		}
+
 		const result = await ImagePicker.launchImageLibraryAsync({
 			mediaTypes: ImagePicker.MediaTypeOptions.Images,
 			allowsEditing: true,
@@ -59,8 +70,27 @@ export default function ProfileEditScreen() {
 			quality: 0.8,
 		})
 
-		if (!result.canceled) {
-			setForm((prev) => ({ ...prev, avatar: result.assets[0].uri }))
+		if (result.canceled) return
+		const asset = result.assets[0]
+		const previousAvatar = form.avatar
+		setForm((prev) => ({ ...prev, avatar: asset.uri }))
+		setUploadingAvatar(true)
+		try {
+			const updated = await api.profile.uploadAvatar({
+				uri: asset.uri,
+				mimeType: asset.mimeType,
+				fileName: asset.fileName,
+			})
+			setForm((prev) => ({ ...prev, avatar: updated.avatar || null }))
+		} catch (error: any) {
+			console.error('Avatar upload failed', error)
+			Alert.alert(
+				'Upload failed',
+				error?.message || 'Could not upload avatar',
+			)
+			setForm((prev) => ({ ...prev, avatar: previousAvatar }))
+		} finally {
+			setUploadingAvatar(false)
 		}
 	}
 
@@ -74,7 +104,6 @@ export default function ProfileEditScreen() {
 			setSaving(true)
 			await api.profile.update({
 				name: form.name.trim(),
-				avatar: form.avatar,
 				bio: form.bio,
 			})
 			Alert.alert('Success', 'Profile updated successfully')
@@ -107,7 +136,12 @@ export default function ProfileEditScreen() {
 				</View>
 
 				<View style={styles.imageSection}>
-					<TouchableOpacity style={styles.imageContainer}>
+					<TouchableOpacity
+						style={styles.imageContainer}
+						onPress={handleImagePick}
+						disabled={uploadingAvatar}
+						activeOpacity={0.85}
+					>
 						{form.avatar ? (
 							<Image
 								source={{ uri: form.avatar }}
@@ -118,6 +152,11 @@ export default function ProfileEditScreen() {
 								<Text style={styles.placeholderInitial}>
 									{form.name?.[0] || 'U'}
 								</Text>
+							</View>
+						)}
+						{uploadingAvatar && (
+							<View style={styles.avatarOverlay}>
+								<ActivityIndicator color='#ffffff' />
 							</View>
 						)}
 						<View style={styles.cameraIcon}>
@@ -255,6 +294,17 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		borderWidth: 3,
 		borderColor: '#1a2b4a',
+	},
+	avatarOverlay: {
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		borderRadius: 60,
+		backgroundColor: 'rgba(0,0,0,0.45)',
+		justifyContent: 'center',
+		alignItems: 'center',
 	},
 	cameraEmoji: {
 		fontSize: 16,

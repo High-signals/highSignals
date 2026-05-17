@@ -18,6 +18,7 @@ import DateTimePicker, {
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { RichEditor, actions } from 'react-native-pell-rich-editor'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
 
@@ -76,6 +77,7 @@ export default function PostDetailScreen() {
 	const { isAuthenticated } = useAuth()
 	const editorRef = useRef<RichEditor>(null)
 	const scrollRef = useRef<ScrollView>(null)
+	const insets = useSafeAreaInsets()
 	const [editorHeight, setEditorHeight] = useState(500)
 	const [viewHeight, setViewHeight] = useState(500)
 	const [post, setPost] = useState<Post | null>(null)
@@ -282,6 +284,16 @@ export default function PostDetailScreen() {
 		return colors[status] || '#ffffff'
 	}
 
+	const getStatusLabel = (status: string) => {
+		const labels: { [key: string]: string } = {
+			DRAFT: 'SCRIPT',
+			SCHEDULED: 'SCHEDULED',
+			PUBLISHED: 'POSTED',
+			FAILED: 'FAILED',
+		}
+		return labels[status] || status
+	}
+
 	const displayPost = isEditing ? editedPost : post
 	const statusColor = useMemo(
 		() => getStatusColor(displayPost?.status || ''),
@@ -296,16 +308,62 @@ export default function PostDetailScreen() {
 		editorRef.current?.insertHTML('<hr />')
 	}
 
-	const insertLink = () => {
-		Alert.prompt?.(
-			'Insert link',
-			'Paste a URL',
-			(url) => {
-				if (!url) return
-				editorRef.current?.insertLink(url, url)
-			},
-			'plain-text',
-		)
+	const installChecklistExitHandler = () => {
+		const js = `
+		(function(){
+		  if (window.__checklistExitInstalled) return;
+		  window.__checklistExitInstalled = true;
+		  var ed = document.querySelector('.pell-content') || document.body;
+		  function getCheckboxLi(node){
+		    while (node && node !== ed){
+		      if (node.nodeType === 1 && node.tagName === 'LI' && node.querySelector('input[type="checkbox"]')) return node;
+		      node = node.parentNode;
+		    }
+		    return null;
+		  }
+		  function liIsEmpty(li){
+		    var clone = li.cloneNode(true);
+		    var cb = clone.querySelector('input[type="checkbox"]');
+		    if (cb) cb.remove();
+		    return clone.textContent.replace(/\\u00a0|\\s/g,'') === '';
+		  }
+		  function exitChecklist(li){
+		    var ul = li.parentNode;
+		    var p = document.createElement('div');
+		    p.innerHTML = '<br/>';
+		    if (li.nextSibling){
+		      var newUl = ul.cloneNode(false);
+		      var n = li.nextSibling;
+		      while (n){ var nx = n.nextSibling; newUl.appendChild(n); n = nx; }
+		      ul.parentNode.insertBefore(p, ul.nextSibling);
+		      p.parentNode.insertBefore(newUl, p.nextSibling);
+		    } else {
+		      ul.parentNode.insertBefore(p, ul.nextSibling);
+		    }
+		    li.remove();
+		    if (!ul.children.length) ul.remove();
+		    var range = document.createRange();
+		    range.setStart(p, 0); range.collapse(true);
+		    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+		  }
+		  ed.addEventListener('keydown', function(e){
+		    var sel = window.getSelection();
+		    if (!sel || !sel.rangeCount) return;
+		    var node = sel.anchorNode;
+		    var li = getCheckboxLi(node);
+		    if (!li) return;
+		    if (e.key === 'Enter' && liIsEmpty(li)){
+		      e.preventDefault();
+		      exitChecklist(li);
+		    } else if (e.key === 'Backspace' && liIsEmpty(li)){
+		      e.preventDefault();
+		      exitChecklist(li);
+		    }
+		  }, true);
+		})();
+		true;
+		`
+		editorRef.current?.commandDOM(js)
 	}
 
 	const applyColor = (hex: string) => {
@@ -413,7 +471,7 @@ export default function PostDetailScreen() {
 									{ color: statusColor },
 								]}
 							>
-								{editedPost.status}{' '}
+								{getStatusLabel(editedPost.status)}{' '}
 								<Ionicons
 									name='chevron-down'
 									size={11}
@@ -479,6 +537,7 @@ export default function PostDetailScreen() {
 						initialContentHTML={normalizeHtmlContent(
 							editedPost.content,
 						)}
+						editorInitializedCallback={installChecklistExitHandler}
 						onChange={(html) =>
 							setEditedPost({ ...editedPost, content: html })
 						}
@@ -513,7 +572,15 @@ export default function PostDetailScreen() {
 				</ScrollView>
 
 				<View
-					style={[styles.floatingDock, { bottom: keyboardHeight }]}
+					style={[
+						styles.floatingDock,
+						{
+							bottom:
+								keyboardHeight > 0
+									? keyboardHeight + (insets.bottom ?? 0)
+									: insets.bottom ?? 0,
+						},
+					]}
 					pointerEvents='box-none'
 				>
 					{showColors && (
@@ -549,10 +616,6 @@ export default function PostDetailScreen() {
 						<ToolbarText
 							label='H3'
 							onPress={() => sendAction(actions.heading3)}
-						/>
-						<ToolbarText
-							label='N'
-							onPress={() => sendAction(actions.setParagraph)}
 						/>
 						<Divider />
 						<ToolbarStyled
@@ -596,7 +659,6 @@ export default function PostDetailScreen() {
 							name='remove-outline'
 							onPress={insertDivider}
 						/>
-						<ToolbarIcon name='link-outline' onPress={insertLink} />
 						<ToolbarIcon
 							name='color-palette-outline'
 							onPress={() => setShowColors((v) => !v)}
@@ -628,28 +690,26 @@ export default function PostDetailScreen() {
 							<Text style={styles.pickerTitle}>
 								Update status
 							</Text>
-							{['DRAFT', 'SCHEDULED', 'PUBLISHED', 'FAILED'].map(
-								(s) => (
-									<TouchableOpacity
-										key={s}
-										style={styles.pickerOption}
-										onPress={() => chooseStatus(s)}
-									>
-										<View
-											style={[
-												styles.pickerDot,
-												{
-													backgroundColor:
-														getStatusColor(s),
-												},
-											]}
-										/>
-										<Text style={styles.pickerOptionText}>
-											{s}
-										</Text>
-									</TouchableOpacity>
-								),
-							)}
+							{['DRAFT', 'SCHEDULED', 'PUBLISHED'].map((s) => (
+								<TouchableOpacity
+									key={s}
+									style={styles.pickerOption}
+									onPress={() => chooseStatus(s)}
+								>
+									<View
+										style={[
+											styles.pickerDot,
+											{
+												backgroundColor:
+													getStatusColor(s),
+											},
+										]}
+									/>
+									<Text style={styles.pickerOptionText}>
+										{getStatusLabel(s)}
+									</Text>
+								</TouchableOpacity>
+							))}
 						</View>
 					</TouchableOpacity>
 				</Modal>
@@ -693,7 +753,7 @@ export default function PostDetailScreen() {
 
 				<View style={styles.headerCenter}>
 					<Text style={[styles.statusInline, { color: statusColor }]}>
-						{displayPost?.status}
+						{getStatusLabel(displayPost?.status || '')}
 					</Text>
 				</View>
 
@@ -716,7 +776,7 @@ export default function PostDetailScreen() {
 					{displayPost?.scheduledAt
 						? `Scheduled for ${new Date(displayPost.scheduledAt).toLocaleString()}`
 						: displayPost?.publishedAt
-							? `Published ${new Date(displayPost.publishedAt).toLocaleString()}`
+							? `Posted ${new Date(displayPost.publishedAt).toLocaleString()}`
 							: `Created ${new Date(displayPost!.createdAt).toLocaleDateString()}`}
 				</Text>
 			</View>

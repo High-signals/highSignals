@@ -163,6 +163,58 @@ export const api = {
 				true,
 			)
 		},
+
+		uploadAvatar: async (asset: {
+			uri: string
+			mimeType?: string | null
+			fileName?: string | null
+		}) => {
+			const mime =
+				asset.mimeType ||
+				(asset.uri.toLowerCase().endsWith('.png')
+					? 'image/png'
+					: asset.uri.toLowerCase().endsWith('.webp')
+						? 'image/webp'
+						: 'image/jpeg')
+			const ext = mime.split('/')[1] || 'jpg'
+			const name = asset.fileName || `avatar.${ext}`
+
+			const form = new FormData()
+			// React Native's FormData accepts { uri, name, type } shape
+			form.append('file', {
+				uri: asset.uri,
+				name,
+				type: mime,
+			} as any)
+
+			const headers: Record<string, string> = {}
+			if (authTokens.accessToken) {
+				headers.Authorization = `Bearer ${authTokens.accessToken}`
+			}
+
+			const response = await fetch(`${API_BASE_URL}/api/user/avatar`, {
+				method: 'POST',
+				headers,
+				body: form,
+			})
+			const data = await response.json()
+			if (!response.ok) {
+				const err: Error & { status?: number } = new Error(
+					data.message || 'Avatar upload failed',
+				)
+				err.status = response.status
+				throw err
+			}
+			return data
+		},
+
+		deleteAvatar: async () => {
+			return api.call(
+				'/api/user/avatar',
+				{ method: 'DELETE' },
+				true,
+			)
+		},
 	},
 
 	// ICP endpoints

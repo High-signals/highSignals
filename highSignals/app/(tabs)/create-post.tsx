@@ -18,6 +18,7 @@ import DateTimePicker, {
 } from '@react-native-community/datetimepicker'
 import { Ionicons } from '@expo/vector-icons'
 import { RichEditor, actions } from 'react-native-pell-rich-editor'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
 
@@ -51,6 +52,7 @@ export default function CreatePostScreen() {
 	const router = useRouter()
 	const editorRef = useRef<RichEditor>(null)
 	const scrollRef = useRef<ScrollView>(null)
+	const insets = useSafeAreaInsets()
 	const [editorHeight, setEditorHeight] = useState(500)
 	const { isAuthenticated } = useAuth()
 	const [content, setContent] = useState('')
@@ -162,16 +164,66 @@ export default function CreatePostScreen() {
 		editorRef.current?.insertHTML('<hr />')
 	}
 
-	const insertLink = () => {
-		Alert.prompt?.(
-			'Insert link',
-			'Paste a URL',
-			(url) => {
-				if (!url) return
-				editorRef.current?.insertLink(url, url)
-			},
-			'plain-text',
-		)
+	const installChecklistExitHandler = () => {
+		// pell.js's checklist doesn't exit on empty enter or backspace.
+		// Inject a keydown listener that detects an empty checklist <li>
+		// and breaks out into a fresh paragraph.
+		const js = `
+		(function(){
+		  if (window.__checklistExitInstalled) return;
+		  window.__checklistExitInstalled = true;
+		  var ed = document.querySelector('.pell-content') || document.body;
+		  function getCheckboxLi(node){
+		    while (node && node !== ed){
+		      if (node.nodeType === 1 && node.tagName === 'LI' && node.querySelector('input[type="checkbox"]')) return node;
+		      node = node.parentNode;
+		    }
+		    return null;
+		  }
+		  function liIsEmpty(li){
+		    var clone = li.cloneNode(true);
+		    var cb = clone.querySelector('input[type="checkbox"]');
+		    if (cb) cb.remove();
+		    return clone.textContent.replace(/\\u00a0|\\s/g,'') === '';
+		  }
+		  function exitChecklist(li){
+		    var ul = li.parentNode;
+		    var p = document.createElement('div');
+		    p.innerHTML = '<br/>';
+		    if (li.nextSibling){
+		      // split: move siblings after li into a new ul after the paragraph
+		      var newUl = ul.cloneNode(false);
+		      var n = li.nextSibling;
+		      while (n){ var nx = n.nextSibling; newUl.appendChild(n); n = nx; }
+		      ul.parentNode.insertBefore(p, ul.nextSibling);
+		      p.parentNode.insertBefore(newUl, p.nextSibling);
+		    } else {
+		      ul.parentNode.insertBefore(p, ul.nextSibling);
+		    }
+		    li.remove();
+		    if (!ul.children.length) ul.remove();
+		    var range = document.createRange();
+		    range.setStart(p, 0); range.collapse(true);
+		    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+		  }
+		  ed.addEventListener('keydown', function(e){
+		    var sel = window.getSelection();
+		    if (!sel || !sel.rangeCount) return;
+		    var node = sel.anchorNode;
+		    var li = getCheckboxLi(node);
+		    if (!li) return;
+		    if (e.key === 'Enter' && liIsEmpty(li)){
+		      e.preventDefault();
+		      exitChecklist(li);
+		    } else if (e.key === 'Backspace' && liIsEmpty(li)){
+		      e.preventDefault();
+		      exitChecklist(li);
+		    }
+		  }, true);
+		})();
+		true;
+		`
+		editorRef.current?.commandDOM(js)
 	}
 
 	const applyColor = (hex: string) => {
@@ -227,7 +279,7 @@ export default function CreatePostScreen() {
 		if (!title.trim()) {
 			Alert.alert(
 				'Title required',
-				'Add a title so you can find this draft later.',
+				'Add a title so you can find this script later.',
 			)
 			return
 		}
@@ -240,7 +292,7 @@ export default function CreatePostScreen() {
 			return
 		}
 		if (!content) {
-			Alert.alert('Empty post', 'Write something before publishing.')
+			Alert.alert('Empty post', 'Write something before posting.')
 			return
 		}
 		if (!isAuthenticated) {
@@ -280,10 +332,10 @@ export default function CreatePostScreen() {
 			Alert.alert(
 				'Success',
 				publishOption === 'draft'
-					? 'Saved as draft'
+					? 'Saved as script'
 					: publishOption === 'schedule'
 						? 'Scheduled'
-						: 'Published',
+						: 'Posted',
 			)
 			router.back()
 		} catch (error: any) {
@@ -315,7 +367,7 @@ export default function CreatePostScreen() {
 				</TouchableOpacity>
 
 				<View style={styles.headerCenter}>
-					<Text style={styles.headerTitle}>New post</Text>
+					<Text style={styles.headerTitle}>New script</Text>
 					{!!saveLabel && (
 						<Text
 							style={[
@@ -356,6 +408,7 @@ export default function CreatePostScreen() {
 				<RichEditor
 					ref={editorRef}
 					initialContentHTML={'<p></p>'}
+					editorInitializedCallback={installChecklistExitHandler}
 					onChange={setContent}
 					onCursorPosition={(scrollY) => {
 						scrollRef.current?.scrollTo({
@@ -399,7 +452,7 @@ export default function CreatePostScreen() {
 						onPress={() => setShowPublishModal(true)}
 						activeOpacity={0.85}
 					>
-						<Text style={styles.publishStripText}>Publish</Text>
+						<Text style={styles.publishStripText}>Post</Text>
 						<Ionicons
 							name='arrow-forward'
 							size={16}
@@ -409,7 +462,15 @@ export default function CreatePostScreen() {
 				</View>
 			)}
 			<View
-				style={[styles.floatingDock, { bottom: keyboardHeight }]}
+				style={[
+					styles.floatingDock,
+					{
+						bottom:
+							keyboardHeight > 0
+								? keyboardHeight + (insets.bottom ?? 0)
+								: insets.bottom ?? 0,
+					},
+				]}
 				pointerEvents='box-none'
 			>
 				{showColors && (
@@ -445,10 +506,6 @@ export default function CreatePostScreen() {
 					<ToolbarText
 						label='H3'
 						onPress={() => sendAction(actions.heading3)}
-					/>
-					<ToolbarText
-						label='N'
-						onPress={() => sendAction(actions.setParagraph)}
 					/>
 					<Divider />
 					<ToolbarStyled
@@ -488,7 +545,6 @@ export default function CreatePostScreen() {
 						name='remove-outline'
 						onPress={insertDivider}
 					/>
-					<ToolbarIcon name='link-outline' onPress={insertLink} />
 					<ToolbarIcon
 						name='color-palette-outline'
 						onPress={() => setShowColors((v) => !v)}
@@ -513,11 +569,11 @@ export default function CreatePostScreen() {
 			>
 				<View style={styles.modalOverlay}>
 					<View style={styles.modalContent}>
-						<Text style={styles.modalTitle}>Publish</Text>
+						<Text style={styles.modalTitle}>Post</Text>
 
 						<PublishOptionRow
 							icon='flash-outline'
-							title='Publish now'
+							title='Post now'
 							desc='Go live immediately'
 							selected={publishOption === 'immediate'}
 							onPress={() => setPublishOption('immediate')}
@@ -538,8 +594,8 @@ export default function CreatePostScreen() {
 						/>
 						<PublishOptionRow
 							icon='document-text-outline'
-							title='Save as draft'
-							desc='Edit and publish later'
+							title='Save as script'
+							desc='Edit and post later'
 							selected={publishOption === 'draft'}
 							onPress={() => setPublishOption('draft')}
 						/>

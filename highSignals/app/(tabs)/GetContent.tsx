@@ -14,7 +14,20 @@ import { Ionicons } from '@expo/vector-icons'
 import { api, postsEvents } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
 
-type FilterType = 'all' | 'PUBLISHED' | 'SCHEDULED' | 'DRAFT' | 'FAILED'
+type FilterType = 'all' | 'PUBLISHED' | 'SCHEDULED' | 'DRAFT'
+
+const FILTER_LABELS: Record<FilterType, string> = {
+	all: 'All',
+	DRAFT: 'Scripts',
+	SCHEDULED: 'Scheduled',
+	PUBLISHED: 'Posted',
+}
+
+const STATUS_LABELS: Record<string, string> = {
+	DRAFT: 'SCRIPT',
+	SCHEDULED: 'SCHEDULED',
+	PUBLISHED: 'POSTED',
+}
 
 interface Post {
 	id: string
@@ -188,7 +201,6 @@ export default function GetContentScreen() {
 			PUBLISHED: '#4ade80',
 			SCHEDULED: '#FFD700',
 			DRAFT: '#888888',
-			FAILED: '#f87171',
 		}
 		return colors[status] || '#FFFFFF'
 	}
@@ -213,7 +225,7 @@ export default function GetContentScreen() {
 							{ color: getStatusColor(item.status) },
 						]}
 					>
-						{item.status}
+						{STATUS_LABELS[item.status] || item.status}
 					</Text>
 				</View>
 				<Text style={styles.postDate}>
@@ -248,7 +260,7 @@ export default function GetContentScreen() {
 			<Text style={styles.emptyText}>
 				{filter === 'all'
 					? 'No content found'
-					: `No ${filter.toLowerCase()} posts`}
+					: `No ${FILTER_LABELS[filter].toLowerCase()} posts`}
 			</Text>
 			<Text style={styles.emptySubtext}>
 				{searchQuery
@@ -309,13 +321,7 @@ export default function GetContentScreen() {
 
 			<View style={styles.filters}>
 				{(
-					[
-						'all',
-						'DRAFT',
-						'SCHEDULED',
-						'PUBLISHED',
-						'FAILED',
-					] as FilterType[]
+					['all', 'DRAFT', 'SCHEDULED', 'PUBLISHED'] as FilterType[]
 				).map((f) => (
 					<TouchableOpacity
 						key={f}
@@ -331,7 +337,7 @@ export default function GetContentScreen() {
 								filter === f && styles.filterTextActive,
 							]}
 						>
-							{f === 'all' ? 'All' : f}
+							{FILTER_LABELS[f]}
 						</Text>
 					</TouchableOpacity>
 				))}

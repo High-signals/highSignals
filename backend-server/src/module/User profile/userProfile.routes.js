@@ -1,4 +1,5 @@
 import express from 'express'
+import multer from 'multer'
 import { authenticateToken } from './../../shared/middleware/auth.middleware.js'
 import {
 	getUserProfileController,
@@ -6,9 +7,20 @@ import {
 	deleteUserProfileController,
 	getContentPlatformsController,
 	editContentPlatformsController,
+	uploadAvatarController,
+	deleteAvatarController,
 } from './userProfile.controller.js'
 
 const router = express.Router()
+
+const avatarUpload = multer({
+	storage: multer.memoryStorage(),
+	limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+	fileFilter: (_req, file, cb) => {
+		if (file.mimetype.startsWith('image/')) return cb(null, true)
+		cb(new Error('Only image uploads are allowed'))
+	},
+})
 
 router.use(authenticateToken)
 
@@ -367,5 +379,51 @@ router.patch('/profile', updateUserProfileController)
  *                   example: Internal server error
  */
 router.delete('/profile', deleteUserProfileController)
+
+/**
+ * @swagger
+ * /api/user/avatar:
+ *   post:
+ *     summary: Upload (or replace) the authenticated user's avatar
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Avatar uploaded; returns updated profile with new avatar URL
+ *       400:
+ *         description: Missing file or unsupported image type
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Upload failed
+ */
+router.post('/avatar', avatarUpload.single('file'), uploadAvatarController)
+
+/**
+ * @swagger
+ * /api/user/avatar:
+ *   delete:
+ *     summary: Remove the authenticated user's avatar
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Avatar cleared; returns updated profile
+ *       401:
+ *         description: Unauthorized
+ */
+router.delete('/avatar', deleteAvatarController)
 
 export default router

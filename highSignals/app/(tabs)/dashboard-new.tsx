@@ -61,7 +61,7 @@ export default function DashboardScreen() {
 			try {
 				const [profileData, postsData, icpData] = await Promise.all([
 					api.profile.get().catch(() => null),
-					api.posts.getAll().catch(() => []),
+					api.posts.getAll({ limit: 1000 }).catch(() => []),
 					api.icp.get().catch(() => null),
 				])
 
@@ -77,7 +77,9 @@ export default function DashboardScreen() {
 
 		const reloadPosts = async () => {
 			try {
-				const postsData = await api.posts.getAll().catch(() => [])
+				const postsData = await api.posts
+					.getAll({ limit: 1000 })
+					.catch(() => [])
 				if (mounted) setPosts(postsData || [])
 			} catch {}
 		}
@@ -258,21 +260,21 @@ export default function DashboardScreen() {
 								styles.fullWidthCard,
 								styles.brandCard,
 							]}
-							onPress={() => router.push('/GetContent')}
+							onPress={() => router.push('/(tabs)/create-post' as any)}
 							activeOpacity={0.8}
 						>
 							<View style={styles.cardHeader}>
 								<Ionicons
-									name='document-text'
+									name='create'
 									size={22}
 									color='#000000'
 								/>
 								<Text style={styles.cardTitle}>
-									View drafts
+									Create Script
 								</Text>
 							</View>
 							<Text style={styles.cardSubtitle}>
-								Monitor drafts, scheduled, and published posts
+								Start a new script and post when you're ready
 							</Text>
 							<View style={styles.cardIllustration}>
 								<View style={styles.draftIllustration}>
@@ -299,7 +301,7 @@ export default function DashboardScreen() {
 							<Text style={styles.statusValue}>
 								{counts.DRAFT}
 							</Text>
-							<Text style={styles.statusLabel}>Drafts</Text>
+							<Text style={styles.statusLabel}>Scripts</Text>
 						</View>
 						<View style={styles.statusCard}>
 							<Text style={styles.statusValue}>
@@ -311,13 +313,7 @@ export default function DashboardScreen() {
 							<Text style={styles.statusValue}>
 								{counts.PUBLISHED}
 							</Text>
-							<Text style={styles.statusLabel}>Published</Text>
-						</View>
-						<View style={styles.statusCard}>
-							<Text style={styles.statusValue}>
-								{counts.FAILED}
-							</Text>
-							<Text style={styles.statusLabel}>Failed</Text>
+							<Text style={styles.statusLabel}>Posted</Text>
 						</View>
 					</View>
 
