@@ -12,14 +12,14 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useFocusEffect } from '@react-navigation/native'
-import { api } from '@/services/api'
+import { api, postsEvents } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
 import { COLORS, SPACING, RADIUS } from '@/constants/theme'
 
 const STATUSES = [
-  { key: 'DRAFT', label: 'Drafts', icon: 'document-outline' },
+  { key: 'DRAFT', label: 'Scripts', icon: 'document-outline' },
   { key: 'SCHEDULED', label: 'Scheduled', icon: 'time-outline' },
-  { key: 'PUBLISHED', label: 'Published', icon: 'checkmark-circle-outline' },
+  { key: 'PUBLISHED', label: 'Posted', icon: 'checkmark-circle-outline' },
 ]
 
 interface Post {
@@ -69,6 +69,13 @@ export default function PostsScreen() {
       fetchPosts()
     }, [fetchPosts])
   )
+
+  useEffect(() => {
+    const unsubscribe = postsEvents.onChange(() => {
+      fetchPosts()
+    })
+    return unsubscribe
+  }, [fetchPosts])
 
   useEffect(() => {
     if (allPosts.length > 0) {
@@ -170,13 +177,15 @@ export default function PostsScreen() {
             size={48}
             color={COLORS.textSubtle}
           />
-          <Text style={styles.emptyTitle}>No {activeTab.toLowerCase()} posts</Text>
+          <Text style={styles.emptyTitle}>
+            No {STATUSES.find(s => s.key === activeTab)?.label.toLowerCase() || 'posts'}
+          </Text>
           <Text style={styles.emptySubtitle}>
             {activeTab === 'DRAFT'
-              ? 'Start creating your first post'
+              ? 'Start creating your first script'
               : activeTab === 'SCHEDULED'
               ? 'Schedule posts to see them here'
-              : 'Published posts will appear here'}
+              : 'Posted content will appear here'}
           </Text>
         </View>
       ) : (

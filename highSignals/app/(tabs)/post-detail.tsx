@@ -1,506 +1,1101 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-  TextInput,
-  Keyboard,
+	View,
+	Text,
+	StyleSheet,
+	TouchableOpacity,
+	ScrollView,
+	ActivityIndicator,
+	Alert,
+	TextInput,
+	Modal,
+	Platform,
+	Keyboard,
 } from 'react-native'
+import DateTimePicker, {
+	DateTimePickerAndroid,
+} from '@react-native-community/datetimepicker'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { RichEditor, actions } from 'react-native-pell-rich-editor'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
-import { COLORS, SPACING, RADIUS } from '@/constants/theme'
 
-const TEXT_COLORS = [
-  { label: 'Default', value: COLORS.text },
-  { label: 'Gold', value: COLORS.gold },
-  { label: 'Red', value: '#ef4444' },
-  { label: 'Orange', value: '#f97316' },
-  { label: 'Green', value: '#22c55e' },
-  { label: 'Blue', value: '#3b82f6' },
-  { label: 'Purple', value: '#a855f7' },
-  { label: 'Gray', value: '#9ca3af' },
-]
+const BRAND = '#d4af37'
+const BG = '#000000'
+const PANEL = '#0f0f0f'
+const TOOLBAR_HEIGHT = 52
+// Padding inside the editor body so the cursor never sits flush against
+// the bottom — scrollToEnd then reliably parks the cursor above the toolbar.
+const EDITOR_BOTTOM_PADDING = 360
 
 interface Post {
-  id: string
-  title?: string
-  content: string
-  status: string
-  platforms: string[]
-  hashtags: string[]
-  mediaUrls: string[]
-  createdAt: string
-  scheduledAt?: string
-  publishedAt?: string
+	id: string
+	title?: string
+	content: string
+	status: string
+	platforms?: string[]
+	hashtags?: string[]
+	mediaUrls?: string[]
+	createdAt: string
+	updatedAt?: string
+	scheduledAt?: string | null
+	publishedAt?: string | null
+}
+
+const COLOR_SWATCHES = [
+	BRAND,
+	'#ffffff',
+	'#9ca3af',
+	'#ef4444',
+	'#f97316',
+	'#facc15',
+	'#22c55e',
+	'#3b82f6',
+	'#a855f7',
+	'#ec4899',
+]
+
+const escapeHtml = (value: string) =>
+	value
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#039;')
+
+const normalizeHtmlContent = (value?: string | null) => {
+	if (!value) return '<p></p>'
+	if (/<[a-z][\s\S]*>/i.test(value)) return value
+	return `<p>${escapeHtml(value).replace(/\n/g, '<br/>')}</p>`
 }
 
 export default function PostDetailScreen() {
-  const router = useRouter()
-  const { postId } = useLocalSearchParams()
-  const { isAuthenticated } = useAuth()
-  const [post, setPost] = useState<Post | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [isEditing, setIsEditing] = useState(false)
-  const [editTitle, setEditTitle] = useState('')
-  const [editContent, setEditContent] = useState('')
-  const [isSaving, setIsSaving] = useState(false)
-  const [keyboardVisible, setKeyboardVisible] = useState(false)
-  const [showColorPicker, setShowColorPicker] = useState(false)
-  const [selectedColor, setSelectedColor] = useState<string>(COLORS.text)
+	const router = useRouter()
+	const { postId } = useLocalSearchParams()
+	const { isAuthenticated } = useAuth()
+	const editorRef = useRef<RichEditor>(null)
+	const scrollRef = useRef<ScrollView>(null)
+	const insets = useSafeAreaInsets()
+	const [editorHeight, setEditorHeight] = useState(500)
+	const [viewHeight, setViewHeight] = useState(500)
+	const [post, setPost] = useState<Post | null>(null)
+	const [loading, setLoading] = useState(true)
+	const [isEditing, setIsEditing] = useState(false)
+	const [editedPost, setEditedPost] = useState<Post | null>(null)
+	const [isSaving, setIsSaving] = useState(false)
+	const [showDatePicker, setShowDatePicker] = useState(false)
+	const [scheduleDate, setScheduleDate] = useState(new Date())
+	const [showColors, setShowColors] = useState(false)
+	const [keyboardHeight, setKeyboardHeight] = useState(0)
+	const [showStatusPicker, setShowStatusPicker] = useState(false)
 
-  useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true))
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardVisible(false)
-      setShowColorPicker(false)
-    })
-    return () => { showSub.remove(); hideSub.remove() }
-  }, [])
+	type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+	const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
+	const inFlightRef = useRef(false)
+	const pendingRef = useRef(false)
+	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+	const lastSavedSnapshotRef = useRef<string>('')
 
-  useEffect(() => {
-    if (!isAuthenticated || !postId) return
-    fetchPost()
-  }, [postId, isAuthenticated])
+	useEffect(() => {
+		if (!isAuthenticated || !postId) return
+		fetchPost()
+	}, [postId, isAuthenticated])
 
-  const fetchPost = async () => {
-    try {
-      setLoading(true)
-      const allPosts = await api.posts.getAll()
-      const foundPost = allPosts.find((p: Post) => p.id === postId)
-      if (foundPost) {
-        setPost(foundPost)
-        setEditTitle(foundPost.title || '')
-        setEditContent(foundPost.content)
-      } else {
-        Alert.alert('Error', 'Post not found')
-        router.back()
-      }
-    } catch {
-      Alert.alert('Error', 'Failed to load post')
-      router.back()
-    } finally {
-      setLoading(false)
-    }
-  }
+	useEffect(() => {
+		if (!isEditing) {
+			setKeyboardHeight(0)
+			return
+		}
+		const showEvent =
+			Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow'
+		const hideEvent =
+			Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide'
+		const showSub = Keyboard.addListener(showEvent, (e) => {
+			setKeyboardHeight(e.endCoordinates?.height ?? 0)
+		})
+		const hideSub = Keyboard.addListener(hideEvent, () => {
+			setKeyboardHeight(0)
+		})
+		return () => {
+			showSub.remove()
+			hideSub.remove()
+		}
+	}, [isEditing])
 
-  const startEditing = () => {
-    setEditTitle(post?.title || '')
-    setEditContent(post?.content || '')
-    setIsEditing(true)
-  }
+	const fetchPost = async () => {
+		try {
+			setLoading(true)
+			const allPosts = await api.posts.getAll()
+			const foundPost = allPosts.find((p: Post) => p.id === postId)
+			if (foundPost) {
+				setPost(foundPost)
+				setEditedPost(foundPost)
+				lastSavedSnapshotRef.current = JSON.stringify({
+					title: foundPost.title || '',
+					content: foundPost.content || '',
+					status: foundPost.status,
+					scheduledAt: foundPost.scheduledAt || null,
+				})
+				if (foundPost.scheduledAt) {
+					setScheduleDate(new Date(foundPost.scheduledAt))
+				}
+			} else {
+				Alert.alert('Error', 'Post not found')
+				router.back()
+			}
+		} catch (error) {
+			console.error('Error fetching post:', error)
+			Alert.alert('Error', 'Failed to load post')
+			router.back()
+		} finally {
+			setLoading(false)
+		}
+	}
 
-  const cancelEditing = () => {
-    setIsEditing(false)
-    Keyboard.dismiss()
-  }
+	const performAutoSave = useCallback(async () => {
+		if (!editedPost) return
+		const snapshot = JSON.stringify({
+			title: editedPost.title || '',
+			content: editedPost.content || '',
+			status: editedPost.status,
+			scheduledAt: editedPost.scheduledAt || null,
+		})
+		if (snapshot === lastSavedSnapshotRef.current) return
 
-  const handleSave = async () => {
-    if (!post) return
-    try {
-      setIsSaving(true)
-      await api.posts.update(post.id, { title: editTitle, content: editContent })
-      setPost({ ...post, title: editTitle, content: editContent })
-      setIsEditing(false)
-      Keyboard.dismiss()
-    } catch {
-      Alert.alert('Error', 'Failed to update post')
-    } finally {
-      setIsSaving(false)
-    }
-  }
+		const plainText = (editedPost.content || '')
+			.replace(/<[^>]+>/g, '')
+			.replace(/&nbsp;/g, '')
+			.trim()
+		if (!plainText && !(editedPost.title || '').trim()) return
 
-  const handleDelete = () => {
-    Alert.alert('Delete Post', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await api.posts.delete(post!.id)
-            router.back()
-          } catch {
-            Alert.alert('Error', 'Failed to delete post')
-          }
-        },
-      },
-    ])
-  }
+		if (inFlightRef.current) {
+			pendingRef.current = true
+			return
+		}
+		inFlightRef.current = true
+		setSaveStatus('saving')
+		try {
+			await api.posts.update(editedPost.id, {
+				title: editedPost.title,
+				content: editedPost.content,
+				status: editedPost.status,
+				scheduledAt:
+					editedPost.status === 'SCHEDULED'
+						? scheduleDate.toISOString()
+						: null,
+			})
+			lastSavedSnapshotRef.current = snapshot
+			setPost(editedPost)
+			setSaveStatus('saved')
+		} catch (err) {
+			console.warn('autosave failed', err)
+			setSaveStatus('error')
+		} finally {
+			inFlightRef.current = false
+			if (pendingRef.current) {
+				pendingRef.current = false
+				performAutoSave()
+			}
+		}
+	}, [editedPost, scheduleDate])
 
-  const insertText = (prefix: string, suffix: string = '') => {
-    setEditContent(editContent + prefix + suffix)
-  }
+	useEffect(() => {
+		if (!isEditing) return
+		if (debounceRef.current) clearTimeout(debounceRef.current)
+		debounceRef.current = setTimeout(() => {
+			performAutoSave()
+		}, 1500)
+		return () => {
+			if (debounceRef.current) clearTimeout(debounceRef.current)
+		}
+	}, [
+		isEditing,
+		editedPost?.title,
+		editedPost?.content,
+		editedPost?.status,
+		editedPost?.scheduledAt,
+		performAutoSave,
+	])
 
-  const insertBlock = (block: string) => {
-    const sep = editContent && !editContent.endsWith('\n') ? '\n' : ''
-    setEditContent(editContent + sep + block)
-  }
+	const handleSaveChanges = async () => {
+		if (!editedPost) return
+		try {
+			setIsSaving(true)
+			await api.posts.update(editedPost.id, {
+				title: editedPost.title,
+				content: editedPost.content,
+				status: editedPost.status,
+				scheduledAt:
+					editedPost.status === 'SCHEDULED'
+						? scheduleDate.toISOString()
+						: null,
+			})
+			lastSavedSnapshotRef.current = JSON.stringify({
+				title: editedPost.title || '',
+				content: editedPost.content || '',
+				status: editedPost.status,
+				scheduledAt: editedPost.scheduledAt || null,
+			})
+			setPost(editedPost)
+			setIsEditing(false)
+		} catch (error: any) {
+			console.error('Error saving post:', error)
+			Alert.alert('Error', error?.message || 'Failed to update post')
+		} finally {
+			setIsSaving(false)
+		}
+	}
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'DRAFT': return COLORS.textSubtle
-      case 'SCHEDULED': return COLORS.warning
-      case 'PUBLISHED': return COLORS.success
-      default: return COLORS.textSubtle
-    }
-  }
+	const handleDeletePost = () => {
+		Alert.alert(
+			'Delete Post',
+			'Are you sure you want to delete this post?',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{
+					text: 'Delete',
+					style: 'destructive',
+					onPress: async () => {
+						try {
+							setIsSaving(true)
+							await api.posts.delete(post!.id)
+							router.back()
+						} catch (error) {
+							console.error('Error deleting post:', error)
+							Alert.alert('Error', 'Failed to delete post')
+						} finally {
+							setIsSaving(false)
+						}
+					},
+				},
+			],
+		)
+	}
 
-  if (loading) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={COLORS.gold} />
-      </View>
-    )
-  }
+	const getStatusColor = (status: string) => {
+		const colors: { [key: string]: string } = {
+			DRAFT: '#9ca3af',
+			SCHEDULED: '#facc15',
+			PUBLISHED: '#22c55e',
+			FAILED: '#ef4444',
+		}
+		return colors[status] || '#ffffff'
+	}
 
-  if (!post) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <Text style={styles.errorText}>Post not found</Text>
-      </View>
-    )
-  }
+	const getStatusLabel = (status: string) => {
+		const labels: { [key: string]: string } = {
+			DRAFT: 'SCRIPT',
+			SCHEDULED: 'SCHEDULED',
+			PUBLISHED: 'POSTED',
+			FAILED: 'FAILED',
+		}
+		return labels[status] || status
+	}
 
-  return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={isEditing ? cancelEditing : () => router.back()}
-          style={styles.headerBtn}
-        >
-          <Ionicons name={isEditing ? 'close' : 'chevron-back'} size={22} color={COLORS.text} />
-        </TouchableOpacity>
+	const displayPost = isEditing ? editedPost : post
+	const statusColor = useMemo(
+		() => getStatusColor(displayPost?.status || ''),
+		[displayPost?.status],
+	)
 
-        <Text style={styles.headerTitle}>{isEditing ? 'Editing' : ''}</Text>
+	const sendAction = (actionName: string, param?: string) => {
+		editorRef.current?.sendAction(actionName, 'result', param)
+	}
 
-        {isEditing ? (
-          <TouchableOpacity onPress={handleSave} style={styles.saveBtn} disabled={isSaving}>
-            {isSaving ? (
-              <ActivityIndicator size="small" color={COLORS.background} />
-            ) : (
-              <Text style={styles.saveBtnText}>Save</Text>
-            )}
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity onPress={startEditing} style={styles.headerBtn}>
-            <Ionicons name="create-outline" size={20} color={COLORS.gold} />
-          </TouchableOpacity>
-        )}
-      </View>
+	const insertDivider = () => {
+		editorRef.current?.insertHTML('<hr />')
+	}
 
-      {/* Content */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentInner}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Status */}
-        <View style={styles.statusRow}>
-          <View style={[styles.statusDot, { backgroundColor: getStatusColor(post.status) }]} />
-          <Text style={[styles.statusLabel, { color: getStatusColor(post.status) }]}>
-            {post.status}
-          </Text>
-          {post.scheduledAt && (
-            <Text style={styles.scheduledLabel}>
-              Scheduled {new Date(post.scheduledAt).toLocaleDateString()}
-            </Text>
-          )}
-        </View>
+	const installChecklistExitHandler = () => {
+		const js = `
+		(function(){
+		  if (window.__checklistExitInstalled) return;
+		  window.__checklistExitInstalled = true;
+		  var ed = document.querySelector('.pell-content') || document.body;
+		  function getCheckboxLi(node){
+		    while (node && node !== ed){
+		      if (node.nodeType === 1 && node.tagName === 'LI' && node.querySelector('input[type="checkbox"]')) return node;
+		      node = node.parentNode;
+		    }
+		    return null;
+		  }
+		  function liIsEmpty(li){
+		    var clone = li.cloneNode(true);
+		    var cb = clone.querySelector('input[type="checkbox"]');
+		    if (cb) cb.remove();
+		    return clone.textContent.replace(/\\u00a0|\\s/g,'') === '';
+		  }
+		  function exitChecklist(li){
+		    var ul = li.parentNode;
+		    var p = document.createElement('div');
+		    p.innerHTML = '<br/>';
+		    if (li.nextSibling){
+		      var newUl = ul.cloneNode(false);
+		      var n = li.nextSibling;
+		      while (n){ var nx = n.nextSibling; newUl.appendChild(n); n = nx; }
+		      ul.parentNode.insertBefore(p, ul.nextSibling);
+		      p.parentNode.insertBefore(newUl, p.nextSibling);
+		    } else {
+		      ul.parentNode.insertBefore(p, ul.nextSibling);
+		    }
+		    li.remove();
+		    if (!ul.children.length) ul.remove();
+		    var range = document.createRange();
+		    range.setStart(p, 0); range.collapse(true);
+		    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+		  }
+		  ed.addEventListener('keydown', function(e){
+		    var sel = window.getSelection();
+		    if (!sel || !sel.rangeCount) return;
+		    var node = sel.anchorNode;
+		    var li = getCheckboxLi(node);
+		    if (!li) return;
+		    if (e.key === 'Enter' && liIsEmpty(li)){
+		      e.preventDefault();
+		      exitChecklist(li);
+		    } else if (e.key === 'Backspace' && liIsEmpty(li)){
+		      e.preventDefault();
+		      exitChecklist(li);
+		    }
+		  }, true);
+		})();
+		true;
+		`
+		editorRef.current?.commandDOM(js)
+	}
 
-        {/* Title */}
-        {isEditing ? (
-          <TextInput
-            style={styles.titleInput}
-            value={editTitle}
-            onChangeText={setEditTitle}
-            placeholder="Title"
-            placeholderTextColor={COLORS.textSubtle}
-            multiline
-            scrollEnabled={false}
-          />
-        ) : (
-          <Text style={styles.titleText}>{post.title || 'Untitled Post'}</Text>
-        )}
+	const applyColor = (hex: string) => {
+		setShowColors(false)
+		editorRef.current?.sendAction(actions.foreColor, 'result', hex)
+		setTimeout(() => {
+			editorRef.current?.commandDOM(
+				`document.execCommand('foreColor', false, '${hex}')`,
+			)
+		}, 30)
+	}
 
-        {/* Content */}
-        {isEditing ? (
-          <TextInput
-            style={[styles.contentInput, { color: selectedColor }]}
-            value={editContent}
-            onChangeText={setEditContent}
-            placeholder="Write content..."
-            placeholderTextColor={COLORS.textSubtle}
-            multiline
-            textAlignVertical="top"
-            scrollEnabled={false}
-          />
-        ) : (
-          <Text style={styles.contentText}>{post.content}</Text>
-        )}
+	const openScheduleDatePicker = () => {
+		if (Platform.OS === 'android') {
+			DateTimePickerAndroid.open({
+				value: scheduleDate,
+				mode: 'date',
+				onChange: (_event, selectedDate) => {
+					if (!selectedDate || !editedPost) return
+					DateTimePickerAndroid.open({
+						value: selectedDate,
+						mode: 'time',
+						onChange: (_timeEvent, selectedTime) => {
+							if (!selectedTime) return
+							const next = new Date(selectedDate)
+							next.setHours(
+								selectedTime.getHours(),
+								selectedTime.getMinutes(),
+								selectedTime.getSeconds(),
+								0,
+							)
+							setScheduleDate(next)
+							setEditedPost({
+								...editedPost,
+								status: 'SCHEDULED',
+								scheduledAt: next.toISOString(),
+							})
+						},
+					})
+				},
+			})
+			return
+		}
+		setShowDatePicker(true)
+	}
 
-        {/* Meta */}
-        {!isEditing && (
-          <View style={styles.meta}>
-            <Text style={styles.metaText}>
-              Created {new Date(post.createdAt).toLocaleDateString()}
-            </Text>
-            {post.publishedAt && (
-              <Text style={styles.metaText}>
-                Published {new Date(post.publishedAt).toLocaleDateString()}
-              </Text>
-            )}
-          </View>
-        )}
+	const chooseStatus = (status: string) => {
+		if (!editedPost) return
+		setShowStatusPicker(false)
+		if (status === 'SCHEDULED') {
+			setEditedPost({ ...editedPost, status })
+			openScheduleDatePicker()
+			return
+		}
+		setEditedPost({ ...editedPost, status, scheduledAt: null })
+	}
 
-        {/* Delete */}
-        {!isEditing && (
-          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-            <Ionicons name="trash-outline" size={18} color={COLORS.error} />
-            <Text style={styles.deleteText}>Delete Post</Text>
-          </TouchableOpacity>
-        )}
+	if (loading) {
+		return (
+			<View style={styles.container}>
+				<View style={styles.loadingWrap}>
+					<ActivityIndicator size='large' color={BRAND} />
+				</View>
+			</View>
+		)
+	}
 
-        <View style={{ height: 100 }} />
-      </ScrollView>
+	if (!post) {
+		return (
+			<View style={styles.container}>
+				<View style={styles.emptyWrap}>
+					<Ionicons
+						name='alert-circle-outline'
+						size={54}
+						color='rgba(255,255,255,0.3)'
+					/>
+					<Text style={styles.errorText}>Post not found</Text>
+				</View>
+			</View>
+		)
+	}
 
-      {/* Formatting Toolbar — edit mode only, keyboard visible */}
-      {isEditing && keyboardVisible && (
-        <View style={styles.toolbar}>
-          {showColorPicker ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.colorRow}>
-              <TouchableOpacity onPress={() => setShowColorPicker(false)} style={styles.toolBtn}>
-                <Ionicons name="chevron-back" size={18} color={COLORS.textMuted} />
-              </TouchableOpacity>
-              {TEXT_COLORS.map((c) => (
-                <TouchableOpacity
-                  key={c.value}
-                  style={[styles.colorDot, { backgroundColor: c.value }, selectedColor === c.value && styles.colorDotActive]}
-                  onPress={() => { setSelectedColor(c.value); setShowColorPicker(false) }}
-                />
-              ))}
-            </ScrollView>
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toolbarRow} keyboardShouldPersistTaps="handled">
-              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('# ')}><Text style={styles.toolText}>H1</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('## ')}><Text style={styles.toolText}>H2</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('### ')}><Text style={styles.toolText}>H3</Text></TouchableOpacity>
-              <View style={styles.toolDivider} />
-              <TouchableOpacity style={styles.toolBtn} onPress={() => insertText('**', '**')}><Text style={[styles.toolText, { fontWeight: '800' }]}>B</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.toolBtn} onPress={() => insertText('*', '*')}><Text style={[styles.toolText, { fontStyle: 'italic' }]}>I</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.toolBtn} onPress={() => insertText('__', '__')}><Text style={[styles.toolText, { textDecorationLine: 'underline' }]}>U</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.toolBtn} onPress={() => insertText('~~', '~~')}><Text style={[styles.toolText, { textDecorationLine: 'line-through' }]}>S</Text></TouchableOpacity>
-              <View style={styles.toolDivider} />
-              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('- [ ] ')}><Ionicons name="checkbox-outline" size={18} color={COLORS.textMuted} /></TouchableOpacity>
-              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('• ')}><Ionicons name="list" size={18} color={COLORS.textMuted} /></TouchableOpacity>
-              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('1. ')}><Text style={styles.toolTextSm}>1.</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.toolBtn} onPress={() => insertBlock('\n---\n')}><Ionicons name="remove-outline" size={18} color={COLORS.textMuted} /></TouchableOpacity>
-              <TouchableOpacity style={styles.toolBtn} onPress={() => insertText('[', '](url)')}><Ionicons name="link-outline" size={18} color={COLORS.textMuted} /></TouchableOpacity>
-              <View style={styles.toolDivider} />
-              <TouchableOpacity style={styles.toolBtn} onPress={() => setShowColorPicker(true)}>
-                <View style={[styles.colorIndicator, { backgroundColor: selectedColor }]} />
-              </TouchableOpacity>
-            </ScrollView>
-          )}
-        </View>
-      )}
-    </View>
-  )
+	// EDIT MODE — full-page editor with floating toolbar
+	if (isEditing && editedPost) {
+		return (
+			<View style={styles.container}>
+				<View style={styles.editHeader}>
+					<TouchableOpacity
+						onPress={() => {
+							setEditedPost(post)
+							setIsEditing(false)
+						}}
+						style={styles.headerIconBtn}
+					>
+						<Ionicons name='close' size={24} color='#ffffff' />
+					</TouchableOpacity>
+
+					<View style={styles.headerCenter}>
+						<TouchableOpacity
+							onPress={() => setShowStatusPicker(true)}
+						>
+							<Text
+								style={[
+									styles.statusInline,
+									{ color: statusColor },
+								]}
+							>
+								{getStatusLabel(editedPost.status)}{' '}
+								<Ionicons
+									name='chevron-down'
+									size={11}
+									color={statusColor}
+								/>
+							</Text>
+						</TouchableOpacity>
+						{saveStatus !== 'idle' && (
+							<Text
+								style={[
+									styles.saveLabel,
+									saveStatus === 'error' &&
+										styles.saveLabelError,
+								]}
+							>
+								{saveStatus === 'saving'
+									? 'Saving…'
+									: saveStatus === 'saved'
+										? 'Saved'
+										: 'Save failed'}
+							</Text>
+						)}
+					</View>
+
+					<TouchableOpacity
+						onPress={handleSaveChanges}
+						disabled={isSaving}
+						style={styles.headerIconBtn}
+					>
+						{isSaving ? (
+							<ActivityIndicator color={BRAND} />
+						) : (
+							<Ionicons
+								name='checkmark'
+								size={24}
+								color={BRAND}
+							/>
+						)}
+					</TouchableOpacity>
+				</View>
+
+				<TextInput
+					style={styles.titleInput}
+					value={editedPost.title || ''}
+					onChangeText={(text) =>
+						setEditedPost({ ...editedPost, title: text })
+					}
+					placeholder='Title'
+					placeholderTextColor='rgba(255,255,255,0.35)'
+				/>
+
+				<ScrollView
+					ref={scrollRef}
+					style={styles.editorScroll}
+					contentContainerStyle={{
+						paddingBottom: keyboardHeight + TOOLBAR_HEIGHT,
+					}}
+					keyboardShouldPersistTaps='handled'
+				>
+					<RichEditor
+						ref={editorRef}
+						key={`edit-${post.id}-${post.updatedAt || ''}`}
+						initialContentHTML={normalizeHtmlContent(
+							editedPost.content,
+						)}
+						editorInitializedCallback={installChecklistExitHandler}
+						onChange={(html) =>
+							setEditedPost({ ...editedPost, content: html })
+						}
+						onCursorPosition={(scrollY) => {
+							scrollRef.current?.scrollTo({
+								y: Math.max(0, scrollY - 120),
+								animated: true,
+							})
+						}}
+						onHeightChange={(h) => {
+							if (h && h > 0) {
+								setEditorHeight(Math.max(h, 500))
+								requestAnimationFrame(() => {
+									scrollRef.current?.scrollToEnd({
+										animated: true,
+									})
+								})
+							}
+						}}
+						editorStyle={{
+							backgroundColor: BG,
+							color: '#ffffff',
+							caretColor: BRAND,
+							placeholderColor: 'rgba(255,255,255,0.3)',
+							contentCSSText: `font-size: 17px; line-height: 28px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #ffffff; padding: 8px 0 ${EDITOR_BOTTOM_PADDING}px 0;`,
+						}}
+						placeholder='Start writing…'
+						useContainer={false}
+						initialHeight={500}
+						style={[styles.richEditor, { height: editorHeight }]}
+					/>
+				</ScrollView>
+
+				<View
+					style={[
+						styles.floatingDock,
+						{
+							bottom:
+								keyboardHeight > 0
+									? keyboardHeight + (insets.bottom ?? 0)
+									: insets.bottom ?? 0,
+						},
+					]}
+					pointerEvents='box-none'
+				>
+					{showColors && (
+						<View style={styles.swatchTray}>
+							{COLOR_SWATCHES.map((hex) => (
+								<TouchableOpacity
+									key={hex}
+									onPress={() => applyColor(hex)}
+									style={[
+										styles.swatch,
+										{ backgroundColor: hex },
+									]}
+								/>
+							))}
+						</View>
+					)}
+
+					<ScrollView
+						horizontal
+						showsHorizontalScrollIndicator={false}
+						keyboardShouldPersistTaps='always'
+						contentContainerStyle={styles.toolbar}
+						style={styles.toolbarOuter}
+					>
+						<ToolbarText
+							label='H1'
+							onPress={() => sendAction(actions.heading1)}
+						/>
+						<ToolbarText
+							label='H2'
+							onPress={() => sendAction(actions.heading2)}
+						/>
+						<ToolbarText
+							label='H3'
+							onPress={() => sendAction(actions.heading3)}
+						/>
+						<Divider />
+						<ToolbarStyled
+							label='B'
+							textStyle={{ fontWeight: '900' }}
+							onPress={() => sendAction(actions.setBold)}
+						/>
+						<ToolbarStyled
+							label='I'
+							textStyle={{ fontStyle: 'italic' }}
+							onPress={() => sendAction(actions.setItalic)}
+						/>
+						<ToolbarStyled
+							label='U'
+							textStyle={{ textDecorationLine: 'underline' }}
+							onPress={() => sendAction(actions.setUnderline)}
+						/>
+						<ToolbarStyled
+							label='S'
+							textStyle={{ textDecorationLine: 'line-through' }}
+							onPress={() => sendAction(actions.setStrikethrough)}
+						/>
+						<Divider />
+						<ToolbarIcon
+							name='checkbox-outline'
+							onPress={() => sendAction(actions.checkboxList)}
+						/>
+						<ToolbarIcon
+							name='list-outline'
+							onPress={() =>
+								sendAction(actions.insertBulletsList)
+							}
+						/>
+						<ToolbarIcon
+							name='list-circle-outline'
+							onPress={() =>
+								sendAction(actions.insertOrderedList)
+							}
+						/>
+						<ToolbarIcon
+							name='remove-outline'
+							onPress={insertDivider}
+						/>
+						<ToolbarIcon
+							name='color-palette-outline'
+							onPress={() => setShowColors((v) => !v)}
+						/>
+						<Divider />
+						<ToolbarIcon
+							name='arrow-undo-outline'
+							onPress={() => sendAction(actions.undo)}
+						/>
+						<ToolbarIcon
+							name='arrow-redo-outline'
+							onPress={() => sendAction(actions.redo)}
+						/>
+					</ScrollView>
+				</View>
+
+				<Modal
+					visible={showStatusPicker}
+					transparent
+					animationType='fade'
+					onRequestClose={() => setShowStatusPicker(false)}
+				>
+					<TouchableOpacity
+						style={styles.modalOverlay}
+						onPress={() => setShowStatusPicker(false)}
+						activeOpacity={1}
+					>
+						<View style={styles.pickerSheet}>
+							<Text style={styles.pickerTitle}>
+								Update status
+							</Text>
+							{['DRAFT', 'SCHEDULED', 'PUBLISHED'].map((s) => (
+								<TouchableOpacity
+									key={s}
+									style={styles.pickerOption}
+									onPress={() => chooseStatus(s)}
+								>
+									<View
+										style={[
+											styles.pickerDot,
+											{
+												backgroundColor:
+													getStatusColor(s),
+											},
+										]}
+									/>
+									<Text style={styles.pickerOptionText}>
+										{getStatusLabel(s)}
+									</Text>
+								</TouchableOpacity>
+							))}
+						</View>
+					</TouchableOpacity>
+				</Modal>
+
+				{showDatePicker && Platform.OS === 'ios' && (
+					<DateTimePicker
+						value={scheduleDate}
+						mode='datetime'
+						display='default'
+						onChange={(event, selectedDate) => {
+							if (event?.type === 'dismissed') {
+								setShowDatePicker(false)
+								return
+							}
+							if (selectedDate && editedPost) {
+								setScheduleDate(selectedDate)
+								setEditedPost({
+									...editedPost,
+									status: 'SCHEDULED',
+									scheduledAt: selectedDate.toISOString(),
+								})
+							}
+							setShowDatePicker(false)
+						}}
+					/>
+				)}
+			</View>
+		)
+	}
+
+	// VIEW MODE — clean reader
+	return (
+		<View style={styles.container}>
+			<View style={styles.viewHeader}>
+				<TouchableOpacity
+					onPress={() => router.back()}
+					style={styles.headerIconBtn}
+				>
+					<Ionicons name='arrow-back' size={22} color='#ffffff' />
+				</TouchableOpacity>
+
+				<View style={styles.headerCenter}>
+					<Text style={[styles.statusInline, { color: statusColor }]}>
+						{getStatusLabel(displayPost?.status || '')}
+					</Text>
+				</View>
+
+				<TouchableOpacity
+					onPress={() => {
+						setEditedPost(post)
+						setIsEditing(true)
+					}}
+					style={styles.headerIconBtn}
+				>
+					<Ionicons name='create-outline' size={22} color={BRAND} />
+				</TouchableOpacity>
+			</View>
+
+			<View style={styles.viewTitleBlock}>
+				<Text style={styles.viewTitle}>
+					{displayPost?.title || 'Untitled Post'}
+				</Text>
+				<Text style={styles.viewMeta}>
+					{displayPost?.scheduledAt
+						? `Scheduled for ${new Date(displayPost.scheduledAt).toLocaleString()}`
+						: displayPost?.publishedAt
+							? `Posted ${new Date(displayPost.publishedAt).toLocaleString()}`
+							: `Created ${new Date(displayPost!.createdAt).toLocaleDateString()}`}
+				</Text>
+			</View>
+
+			<ScrollView
+				style={styles.viewBodyFull}
+				contentContainerStyle={styles.viewBodyContent}
+				showsVerticalScrollIndicator={false}
+			>
+				<RichEditor
+					key={`view-${post.id}-${post.updatedAt || ''}`}
+					disabled
+					initialContentHTML={normalizeHtmlContent(
+						displayPost?.content,
+					)}
+					onHeightChange={(h) => {
+						if (h && h > 0) setViewHeight(Math.max(h, 200))
+					}}
+					editorStyle={{
+						backgroundColor: BG,
+						color: '#ffffff',
+						contentCSSText:
+							"font-size: 16px; line-height: 26px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: rgba(255,255,255,0.9); padding: 0;",
+					}}
+					useContainer={false}
+					initialHeight={500}
+					style={[styles.readOnlyEditorFull, { height: viewHeight }]}
+				/>
+			</ScrollView>
+
+			<View style={styles.deleteBar}>
+				<TouchableOpacity
+					style={styles.deleteButton}
+					onPress={handleDeletePost}
+					disabled={isSaving}
+				>
+					<Ionicons name='trash-outline' size={18} color='#ef4444' />
+					<Text style={styles.deleteButtonText}>Delete post</Text>
+				</TouchableOpacity>
+			</View>
+		</View>
+	)
+}
+
+function ToolbarIcon({
+	name,
+	onPress,
+}: {
+	name: keyof typeof Ionicons.glyphMap
+	onPress: () => void
+}) {
+	return (
+		<TouchableOpacity onPress={onPress} style={styles.toolBtn}>
+			<Ionicons name={name} size={22} color={BRAND} />
+		</TouchableOpacity>
+	)
+}
+
+function ToolbarText({
+	label,
+	onPress,
+}: {
+	label: string
+	onPress: () => void
+}) {
+	return (
+		<TouchableOpacity onPress={onPress} style={styles.toolBtn}>
+			<Text style={styles.toolBtnLabel}>{label}</Text>
+		</TouchableOpacity>
+	)
+}
+
+function ToolbarStyled({
+	label,
+	textStyle,
+	onPress,
+}: {
+	label: string
+	textStyle: any
+	onPress: () => void
+}) {
+	return (
+		<TouchableOpacity onPress={onPress} style={styles.toolBtn}>
+			<Text style={[styles.toolBtnLabel, textStyle]}>{label}</Text>
+		</TouchableOpacity>
+	)
+}
+
+function Divider() {
+	return <View style={styles.toolDivider} />
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  centered: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    color: COLORS.error,
-    fontSize: 16,
-  },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.md,
-    paddingTop: 56,
-    paddingBottom: SPACING.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
-  },
-  headerBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.textMuted,
-  },
-  saveBtn: {
-    backgroundColor: COLORS.gold,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.sm,
-  },
-  saveBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.background,
-  },
-
-  // Content
-  content: {
-    flex: 1,
-  },
-  contentInner: {
-    padding: SPACING.lg,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    marginBottom: SPACING.md,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-  },
-  scheduledLabel: {
-    fontSize: 12,
-    color: COLORS.textSubtle,
-    marginLeft: 'auto',
-  },
-  titleText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.text,
-    lineHeight: 32,
-    marginBottom: SPACING.md,
-  },
-  titleInput: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.text,
-    lineHeight: 32,
-    marginBottom: SPACING.md,
-  },
-  contentText: {
-    fontSize: 16,
-    color: COLORS.textMuted,
-    lineHeight: 26,
-  },
-  contentInput: {
-    fontSize: 16,
-    lineHeight: 26,
-    color: COLORS.text,
-    minHeight: 300,
-  },
-  meta: {
-    marginTop: SPACING.xl,
-    paddingTop: SPACING.md,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
-    gap: SPACING.xs,
-  },
-  metaText: {
-    fontSize: 13,
-    color: COLORS.textSubtle,
-  },
-  deleteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: SPACING.sm,
-    paddingVertical: 14,
-    borderRadius: RADIUS.md,
-    backgroundColor: 'rgba(248,113,113,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(248,113,113,0.2)',
-    marginTop: SPACING.lg,
-  },
-  deleteText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.error,
-  },
-
-  // Toolbar
-  toolbar: {
-    backgroundColor: COLORS.surface,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
-    paddingVertical: SPACING.sm,
-  },
-  toolbarRow: {
-    paddingHorizontal: SPACING.md,
-    gap: 2,
-    alignItems: 'center',
-  },
-  toolBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: RADIUS.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  toolText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.textMuted,
-  },
-  toolTextSm: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.textMuted,
-  },
-  toolDivider: {
-    width: 1,
-    height: 20,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    marginHorizontal: 4,
-  },
-  colorRow: {
-    paddingHorizontal: SPACING.md,
-    gap: SPACING.sm,
-    alignItems: 'center',
-  },
-  colorDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
-  colorDotActive: {
-    borderWidth: 2,
-    borderColor: COLORS.text,
-  },
-  colorIndicator: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
+	container: {
+		flex: 1,
+		backgroundColor: BG,
+	},
+	loadingWrap: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	emptyWrap: {
+		flex: 1,
+		alignItems: 'center',
+		justifyContent: 'center',
+		paddingHorizontal: 32,
+	},
+	errorText: {
+		color: '#ef4444',
+		fontSize: 16,
+		textAlign: 'center',
+		marginTop: 16,
+		fontWeight: '700',
+	},
+	viewHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		paddingHorizontal: 12,
+		paddingTop: 16,
+		paddingBottom: 8,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		borderBottomColor: 'rgba(255,255,255,0.08)',
+	},
+	editHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		paddingHorizontal: 12,
+		paddingTop: 16,
+		paddingBottom: 8,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		borderBottomColor: 'rgba(255,255,255,0.08)',
+	},
+	headerCenter: {
+		flex: 1,
+		alignItems: 'center',
+	},
+	headerTitle: {
+		fontSize: 16,
+		fontWeight: '700',
+		color: '#ffffff',
+	},
+	statusInline: {
+		fontSize: 11,
+		fontWeight: '800',
+		textTransform: 'uppercase',
+		letterSpacing: 0.7,
+		marginTop: 2,
+	},
+	saveLabel: {
+		fontSize: 11,
+		color: 'rgba(255,255,255,0.45)',
+		marginTop: 2,
+	},
+	saveLabelError: {
+		color: '#ef4444',
+	},
+	headerIconBtn: {
+		width: 44,
+		height: 44,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	viewTitleBlock: {
+		paddingHorizontal: 20,
+		paddingTop: 16,
+		paddingBottom: 8,
+	},
+	viewTitle: {
+		fontSize: 28,
+		lineHeight: 34,
+		fontWeight: '800',
+		color: '#ffffff',
+		marginBottom: 6,
+	},
+	viewMeta: {
+		fontSize: 12,
+		color: 'rgba(255,255,255,0.55)',
+	},
+	viewBodyFull: {
+		flex: 1,
+		paddingHorizontal: 12,
+	},
+	viewBodyContent: {
+		paddingBottom: 24,
+	},
+	readOnlyEditorFull: {
+		backgroundColor: BG,
+	},
+	editorScroll: {
+		flex: 1,
+		paddingHorizontal: 12,
+	},
+	richEditor: {
+		backgroundColor: BG,
+	},
+	deleteBar: {
+		paddingHorizontal: 20,
+		paddingTop: 8,
+		paddingBottom: 24,
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: 'rgba(255,255,255,0.08)',
+		backgroundColor: BG,
+	},
+	titleInput: {
+		fontSize: 26,
+		fontWeight: '800',
+		color: '#ffffff',
+		paddingHorizontal: 18,
+		paddingTop: 14,
+		paddingBottom: 8,
+	},
+	floatingDock: {
+		position: 'absolute',
+		left: 0,
+		right: 0,
+		backgroundColor: BG,
+	},
+	swatchTray: {
+		flexDirection: 'row',
+		flexWrap: 'wrap',
+		gap: 10,
+		paddingHorizontal: 14,
+		paddingVertical: 10,
+		backgroundColor: PANEL,
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: 'rgba(255,255,255,0.08)',
+	},
+	swatch: {
+		width: 28,
+		height: 28,
+		borderRadius: 14,
+		borderWidth: 1,
+		borderColor: 'rgba(255,255,255,0.15)',
+	},
+	toolbarOuter: {
+		backgroundColor: PANEL,
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: 'rgba(255,255,255,0.08)',
+		maxHeight: 52,
+	},
+	toolbar: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		paddingHorizontal: 8,
+		paddingVertical: 6,
+		gap: 2,
+	},
+	toolBtn: {
+		minWidth: 40,
+		height: 40,
+		paddingHorizontal: 8,
+		alignItems: 'center',
+		justifyContent: 'center',
+		borderRadius: 8,
+	},
+	toolBtnLabel: {
+		color: BRAND,
+		fontWeight: '800',
+		fontSize: 14,
+	},
+	toolDivider: {
+		width: 1,
+		height: 22,
+		backgroundColor: 'rgba(255,255,255,0.1)',
+		marginHorizontal: 4,
+	},
+	deleteButton: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'center',
+		gap: 8,
+		paddingVertical: 14,
+		borderRadius: 12,
+		backgroundColor: 'rgba(239,68,68,0.08)',
+		borderWidth: 1,
+		borderColor: 'rgba(239,68,68,0.3)',
+	},
+	deleteButtonText: {
+		fontSize: 14,
+		fontWeight: '700',
+		color: '#ef4444',
+	},
+	modalOverlay: {
+		flex: 1,
+		backgroundColor: 'rgba(0,0,0,0.6)',
+		justifyContent: 'flex-end',
+	},
+	pickerSheet: {
+		backgroundColor: PANEL,
+		borderTopLeftRadius: 24,
+		borderTopRightRadius: 24,
+		padding: 20,
+		paddingBottom: 32,
+	},
+	pickerTitle: {
+		fontSize: 16,
+		fontWeight: '800',
+		color: '#ffffff',
+		marginBottom: 16,
+	},
+	pickerOption: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 12,
+		paddingVertical: 14,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		borderBottomColor: 'rgba(255,255,255,0.06)',
+	},
+	pickerOptionText: {
+		fontSize: 14,
+		color: '#ffffff',
+		fontWeight: '600',
+	},
+	pickerDot: {
+		width: 10,
+		height: 10,
+		borderRadius: 5,
+	},
 })

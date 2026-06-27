@@ -1,0 +1,6 @@
+{
+	"permissions": {
+		"allow": ["Bash(npx tsc *)"],
+		"deny": ["Bash(npx tsc --watch *)", "Bash(source .env)"]
+	}
+}

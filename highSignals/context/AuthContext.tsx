@@ -24,6 +24,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AUTH_TOKEN_KEY = 'authToken'
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -34,32 +35,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [hasLoggedInBefore, setHasLoggedInBefore] = useState(false)
 
   useEffect(() => {
-    restoreSession()
+    initializeAuth()
   }, [])
 
-  const restoreSession = async () => {
+  const initializeAuth = async () => {
     try {
-      const [hasLoggedBefore, savedToken] = await Promise.all([
+      const [hasLoggedBefore, storedToken] = await Promise.all([
         AsyncStorage.getItem('hasLoggedInBefore'),
-        api.restoreToken(),
+        AsyncStorage.getItem(AUTH_TOKEN_KEY),
       ])
-
       setHasLoggedInBefore(hasLoggedBefore === 'true')
 
-      if (savedToken) {
-        setToken(savedToken)
-        try {
-          const userData = await api.profile.get()
-          setUser(userData)
-        } catch {
-          // Token is expired or invalid — clear it
-          await api.clearTokens()
-          setToken(null)
-          setUser(null)
-        }
+      if (storedToken) {
+        api.setTokens({ accessToken: storedToken })
+        setToken(storedToken)
+        await fetchUserData(storedToken)
       }
     } catch (error) {
-      console.error('Error restoring session:', error)
+      console.error('Error initializing auth:', error)
     } finally {
       setLoading(false)
     }
@@ -74,43 +67,91 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }
 
+  const fetchUserData = async (tokenOverride?: string) => {
+    try {
+      if (tokenOverride) {
+        api.setTokens({ accessToken: tokenOverride })
+      }
+
+      const response = await api.profile.get()
+      setUser(response)
+    } catch (error: any) {
+      console.error('Failed to fetch user:', error)
+      // Only sign out for explicit auth failures. Transient errors
+      // (offline, 5xx) should keep the session so the user doesn't get
+      // bounced back to login every time the network blips.
+      if (error?.status === 401 || error?.status === 403) {
+        api.clearTokens()
+        await AsyncStorage.removeItem(AUTH_TOKEN_KEY)
+        setToken(null)
+        setUser(null)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const login = async (email: string, password: string) => {
-    const response = await api.auth.login(email, password)
-    setToken(response.accessToken)
-    setUser(response.user)
-    await markUserAsLoggedIn()
+    setLoading(true)
+    try {
+      const response = await api.auth.login(email, password)
+      const token = response.accessToken || response.access_token
+      if (token) {
+        api.setTokens({ accessToken: token })
+        setToken(token)
+        await AsyncStorage.setItem(AUTH_TOKEN_KEY, token)
+        await fetchUserData(token)
+      }
+      await markUserAsLoggedIn()
+    } finally {
+      setLoading(false)
+    }
   }
 
   const register = async (email: string, password: string, name: string) => {
-    const response = await api.auth.register(email, password, name)
-    setToken(response.accessToken)
-    setUser(response.user)
-    await markUserAsLoggedIn()
+    setLoading(true)
+    try {
+      const response = await api.auth.register(email, password, name)
+      const token = response.accessToken || response.access_token
+      if (token) {
+        api.setTokens({ accessToken: token })
+        setToken(token)
+        await AsyncStorage.setItem(AUTH_TOKEN_KEY, token)
+        await fetchUserData(token)
+      }
+      await markUserAsLoggedIn()
+    } finally {
+      setLoading(false)
+    }
   }
 
   const googleLogin = async (idToken: string) => {
-    const response = await api.auth.googleLogin(idToken)
-    setToken(response.accessToken)
-    setUser(response.user)
-    await markUserAsLoggedIn()
+    setLoading(true)
+    try {
+      const response = await api.auth.googleLogin(idToken)
+      const token = response.accessToken || response.access_token
+      if (token) {
+        api.setTokens({ accessToken: token })
+        setToken(token)
+        await AsyncStorage.setItem(AUTH_TOKEN_KEY, token)
+        await fetchUserData(token)
+      }
+      await markUserAsLoggedIn()
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const logout = async () => {
-    await api.clearTokens()
+  const logout = () => {
+    api.clearTokens()
+    AsyncStorage.removeItem(AUTH_TOKEN_KEY)
     setToken(null)
     setUser(null)
   }
 
   const refreshUserData = async () => {
     if (token) {
-      try {
-        const userData = await api.profile.get()
-        setUser(userData)
-      } catch {
-        await api.clearTokens()
-        setToken(null)
-        setUser(null)
-      }
+      await fetchUserData()
     }
   }
 

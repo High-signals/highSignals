@@ -19,6 +19,11 @@ enum PROVIDER {
   TWITTER
 }
 
+enum ICPType {
+  BUSINESS
+  CREATOR
+}
+
 enum PLATFORM {
   TWITTER
   LINKEDIN
@@ -35,6 +40,7 @@ enum POST_STATUS {
 }
 
 model User {
+<<<<<<< HEAD
   id        String   @id @default(uuid())
   email     String   @unique
   name      String
@@ -53,52 +59,92 @@ model User {
   // Password reset fields
   passwordResetToken String? @unique
   passwordResetExpires DateTime?
+=======
+  id           String     @id @default(uuid())
+  email        String     @unique
+  name         String
+  password     String?
+  googleId     String?    @unique
+  refreshToken String?    @unique
+  provider     PROVIDER[]
+  avatar       String?
+  bio          String?
+>>>>>>> e5acc3cb22f56aa3e3701bfdfdc4df71d386edb2
 
-  icp      ICP?
-  posts Post[]
+  icp               ICP?
+  otp               Otp?
+  posts             Post[]
+  connectedAccounts connectedAccount[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-// Ideal Client Profile (ICP) model
+model Otp {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model ICP {
-  id              String   @id @default(uuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  profession      String
-  dreamClient     String
-  mainProblem     String
-  dreamOutcome    String
-  authorityStory  String
-  clientDemographics String
-  otherDetails       String?
+  type ICPType // CREATOR | BUSINESS
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  profession        String? // NEW → "What do you do?" or creator identity
+  audience          String  // dreamClient OR dreamFollower
+  problem           String? // problem OR followReason (abstract “why they come”)
+  desiredOutcome    String? // outcome OR feeling
+  contentTopic      String? // topic (main content theme)
+  backstory         String? // story OR backstory
+  goal              String? // goal (mostly creator, optional for business)
+  demographics      String?
+  additional        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model connectedAccount {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  twitterId   String? @unique
+  facebookId  String? @unique
+  linkedInId  String? @unique
+  tiktokId    String? @unique
+  instagramId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Post {
-  id          String   @id @default(uuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  title       String?
-  content     String
-  hashtags    String[]
-  mediaUrls   String[]
-  platforms   PLATFORM[]
-  platformContent Json? 
+  title           String?
+  content         String
+  mediaUrls       String[]
+  platforms       PLATFORM[]
+  platformContent Json?
   externalPostIds Json?
-  status      POST_STATUS @default(DRAFT)
+  status          POST_STATUS @default(DRAFT)
 
   scheduledAt DateTime?
   publishedAt DateTime?
 
-  isDeleted   Boolean  @default(false)
-  lastAttemptAt DateTime?
+  isDeleted Boolean @default(false)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

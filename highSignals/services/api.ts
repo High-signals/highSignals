@@ -1,184 +1,335 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'
+// API Configuration
+const API_BASE_URL =
+	process.env.EXPO_PUBLIC_API_URL ||
+	process.env.REACT_APP_API_URL ||
+	'https://high-signals.vercel.app'
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000'
-
-const TOKEN_KEY = 'auth_access_token'
-
+// Store tokens (in production, use secure storage)
 let authTokens = {
-  accessToken: '',
+	accessToken: '',
+	refreshToken: '',
 }
 
+// Tiny pub/sub so list screens can react when posts change anywhere
+// in the app (create / edit / delete), without each screen having to
+// know about the others.
+type PostsChangeListener = () => void
+const postsChangeListeners = new Set<PostsChangeListener>()
+
+export const postsEvents = {
+	onChange(listener: PostsChangeListener) {
+		postsChangeListeners.add(listener)
+		return () => {
+			postsChangeListeners.delete(listener)
+		}
+	},
+	emit() {
+		postsChangeListeners.forEach((listener) => {
+			try {
+				listener()
+			} catch (err) {
+				console.error('postsEvents listener failed', err)
+			}
+		})
+	},
+}
+
+// API methods
 export const api = {
-  setTokens: async (tokens: { accessToken: string }) => {
-    authTokens.accessToken = tokens.accessToken
-    try {
-      await AsyncStorage.setItem(TOKEN_KEY, tokens.accessToken)
-    } catch (e) {
-      console.error('Failed to persist token:', e)
-    }
-  },
+	setTokens: (tokens: { accessToken: string; refreshToken?: string }) => {
+		authTokens.accessToken = tokens.accessToken
+		if (tokens.refreshToken) {
+			authTokens.refreshToken = tokens.refreshToken
+		}
+	},
 
-  restoreToken: async (): Promise<string | null> => {
-    try {
-      const token = await AsyncStorage.getItem(TOKEN_KEY)
-      if (token) {
-        authTokens.accessToken = token
-      }
-      return token
-    } catch (e) {
-      console.error('Failed to restore token:', e)
-      return null
-    }
-  },
+	getToken: () => authTokens.accessToken,
 
-  getToken: () => authTokens.accessToken,
+	clearTokens: () => {
+		authTokens.accessToken = ''
+		authTokens.refreshToken = ''
+	},
 
-  clearTokens: async () => {
-    authTokens.accessToken = ''
-    try {
-      await AsyncStorage.removeItem(TOKEN_KEY)
-    } catch (e) {
-      console.error('Failed to clear token:', e)
-    }
-  },
+	// Helper for API calls
+	call: async (
+		endpoint: string,
+		options: RequestInit = {},
+		requiresAuth = true,
+	) => {
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json',
+			...options.headers,
+		} as Record<string, string>
 
-  call: async (
-    endpoint: string,
-    options: RequestInit = {},
-    requiresAuth = true
-  ) => {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    } as Record<string, string>
+		if (requiresAuth && authTokens.accessToken) {
+			headers.Authorization = `Bearer ${authTokens.accessToken}`
+		}
 
-    if (requiresAuth && authTokens.accessToken) {
-      headers.Authorization = `Bearer ${authTokens.accessToken}`
-    }
+		const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+			...options,
+			headers,
+		})
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers,
-    })
+		const data = await response.json()
 
-    const data = await response.json()
+		if (!response.ok) {
+			const err: Error & { status?: number } = new Error(
+				data.message || 'API Error',
+			)
+			err.status = response.status
+			throw err
+		}
 
-    if (!response.ok) {
-      throw new Error(data.message || 'API Error')
-    }
+		return data
+	},
 
-    return data
-  },
+	// Auth endpoints
+	auth: {
+		register: async (email: string, password: string, name: string) => {
+			const response = await api.call(
+				'/api/auth/register',
+				{
+					method: 'POST',
+					body: JSON.stringify({ email, password, name }),
+				},
+				false,
+			)
+			if (response.accessToken) {
+				api.setTokens({ accessToken: response.accessToken })
+			}
+			return response
+		},
 
-  auth: {
-    register: async (email: string, password: string, name: string) => {
-      const response = await api.call('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({ email, password, name }),
-      }, false)
-      if (response.accessToken) {
-        await api.setTokens({ accessToken: response.accessToken })
-      }
-      return response
-    },
+		login: async (email: string, password: string) => {
+			const response = await api.call(
+				'/api/auth/login',
+				{
+					method: 'POST',
+					body: JSON.stringify({ email, password }),
+				},
+				false,
+			)
+			if (response.accessToken) {
+				api.setTokens({ accessToken: response.accessToken })
+			}
+			return response
+		},
 
-    login: async (email: string, password: string) => {
-      const response = await api.call('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      }, false)
-      if (response.accessToken) {
-        await api.setTokens({ accessToken: response.accessToken })
-      }
-      return response
-    },
+		googleLogin: async (idToken: string) => {
+			const response = await api.call(
+				'/api/auth/google',
+				{
+					method: 'POST',
+					body: JSON.stringify({ idToken }),
+				},
+				false,
+			)
+			if (response.accessToken) {
+				api.setTokens({ accessToken: response.accessToken })
+			}
+			return response
+		},
+	},
 
-    googleLogin: async (idToken: string) => {
-      const response = await api.call('/api/auth/google', {
-        method: 'POST',
-        body: JSON.stringify({ idToken }),
-      }, false)
-      if (response.accessToken) {
-        await api.setTokens({ accessToken: response.accessToken })
-      }
-      return response
-    },
-  },
+	// User Profile endpoints
+	profile: {
+		get: async () => {
+			return api.call(
+				'/api/user/profile',
+				{
+					method: 'GET',
+				},
+				true,
+			)
+		},
 
-  profile: {
-    get: async () => {
-      return api.call('/api/user/profile', {
-        method: 'GET',
-      }, true)
-    },
+		update: async (profileData: any) => {
+			return api.call(
+				'/api/user/profile',
+				{
+					method: 'PATCH',
+					body: JSON.stringify(profileData),
+				},
+				true,
+			)
+		},
 
-    update: async (profileData: any) => {
-      return api.call('/api/user/profile', {
-        method: 'PATCH',
-        body: JSON.stringify(profileData),
-      }, true)
-    },
+		delete: async () => {
+			return api.call(
+				'/api/user/profile',
+				{
+					method: 'DELETE',
+				},
+				true,
+			)
+		},
 
-    delete: async () => {
-      return api.call('/api/user/profile', {
-        method: 'DELETE',
-      }, true)
-    },
-  },
+		uploadAvatar: async (asset: {
+			uri: string
+			mimeType?: string | null
+			fileName?: string | null
+		}) => {
+			const mime =
+				asset.mimeType ||
+				(asset.uri.toLowerCase().endsWith('.png')
+					? 'image/png'
+					: asset.uri.toLowerCase().endsWith('.webp')
+						? 'image/webp'
+						: 'image/jpeg')
+			const ext = mime.split('/')[1] || 'jpg'
+			const name = asset.fileName || `avatar.${ext}`
 
-  icp: {
-    create: async (icpData: any) => {
-      return api.call('/api/icp', {
-        method: 'POST',
-        body: JSON.stringify(icpData),
-      }, true)
-    },
+			const form = new FormData()
+			// React Native's FormData accepts { uri, name, type } shape
+			form.append('file', {
+				uri: asset.uri,
+				name,
+				type: mime,
+			} as any)
 
-    get: async () => {
-      return api.call('/api/icp', {
-        method: 'GET',
-      }, true)
-    },
+			const headers: Record<string, string> = {}
+			if (authTokens.accessToken) {
+				headers.Authorization = `Bearer ${authTokens.accessToken}`
+			}
 
-    update: async (icpData: any) => {
-      return api.call('/api/icp/edit', {
-        method: 'PUT',
-        body: JSON.stringify(icpData),
-      }, true)
-    },
-  },
+			const response = await fetch(`${API_BASE_URL}/api/user/avatar`, {
+				method: 'POST',
+				headers,
+				body: form,
+			})
+			const data = await response.json()
+			if (!response.ok) {
+				const err: Error & { status?: number } = new Error(
+					data.message || 'Avatar upload failed',
+				)
+				err.status = response.status
+				throw err
+			}
+			return data
+		},
 
-  posts: {
-    create: async (postData: any) => {
-      return api.call('/api/posts', {
-        method: 'POST',
-        body: JSON.stringify(postData),
-      }, true)
-    },
+		deleteAvatar: async () => {
+			return api.call(
+				'/api/user/avatar',
+				{ method: 'DELETE' },
+				true,
+			)
+		},
+	},
 
-    getAll: async () => {
-      return api.call('/api/posts', {
-        method: 'GET',
-      }, true)
-    },
+	// ICP endpoints
+	icp: {
+		create: async (icpData: any) => {
+			return api.call(
+				'/api/icp',
+				{
+					method: 'POST',
+					body: JSON.stringify(icpData),
+				},
+				true,
+			)
+		},
 
-    getByStatus: async (status: string) => {
-      return api.call(`/api/posts/status?status=${status}`, {
-        method: 'GET',
-      }, true)
-    },
+		get: async () => {
+			return api.call(
+				'/api/icp',
+				{
+					method: 'GET',
+				},
+				true,
+			)
+		},
 
-    update: async (postId: string, postData: any) => {
-      return api.call(`/api/posts/${postId}`, {
-        method: 'PATCH',
-        body: JSON.stringify(postData),
-      }, true)
-    },
+		update: async (icpData: any) => {
+			return api.call(
+				'/api/icp/edit',
+				{
+					method: 'PUT',
+					body: JSON.stringify(icpData),
+				},
+				true,
+			)
+		},
+	},
 
-    delete: async (postId: string) => {
-      return api.call(`/api/posts/${postId}`, {
-        method: 'DELETE',
-      }, true)
-    },
-  },
+	// Posts endpoints
+	posts: {
+		create: async (postData: any) => {
+			const response = await api.call(
+				'/api/post',
+				{
+					method: 'POST',
+					body: JSON.stringify(postData),
+				},
+				true,
+			)
+			postsEvents.emit()
+			return response
+		},
+
+		getAll: async (queryParams?: {
+			page?: number
+			limit?: number
+			search?: string
+			status?: string
+		}) => {
+			// Build query string if params provided
+			let endpoint = '/api/post'
+			if (queryParams) {
+				const params = new URLSearchParams()
+				if (queryParams.page)
+					params.append('page', String(queryParams.page))
+				if (queryParams.limit)
+					params.append('limit', String(queryParams.limit))
+				if (queryParams.search)
+					params.append('search', queryParams.search)
+				if (queryParams.status)
+					params.append('status', queryParams.status)
+
+				const queryString = params.toString()
+				if (queryString) {
+					endpoint += `?${queryString}`
+				}
+			}
+
+			const response = await api.call(
+				endpoint,
+				{
+					method: 'GET',
+				},
+				true,
+			)
+			return response.posts ?? response
+		},
+
+		getByStatus: async (status: string) => {
+			const posts = await api.posts.getAll({ status })
+			return Array.isArray(posts) ? posts : []
+		},
+
+		update: async (postId: string, postData: any) => {
+			const response = await api.call(
+				`/api/post/${postId}`,
+				{
+					method: 'PUT',
+					body: JSON.stringify(postData),
+				},
+				true,
+			)
+			postsEvents.emit()
+			return response
+		},
+
+		delete: async (postId: string) => {
+			const response = await api.call(
+				`/api/post/${postId}`,
+				{
+					method: 'DELETE',
+				},
+				true,
+			)
+			postsEvents.emit()
+			return response
+		},
+	},
 }
