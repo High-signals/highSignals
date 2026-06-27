@@ -49,6 +49,10 @@ model User {
   instagramId String? @unique
   avatar    String?
   bio       String?
+  
+  // Password reset fields
+  passwordResetToken String? @unique
+  passwordResetExpires DateTime?
 
   icp      ICP?
   posts Post[]
