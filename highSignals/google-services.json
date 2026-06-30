@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "672734174248",
+    "project_id": "highsignals",
+    "storage_bucket": "highsignals.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:672734174248:android:57407a2a77f4f567d4a91d",
+        "android_client_info": {
+          "package_name": "com.ayomiplenty.highSignals"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "672734174248-7149e254brnmmrhtr9jsaecu1nn8karm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCd2prxvgoq-Jsf0VgYexZuwIiwMyEJztQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "672734174248-7149e254brnmmrhtr9jsaecu1nn8karm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

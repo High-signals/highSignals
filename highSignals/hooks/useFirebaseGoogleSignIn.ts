@@ -3,6 +3,8 @@ import * as Google from 'expo-auth-session/providers/google'
 import type { AuthSessionResult } from 'expo-auth-session'
 import * as WebBrowser from 'expo-web-browser'
 import Constants, { ExecutionEnvironment } from 'expo-constants'
+import { Platform } from 'react-native'
+import { GoogleSignin } from '@react-native-google-signin/google-signin'
 
 WebBrowser.maybeCompleteAuthSession()
 
@@ -12,6 +14,7 @@ const GOOGLE_PROVIDER_ID = 'google.com'
 const MISSING_CLIENT_ID = 'missing-google-client-id'
 const FIREBASE_REQUEST_URI = 'http://localhost'
 const TOKEN_WAIT_TIMEOUT_MS = 15000
+const isWeb = Platform.OS === 'web'
 
 type GoogleCredential = {
 	key: 'id_token' | 'access_token'
@@ -39,8 +42,29 @@ const getEnvValue = (value?: string) => {
 const toError = (error: unknown) =>
 	error instanceof Error ? error : new Error('Google sign-in failed')
 
-const getConfiguredClientId = (...clientIds: Array<string | undefined>) =>
-	clientIds.find(Boolean) || MISSING_CLIENT_ID
+const getGoogleClientSetupError = ({
+	webClientId,
+	iosClientId,
+}: {
+	webClientId?: string
+	iosClientId?: string
+}) => {
+	if (!webClientId) {
+		return 'Missing EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID'
+	}
+
+	if (Platform.OS === 'ios') {
+		if (!iosClientId) {
+			return 'Missing EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID'
+		}
+
+		if (iosClientId === webClientId) {
+			return 'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID must be an iOS OAuth client ID, not the Web client ID'
+		}
+	}
+
+	return null
+}
 
 const extractGoogleCredential = (
 	result: AuthSessionResult,
@@ -132,26 +156,12 @@ export function useFirebaseGoogleSignIn() {
 	const googleIosClientId = getEnvValue(
 		process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
 	)
-	const googleAndroidClientId = getEnvValue(
-		process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-	)
-
-	const googleClientId = useMemo(
-		() =>
-			getConfiguredClientId(
-				googleWebClientId,
-				googleAndroidClientId,
-				googleIosClientId,
-			),
-		[googleAndroidClientId, googleIosClientId, googleWebClientId],
-	)
 
 	const [request, response, promptAsync] = Google.useIdTokenAuthRequest(
 		{
-			clientId: googleClientId,
+			clientId: googleWebClientId || MISSING_CLIENT_ID,
 			webClientId: googleWebClientId,
-			iosClientId: googleIosClientId,
-			androidClientId: googleAndroidClientId,
+			iosClientId: Platform.OS === 'ios' ? googleIosClientId : undefined,
 			selectAccount: true,
 		},
 		{
@@ -249,6 +259,15 @@ export function useFirebaseGoogleSignIn() {
 		}
 	}, [])
 
+	useEffect(() => {
+		if (isWeb || !googleWebClientId) return
+
+		GoogleSignin.configure({
+			webClientId: googleWebClientId,
+			iosClientId: googleIosClientId,
+		})
+	}, [googleIosClientId, googleWebClientId])
+
 	const signInWithGoogle = useCallback(async () => {
 		if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) {
 			throw new Error(
@@ -260,12 +279,13 @@ export function useFirebaseGoogleSignIn() {
 			throw new Error('Missing EXPO_PUBLIC_FIREBASE_API_KEY')
 		}
 
-		if (googleClientId === MISSING_CLIENT_ID) {
-			throw new Error('Missing Google OAuth client ID')
-		}
+		const setupError = getGoogleClientSetupError({
+			webClientId: googleWebClientId,
+			iosClientId: googleIosClientId,
+		})
 
-		if (!request) {
-			throw new Error('Google sign-in is still initializing')
+		if (setupError) {
+			throw new Error(setupError)
 		}
 
 		if (pendingSignInRef.current) {
@@ -273,6 +293,51 @@ export function useFirebaseGoogleSignIn() {
 		}
 
 		setLoading(true)
+
+		if (!isWeb) {
+			try {
+				if (Platform.OS === 'android') {
+					await GoogleSignin.hasPlayServices({
+						showPlayServicesUpdateDialog: true,
+					})
+				}
+
+				GoogleSignin.configure({
+					webClientId: googleWebClientId,
+					iosClientId: googleIosClientId,
+				})
+
+				const result = await GoogleSignin.signIn()
+				if (result.type === 'cancelled') {
+					setLoading(false)
+					return null
+				}
+
+				const idToken =
+					result.data.idToken || (await GoogleSignin.getTokens()).idToken
+
+				if (!idToken) {
+					throw new Error('Google sign-in did not return an ID token')
+				}
+
+				const firebaseIdToken =
+					await exchangeGoogleCredentialForFirebaseToken(firebaseApiKey, {
+						key: 'id_token',
+						value: idToken,
+					})
+
+				setLoading(false)
+				return firebaseIdToken
+			} catch (error) {
+				setLoading(false)
+				throw toError(error)
+			}
+		}
+
+		if (!request) {
+			setLoading(false)
+			throw new Error('Google sign-in is still initializing')
+		}
 
 		return new Promise<string | null>((resolve, reject) => {
 			pendingSignInRef.current = {
@@ -305,7 +370,8 @@ export function useFirebaseGoogleSignIn() {
 		})
 	}, [
 		firebaseApiKey,
-		googleClientId,
+		googleIosClientId,
+		googleWebClientId,
 		handleAuthResult,
 		promptAsync,
 		rejectPendingSignIn,
