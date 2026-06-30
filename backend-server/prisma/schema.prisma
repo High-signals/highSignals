@@ -40,7 +40,6 @@ enum POST_STATUS {
 }
 
 model User {
-<<<<<<< HEAD
   id        String   @id @default(uuid())
   email     String   @unique
   name      String
