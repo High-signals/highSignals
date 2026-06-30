@@ -59,17 +59,6 @@ model User {
   // Password reset fields
   passwordResetToken String? @unique
   passwordResetExpires DateTime?
-=======
-  id           String     @id @default(uuid())
-  email        String     @unique
-  name         String
-  password     String?
-  googleId     String?    @unique
-  refreshToken String?    @unique
-  provider     PROVIDER[]
-  avatar       String?
-  bio          String?
->>>>>>> e5acc3cb22f56aa3e3701bfdfdc4df71d386edb2
 
   icp               ICP?
   otp               Otp?
