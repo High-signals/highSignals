@@ -1,7 +1,4 @@
 import asyncHandler from '../../shared/service/asyncHandler.js'
-<<<<<<< HEAD
-import { registerUser, loginUser, googleAuth, forgotPassword, resetPassword } from './auth.service.js'
-=======
 import {
 	registerUser,
 	loginUser,
@@ -9,7 +6,6 @@ import {
 	forgotPassword,
 	resetPassword,
 } from './auth.service.js'
->>>>>>> e5acc3cb22f56aa3e3701bfdfdc4df71d386edb2
 // imports users
 
 export const register = asyncHandler(async (req, res) => {

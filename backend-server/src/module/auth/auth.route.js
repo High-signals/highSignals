@@ -1,7 +1,4 @@
 import express from 'express'
-<<<<<<< HEAD
-import { register, login, googleLogin, requestPasswordReset, resetUserPassword } from './auth.controller.js'
-=======
 import {
 	register,
 	login,
@@ -9,16 +6,16 @@ import {
 	forgotPasswordRequest,
 	resetPasswordRequest,
 } from './auth.controller.js'
-import { rateLimit } from 'express-rate-limit'
->>>>>>> e5acc3cb22f56aa3e3701bfdfdc4df71d386edb2
+import rateLimit from 'express-rate-limit'
 
 const router = express.Router()
 
-rateLimit({
+const apiLimiter = rateLimit({
 	windowMs: 5 * 60 * 1000,
 	limit: 10,
 	message: 'Too many requests from this IP. Please try again later.',
 })
+router.use(apiLimiter)
 
 /**
  * @swagger
@@ -77,13 +74,8 @@ router.post('/login', login)
 router.post('/register', register)
 
 router.post('/google', googleLogin)
-<<<<<<< HEAD
-router.post('/forgot-password', requestPasswordReset)
-router.post('/reset-password', resetUserPassword)
-=======
 router.post('/forgot-password', forgotPasswordRequest)
 router.post('/reset-password', resetPasswordRequest)
->>>>>>> e5acc3cb22f56aa3e3701bfdfdc4df71d386edb2
 // router.post('/refresh', refreshToken)
 // router.post('/logout', logout)
 

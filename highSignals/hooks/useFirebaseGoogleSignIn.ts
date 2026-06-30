@@ -4,7 +4,14 @@ import type { AuthSessionResult } from 'expo-auth-session'
 import * as WebBrowser from 'expo-web-browser'
 import Constants, { ExecutionEnvironment } from 'expo-constants'
 import { Platform } from 'react-native'
-import { GoogleSignin } from '@react-native-google-signin/google-signin'
+let GoogleSignin: any = null
+try {
+	if (Platform.OS !== 'web' && Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
+		GoogleSignin = require('@react-native-google-signin/google-signin').GoogleSignin
+	}
+} catch (e) {
+	console.warn('Google Signin module load failed:', e)
+}
 
 WebBrowser.maybeCompleteAuthSession()
 
@@ -260,7 +267,7 @@ export function useFirebaseGoogleSignIn() {
 	}, [])
 
 	useEffect(() => {
-		if (isWeb || !googleWebClientId) return
+		if (isWeb || !googleWebClientId || !GoogleSignin) return
 
 		GoogleSignin.configure({
 			webClientId: googleWebClientId,
