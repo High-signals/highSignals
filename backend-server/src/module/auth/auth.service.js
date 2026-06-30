@@ -1,6 +1,10 @@
 import prisma from '../../config/db.js'
 import bcrypt from 'bcrypt'
+<<<<<<< HEAD
+import crypto from 'crypto'
+=======
 import { randomInt } from 'crypto'
+>>>>>>> e5acc3cb22f56aa3e3701bfdfdc4df71d386edb2
 import { generateAccessToken } from '../../shared/service/generateToken.js'
 import AppError from '../../shared/service/appError.js'
 import { verifyFirebaseToken } from '../../shared/service/firebase.service.js'
@@ -18,6 +22,16 @@ const normalizeEmail = (email) => email.trim().toLowerCase()
 
 const generateOtpCode = () => randomInt(100000, 1000000).toString()
 
+function sanitizeUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    avatar: user.avatar || null,
+    bio: user.bio || null,
+  }
+}
+
 export async function registerUser(data) {
 	const existingUser = await prisma.user.findUnique({
 		where: { email: data.email },
@@ -33,6 +47,16 @@ export async function registerUser(data) {
 
 	const hashedPassword = await bcrypt.hash(data.password, 10)
 
+<<<<<<< HEAD
+  const user = await prisma.user.create({
+    data: {
+      email: data.email,
+      password: hashedPassword,
+      name: data.name,
+      provider: ['LOCAL'],
+    },
+  })
+=======
 	const user = await prisma.user.create({
 		data: {
 			email: data.email,
@@ -41,10 +65,19 @@ export async function registerUser(data) {
 			provider: [AUTH_PROVIDER.LOCAL],
 		},
 	})
+>>>>>>> e5acc3cb22f56aa3e3701bfdfdc4df71d386edb2
 
 	const accessToken = await generateAccessToken({ id: user.id })
 
+<<<<<<< HEAD
+  return {
+    message: 'User registered successfully',
+    accessToken,
+    user: sanitizeUser(user),
+  }
+=======
 	return { message: 'User registered successfully', accessToken }
+>>>>>>> e5acc3cb22f56aa3e3701bfdfdc4df71d386edb2
 }
 
 export async function loginUser(data) {
@@ -71,7 +104,15 @@ export async function loginUser(data) {
 
 	const accessToken = await generateAccessToken({ id: user.id })
 
+<<<<<<< HEAD
+  return {
+    message: 'Login successful',
+    accessToken,
+    user: sanitizeUser(user),
+  }
+=======
 	return { message: 'Login successful', accessToken }
+>>>>>>> e5acc3cb22f56aa3e3701bfdfdc4df71d386edb2
 }
 
 export async function googleAuth(data) {
@@ -102,8 +143,33 @@ export async function googleAuth(data) {
 		throw new AppError('Google email not verified', 400)
 	}
 
+<<<<<<< HEAD
+  if (user) {
+    if (!user.provider.includes('GOOGLE')) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          provider: {
+            push: 'GOOGLE',
+          },
+          googleId,
+        },
+      })
+    }
+  } else {
+    user = await prisma.user.create({
+      data: {
+        email,
+        name: name,
+        googleId,
+        provider: ['GOOGLE'],
+      },
+    })
+  }
+=======
 	const email = normalizeEmail(firebaseEmail)
 	const displayName = name?.trim() || email.split('@')[0]
+>>>>>>> e5acc3cb22f56aa3e3701bfdfdc4df71d386edb2
 
 	const [userByGoogleId, userByEmail] = await Promise.all([
 		prisma.user.findUnique({
@@ -114,6 +180,95 @@ export async function googleAuth(data) {
 		}),
 	])
 
+<<<<<<< HEAD
+  return {
+    message: 'Google authentication successful',
+    accessToken,
+    user: sanitizeUser(user),
+  }
+}
+
+export async function forgotPassword(data) {
+  const { email } = data
+
+  if (!email) {
+    throw new AppError('Email is required', 400)
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+  })
+
+  if (!user) {
+    throw new AppError('No user found with this email', 404)
+  }
+
+  const resetToken = crypto.randomBytes(32).toString('hex')
+  const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex')
+  const tokenExpiry = new Date(Date.now() + 30 * 60 * 1000)
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      passwordResetToken: hashedToken,
+      passwordResetExpires: tokenExpiry,
+    },
+  })
+
+  const resetUrl = `${process.env.FRONTEND_URL}/forgot-password/reset?token=${resetToken}`
+
+  return {
+    message: 'Password reset link sent to email',
+    resetToken,
+    resetUrl,
+  }
+}
+
+export async function resetPassword(data) {
+  const { resetToken, newPassword, confirmPassword } = data
+
+  if (!resetToken || !newPassword || !confirmPassword) {
+    throw new AppError('Reset token and new password are required', 400)
+  }
+
+  if (newPassword !== confirmPassword) {
+    throw new AppError('Passwords do not match', 400)
+  }
+
+  if (newPassword.length < 8) {
+    throw new AppError('Password must be at least 8 characters long', 400)
+  }
+
+  const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex')
+
+  const user = await prisma.user.findFirst({
+    where: {
+      passwordResetToken: hashedToken,
+      passwordResetExpires: {
+        gt: new Date(),
+      },
+    },
+  })
+
+  if (!user) {
+    throw new AppError('Invalid or expired reset token', 400)
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      password: hashedPassword,
+      passwordResetToken: null,
+      passwordResetExpires: null,
+    },
+  })
+
+  return {
+    message: 'Password reset successful',
+  }
+=======
 	if (userByGoogleId && userByEmail && userByGoogleId.id !== userByEmail.id) {
 		throw new AppError('Google account is already linked to another user', 409)
 	}
@@ -284,4 +439,5 @@ export async function resetPassword(data) {
 	return {
 		message: 'Password has been reset successfully',
 	}
+>>>>>>> e5acc3cb22f56aa3e3701bfdfdc4df71d386edb2
 }

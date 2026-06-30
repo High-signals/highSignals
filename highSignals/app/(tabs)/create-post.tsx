@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
 	View,
 	Text,
@@ -21,6 +21,7 @@ import { RichEditor, actions } from 'react-native-pell-rich-editor'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
+import VoiceNoteRecorder from './components/VoiceNoteRecorder'
 
 const BRAND = '#d4af37'
 const BG = '#000000'
@@ -58,6 +59,11 @@ export default function CreatePostScreen() {
 	const [content, setContent] = useState('')
 	const [title, setTitle] = useState('')
 	const [isSaving, setIsSaving] = useState(false)
+
+	// Voice note state
+	const [showVoiceRecorder, setShowVoiceRecorder] = useState(false)
+	const [voiceNoteUri, setVoiceNoteUri] = useState<string | null>(null)
+	const [voiceNoteDuration, setVoiceNoteDuration] = useState(0)
 
 	// Publishing options
 	const [publishOption, setPublishOption] = useState<PublishOption>('draft')
@@ -323,7 +329,7 @@ export default function CreatePostScreen() {
 					title: title.trim(),
 					content,
 					platforms: [],
-					mediaUrls: [],
+					mediaUrls: voiceNoteUri ? [voiceNoteUri] : [],
 					status,
 					scheduledAt: scheduleTime,
 				})
@@ -439,6 +445,29 @@ export default function CreatePostScreen() {
 					style={[styles.richEditor, { height: editorHeight }]}
 				/>
 			</ScrollView>
+			{/* Voice note playback card - shown above toolbar when voice note exists */}
+			{voiceNoteUri && !showVoiceRecorder && (
+				<View style={[
+					styles.voiceNotePlaybackContainer,
+					{
+						bottom:
+							keyboardHeight > 0
+								? keyboardHeight + (insets.bottom ?? 0) + TOOLBAR_HEIGHT
+								: (insets.bottom ?? 0) + TOOLBAR_HEIGHT,
+					},
+				]}>
+					<VoiceNoteRecorder
+						onRecordingComplete={() => {}}
+						onCancel={() => {}}
+						onDelete={() => {
+							setVoiceNoteUri(null)
+							setVoiceNoteDuration(0)
+						}}
+						voiceNoteUri={voiceNoteUri}
+						voiceNoteDuration={voiceNoteDuration}
+					/>
+				</View>
+			)}
 			{/* Publish strip — hidden while typing so the toolbar can sit at the bottom */}
 			{keyboardHeight === 0 && (
 				<View
@@ -551,6 +580,11 @@ export default function CreatePostScreen() {
 					/>
 					<Divider />
 					<ToolbarIcon
+						name='mic-outline'
+						onPress={() => setShowVoiceRecorder(true)}
+					/>
+					<Divider />
+					<ToolbarIcon
 						name='arrow-undo-outline'
 						onPress={() => sendAction(actions.undo)}
 					/>
@@ -559,6 +593,24 @@ export default function CreatePostScreen() {
 						onPress={() => sendAction(actions.redo)}
 					/>
 				</ScrollView>
+				{/* Voice recorder strip — replaces toolbar visually when recording */}
+				{showVoiceRecorder && !voiceNoteUri && (
+					<VoiceNoteRecorder
+						onRecordingComplete={(uri, durationMs) => {
+							setVoiceNoteUri(uri)
+							setVoiceNoteDuration(durationMs)
+							setShowVoiceRecorder(false)
+						}}
+						onCancel={() => setShowVoiceRecorder(false)}
+						onDelete={() => {
+							setVoiceNoteUri(null)
+							setVoiceNoteDuration(0)
+							setShowVoiceRecorder(false)
+						}}
+						voiceNoteUri={null}
+						voiceNoteDuration={0}
+					/>
+				)}
 			</View>
 			{/* Publish Modal */}
 			<Modal
@@ -964,5 +1016,11 @@ const styles = StyleSheet.create({
 	},
 	buttonDisabled: {
 		opacity: 0.6,
+	},
+	voiceNotePlaybackContainer: {
+		position: 'absolute',
+		left: 0,
+		right: 0,
+		zIndex: 950,
 	},
 })
