@@ -1,6 +1,13 @@
 {
-	"permissions": {
-		"allow": ["Bash(npx tsc *)"],
-		"deny": ["Bash(npx tsc --watch *)", "Bash(source .env)"]
-	}
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(cat app.json)",
+      "Bash(ls eas.json)"
+    ],
+    "deny": [
+      "Bash(npx tsc --watch *)",
+      "Bash(source .env)"
+    ]
+  }
 }

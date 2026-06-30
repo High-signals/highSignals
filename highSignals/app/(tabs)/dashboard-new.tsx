@@ -18,6 +18,9 @@ import { useAuth } from '@/context/AuthContext'
 
 const BRAND = '#d4af37'
 
+// Static decorative waveform bar heights for the "Record your idea" card.
+const RECORD_WAVE_BARS = [8, 16, 24, 14, 28, 18, 10, 22, 12, 20, 8, 14]
+
 type Post = {
 	id: string
 	title?: string
@@ -264,11 +267,7 @@ export default function DashboardScreen() {
 						]}
 					>
 						<TouchableOpacity
-							style={[
-								styles.actionCard,
-								styles.fullWidthCard,
-								styles.brandCard,
-							]}
+							style={[styles.actionCard, styles.brandCard]}
 							onPress={() => router.push('/(tabs)/create-post' as any)}
 							activeOpacity={0.8}
 						>
@@ -300,6 +299,39 @@ export default function DashboardScreen() {
 											<View style={styles.draftLine} />
 										</View>
 									</View>
+								</View>
+							</View>
+						</TouchableOpacity>
+
+						<TouchableOpacity
+							style={[styles.actionCard, styles.recordCard]}
+							onPress={() =>
+								router.push(
+									'/(tabs)/create-post?record=1' as any,
+								)
+							}
+							activeOpacity={0.8}
+						>
+							<View style={styles.cardHeader}>
+								<Ionicons name='mic' size={22} color={BRAND} />
+								<Text style={styles.recordCardTitle}>
+									Record your idea
+								</Text>
+							</View>
+							<Text style={styles.recordCardSubtitle}>
+								Speak and we'll turn it into a script
+							</Text>
+							<View style={styles.cardIllustration}>
+								<View style={styles.recordWaveform}>
+									{RECORD_WAVE_BARS.map((h, i) => (
+										<View
+											key={i}
+											style={[
+												styles.recordWaveBar,
+												{ height: h },
+											]}
+										/>
+									))}
 								</View>
 							</View>
 						</TouchableOpacity>
@@ -752,10 +784,35 @@ const styles = StyleSheet.create({
 		minHeight: 180,
 		justifyContent: 'space-between',
 	},
-	fullWidthCard: {
-		width: '100%',
-	},
 	brandCard: {
+		backgroundColor: BRAND,
+	},
+	recordCard: {
+		backgroundColor: '#0f0f0f',
+		borderWidth: 1,
+		borderColor: 'rgba(212,175,55,0.35)',
+	},
+	recordCardTitle: {
+		fontSize: 18,
+		fontWeight: '700',
+		color: '#ffffff',
+	},
+	recordCardSubtitle: {
+		marginTop: 8,
+		fontSize: 13,
+		lineHeight: 18,
+		color: 'rgba(255,255,255,0.6)',
+		fontWeight: '600',
+	},
+	recordWaveform: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 4,
+		height: 30,
+	},
+	recordWaveBar: {
+		width: 3,
+		borderRadius: 1.5,
 		backgroundColor: BRAND,
 	},
 	cardHeader: {

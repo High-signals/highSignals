@@ -11,7 +11,12 @@ import {
 	Modal,
 	Platform,
 	Keyboard,
+	Dimensions,
+	useWindowDimensions,
 } from 'react-native'
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window')
+const MIN_EDITOR_HEIGHT = Math.max(400, SCREEN_HEIGHT - 320)
 import DateTimePicker, {
 	DateTimePickerAndroid,
 } from '@react-native-community/datetimepicker'
@@ -21,6 +26,7 @@ import { RichEditor, actions } from 'react-native-pell-rich-editor'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
+import RecordingModal from './components/RecordingModal'
 
 const BRAND = '#d4af37'
 const BG = '#000000'
@@ -78,7 +84,7 @@ export default function PostDetailScreen() {
 	const editorRef = useRef<RichEditor>(null)
 	const scrollRef = useRef<ScrollView>(null)
 	const insets = useSafeAreaInsets()
-	const [editorHeight, setEditorHeight] = useState(500)
+	const [editorHeight, setEditorHeight] = useState(MIN_EDITOR_HEIGHT)
 	const [viewHeight, setViewHeight] = useState(500)
 	const [post, setPost] = useState<Post | null>(null)
 	const [loading, setLoading] = useState(true)
@@ -88,8 +94,21 @@ export default function PostDetailScreen() {
 	const [showDatePicker, setShowDatePicker] = useState(false)
 	const [scheduleDate, setScheduleDate] = useState(new Date())
 	const [showColors, setShowColors] = useState(false)
+	const [showRecordingModal, setShowRecordingModal] = useState(false)
 	const [keyboardHeight, setKeyboardHeight] = useState(0)
+	const kbHeight = Platform.OS === 'ios' ? keyboardHeight : 0
 	const [showStatusPicker, setShowStatusPicker] = useState(false)
+
+	const { height: windowHeight } = useWindowDimensions()
+	const maxWindowHeightRef = useRef(windowHeight)
+
+	if (keyboardHeight === 0 && windowHeight > maxWindowHeightRef.current) {
+		maxWindowHeightRef.current = windowHeight
+	}
+
+	const keyboardActive = keyboardHeight > 0
+	const viewportShrunk = keyboardActive && (windowHeight < maxWindowHeightRef.current - 80)
+	const bottomPadding = keyboardActive && !viewportShrunk ? keyboardHeight : 0
 
 	type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 	const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
@@ -304,11 +323,38 @@ export default function PostDetailScreen() {
 		editorRef.current?.sendAction(actionName, 'result', param)
 	}
 
+	// Append dictated text to the end of the editor content. Moves the
+	// selection to the end of the editable body, then inserts the text so the
+	// editor's own `input` event fires and onChange picks it up.
+	const appendDictatedText = useCallback((text: string) => {
+		const safe = text.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+		const js = `
+		(function(){
+		  var ed = document.querySelector('.pell-content');
+		  if (!ed) return;
+		  ed.focus();
+		  var range = document.createRange();
+		  range.selectNodeContents(ed);
+		  range.collapse(false);
+		  var sel = window.getSelection();
+		  sel.removeAllRanges();
+		  sel.addRange(range);
+		  document.execCommand('insertText', false, '${safe} ');
+		  ed.dispatchEvent(new Event('input', { bubbles: true }));
+		})();
+		true;
+		`
+		editorRef.current?.commandDOM(js)
+	}, [])
+
 	const insertDivider = () => {
 		editorRef.current?.insertHTML('<hr />')
 	}
 
 	const installChecklistExitHandler = () => {
+		// pell.js's checklist doesn't exit on empty enter or backspace.
+		// Inject a keydown listener that detects an empty checklist <li>
+		// and breaks out into a fresh paragraph.
 		const js = `
 		(function(){
 		  if (window.__checklistExitInstalled) return;
@@ -332,6 +378,7 @@ export default function PostDetailScreen() {
 		    var p = document.createElement('div');
 		    p.innerHTML = '<br/>';
 		    if (li.nextSibling){
+		      // split: move siblings after li into a new ul after the paragraph
 		      var newUl = ul.cloneNode(false);
 		      var n = li.nextSibling;
 		      while (n){ var nx = n.nextSibling; newUl.appendChild(n); n = nx; }
@@ -360,6 +407,148 @@ export default function PostDetailScreen() {
 		      exitChecklist(li);
 		    }
 		  }, true);
+
+		  // --- FLOATING TOOLBAR INJECTION ---
+		  if (!window.__floatingToolbarInstalled) {
+		    window.__floatingToolbarInstalled = true;
+		    
+		    var style = document.createElement('style');
+		    style.innerHTML = \`
+		      .floating-toolbar {
+		        position: absolute;
+		        display: none;
+		        background: rgba(15, 23, 42, 0.95);
+		        border: 1px solid rgba(212, 175, 55, 0.4);
+		        border-radius: 8px;
+		        padding: 4px;
+		        z-index: 99999;
+		        box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+		        flex-direction: row;
+		        align-items: center;
+		        gap: 2px;
+		        pointer-events: auto;
+		        backdrop-filter: blur(10px);
+		        transition: opacity 0.15s ease;
+		        opacity: 0;
+		      }
+		      .floating-toolbar.active {
+		        display: flex;
+		        opacity: 1;
+		      }
+		      .floating-btn {
+		        background: transparent;
+		        border: none;
+		        color: #e2e8f0;
+		        padding: 6px 10px;
+		        font-size: 13px;
+		        font-weight: bold;
+		        border-radius: 4px;
+		        cursor: pointer;
+		        display: flex;
+		        align-items: center;
+		        justify-content: center;
+		        min-width: 30px;
+		        height: 30px;
+		        outline: none;
+		      }
+		      .floating-btn:active, .floating-btn.active {
+		        background: rgba(212, 175, 55, 0.2);
+		        color: #d4af37;
+		      }
+		      .floating-divider {
+		        width: 1px;
+		        height: 18px;
+		        background: rgba(255, 255, 255, 0.15);
+		        margin: 0 4px;
+		      }
+		    \`;
+		    document.head.appendChild(style);
+		    
+		    var toolbar = document.createElement('div');
+		    toolbar.className = 'floating-toolbar';
+		    
+		    var buttons = [
+		      { label: 'B', cmd: 'bold', style: 'font-weight: 900;' },
+		      { label: 'I', cmd: 'italic', style: 'font-style: italic;' },
+		      { label: 'U', cmd: 'underline', style: 'text-decoration: underline;' },
+		      { label: 'S', cmd: 'strikeThrough', style: 'text-decoration: line-through;' },
+		      { divider: true },
+		      { label: 'H1', cmd: 'formatBlock', val: '<h1>' },
+		      { label: 'H2', cmd: 'formatBlock', val: '<h2>' }
+		    ];
+		    
+		    buttons.forEach(function(b) {
+		      if (b.divider) {
+		        var d = document.createElement('div');
+		        d.className = 'floating-divider';
+		        toolbar.appendChild(d);
+		        return;
+		      }
+		      var btn = document.createElement('button');
+		      btn.className = 'floating-btn';
+		      btn.innerHTML = b.label;
+		      if (b.style) btn.setAttribute('style', b.style);
+		      
+		      btn.addEventListener('mousedown', function(e) {
+		        e.preventDefault();
+		        document.execCommand(b.cmd, false, b.val || null);
+		        var ed = document.querySelector('.pell-content');
+		        if (ed) ed.dispatchEvent(new Event('input', { bubbles: true }));
+		        setTimeout(updatePosition, 10);
+		      });
+		      toolbar.appendChild(btn);
+		    });
+		    
+		    document.body.appendChild(toolbar);
+		    
+		    function updatePosition() {
+		      var sel = window.getSelection();
+		      if (!sel || sel.rangeCount === 0 || sel.toString().trim() === '') {
+		        toolbar.classList.remove('active');
+		        return;
+		      }
+		      var range = sel.getRangeAt(0);
+		      var rect = range.getBoundingClientRect();
+		      if (rect.width === 0 || rect.height === 0) {
+		        toolbar.classList.remove('active');
+		        return;
+		      }
+		      
+		      var toolbarWidth = toolbar.offsetWidth || 240;
+		      var toolbarHeight = toolbar.offsetHeight || 38;
+		      // Gap large enough to clear the native selection handles so our
+		      // toolbar doesn't collide with Android's copy/paste menu (which
+		      // sits above the selection). Default below the selection.
+		      var gap = 30;
+
+		      var absoluteLeft = rect.left + (rect.width / 2) - (toolbarWidth / 2) + window.pageXOffset;
+		      var absoluteTop = rect.bottom + window.pageYOffset + gap;
+
+		      if (absoluteLeft < 8) absoluteLeft = 8;
+		      if (absoluteLeft + toolbarWidth > window.innerWidth - 8) {
+		        absoluteLeft = window.innerWidth - toolbarWidth - 8;
+		      }
+		      // If placing below would push it off the bottom of the viewport,
+		      // fall back to above the selection.
+		      if (rect.bottom + gap + toolbarHeight > window.innerHeight - 8) {
+		        absoluteTop = rect.top + window.pageYOffset - toolbarHeight - gap;
+		      }
+
+		      toolbar.style.left = absoluteLeft + 'px';
+		      toolbar.style.top = absoluteTop + 'px';
+		      toolbar.classList.add('active');
+		    }
+		    
+		    document.addEventListener('selectionchange', function() {
+		      setTimeout(updatePosition, 50);
+		    });
+		    
+		    document.addEventListener('mousedown', function(e) {
+		      if (!toolbar.contains(e.target)) {
+		        setTimeout(updatePosition, 100);
+		      }
+		    });
+		  }
 		})();
 		true;
 		`
@@ -449,7 +638,7 @@ export default function PostDetailScreen() {
 	// EDIT MODE — full-page editor with floating toolbar
 	if (isEditing && editedPost) {
 		return (
-			<View style={styles.container}>
+			<View style={[styles.container, { paddingBottom: bottomPadding }]}>
 				<View style={styles.editHeader}>
 					<TouchableOpacity
 						onPress={() => {
@@ -496,93 +685,90 @@ export default function PostDetailScreen() {
 						)}
 					</View>
 
-					<TouchableOpacity
-						onPress={handleSaveChanges}
-						disabled={isSaving}
-						style={styles.headerIconBtn}
-					>
-						{isSaving ? (
-							<ActivityIndicator color={BRAND} />
-						) : (
+					<View style={styles.headerRight}>
+						<TouchableOpacity
+							onPress={() => setShowRecordingModal(true)}
+							style={styles.headerIconBtn}
+						>
 							<Ionicons
-								name='checkmark'
+								name='mic-outline'
 								size={24}
 								color={BRAND}
 							/>
-						)}
-					</TouchableOpacity>
+						</TouchableOpacity>
+						<TouchableOpacity
+							onPress={handleSaveChanges}
+							disabled={isSaving}
+							style={styles.headerIconBtn}
+						>
+							{isSaving ? (
+								<ActivityIndicator color={BRAND} />
+							) : (
+								<Ionicons
+									name='checkmark'
+									size={24}
+									color={BRAND}
+								/>
+							)}
+						</TouchableOpacity>
+					</View>
 				</View>
 
-				<TextInput
-					style={styles.titleInput}
-					value={editedPost.title || ''}
-					onChangeText={(text) =>
-						setEditedPost({ ...editedPost, title: text })
-					}
-					placeholder='Title'
-					placeholderTextColor='rgba(255,255,255,0.35)'
-				/>
-
-				<ScrollView
-					ref={scrollRef}
-					style={styles.editorScroll}
-					contentContainerStyle={{
-						paddingBottom: keyboardHeight + TOOLBAR_HEIGHT,
-					}}
-					keyboardShouldPersistTaps='handled'
-				>
-					<RichEditor
-						ref={editorRef}
-						key={`edit-${post.id}-${post.updatedAt || ''}`}
-						initialContentHTML={normalizeHtmlContent(
-							editedPost.content,
-						)}
-						editorInitializedCallback={installChecklistExitHandler}
-						onChange={(html) =>
-							setEditedPost({ ...editedPost, content: html })
+					<TextInput
+						style={styles.titleInput}
+						value={editedPost.title || ''}
+						onChangeText={(text) =>
+							setEditedPost({ ...editedPost, title: text })
 						}
-						onCursorPosition={(scrollY) => {
-							scrollRef.current?.scrollTo({
-								y: Math.max(0, scrollY - 120),
-								animated: true,
-							})
-						}}
-						onHeightChange={(h) => {
-							if (h && h > 0) {
-								setEditorHeight(Math.max(h, 500))
-								requestAnimationFrame(() => {
-									scrollRef.current?.scrollToEnd({
-										animated: true,
-									})
-								})
-							}
-						}}
-						editorStyle={{
-							backgroundColor: BG,
-							color: '#ffffff',
-							caretColor: BRAND,
-							placeholderColor: 'rgba(255,255,255,0.3)',
-							contentCSSText: `font-size: 17px; line-height: 28px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #ffffff; padding: 8px 0 ${EDITOR_BOTTOM_PADDING}px 0;`,
-						}}
-						placeholder='Start writing…'
-						useContainer={false}
-						initialHeight={500}
-						style={[styles.richEditor, { height: editorHeight }]}
+						placeholder='Title'
+						placeholderTextColor='rgba(255,255,255,0.35)'
 					/>
-				</ScrollView>
 
-				<View
-					style={[
-						styles.floatingDock,
-						{
-							bottom:
-								keyboardHeight > 0
-									? keyboardHeight + (insets.bottom ?? 0)
-									: insets.bottom ?? 0,
-						},
-					]}
-					pointerEvents='box-none'
-				>
+					<ScrollView
+						ref={scrollRef}
+						style={styles.editorScroll}
+						contentContainerStyle={{
+							flexGrow: 1,
+							paddingBottom: keyboardActive ? 150 : 40,
+						}}
+						keyboardShouldPersistTaps='handled'
+					>
+						<RichEditor
+							ref={editorRef}
+							key={`edit-${post.id}-${post.updatedAt || ''}`}
+							initialContentHTML={normalizeHtmlContent(
+								editedPost.content,
+							)}
+							editorInitializedCallback={installChecklistExitHandler}
+							onChange={(html) =>
+								setEditedPost({ ...editedPost, content: html })
+							}
+							onCursorPosition={(scrollY) => {
+								scrollRef.current?.scrollTo({
+									y: Math.max(0, scrollY - 120),
+									animated: true,
+								})
+							}}
+							onHeightChange={(h) => {
+								if (h && h > 0) {
+									setEditorHeight(Math.max(h, MIN_EDITOR_HEIGHT))
+								}
+							}}
+							editorStyle={{
+								backgroundColor: BG,
+								color: '#ffffff',
+								caretColor: BRAND,
+								placeholderColor: 'rgba(255,255,255,0.3)',
+								contentCSSText: `font-size: 17px; line-height: 28px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #ffffff; padding: 8px 18px ${EDITOR_BOTTOM_PADDING}px 18px; margin: 0; } input[type="checkbox"] { accent-color: #d4af37; margin-right: 8px; transform: scale(1.15); vertical-align: middle; } .dummy-todo {`,
+							}}
+							placeholder='Start writing…'
+							useContainer={false}
+							initialHeight={MIN_EDITOR_HEIGHT}
+							style={[styles.richEditor, { height: editorHeight }]}
+						/>
+					</ScrollView>
+
+					<View style={[styles.floatingDock, { paddingBottom: keyboardActive ? 0 : (insets.bottom ?? 0) }]}>
 					{showColors && (
 						<View style={styles.swatchTray}>
 							{COLOR_SWATCHES.map((hex) => (
@@ -675,6 +861,12 @@ export default function PostDetailScreen() {
 					</ScrollView>
 				</View>
 
+				<RecordingModal
+					visible={showRecordingModal}
+					onClose={() => setShowRecordingModal(false)}
+					onFinalText={appendDictatedText}
+				/>
+
 				<Modal
 					visible={showStatusPicker}
 					transparent
@@ -736,8 +928,8 @@ export default function PostDetailScreen() {
 						}}
 					/>
 				)}
-			</View>
-		)
+		</View>
+	)
 	}
 
 	// VIEW MODE — clean reader
@@ -799,7 +991,7 @@ export default function PostDetailScreen() {
 						backgroundColor: BG,
 						color: '#ffffff',
 						contentCSSText:
-							"font-size: 16px; line-height: 26px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: rgba(255,255,255,0.9); padding: 0;",
+							"font-size: 16px; line-height: 26px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: rgba(255,255,255,0.9); padding: 0 20px 24px 20px; margin: 0; } input[type=\"checkbox\"] { accent-color: #d4af37; margin-right: 8px; transform: scale(1.15); vertical-align: middle; } .dummy-todo {",
 					}}
 					useContainer={false}
 					initialHeight={500}
@@ -942,10 +1134,17 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'center',
 	},
+	headerRight: {
+		flexDirection: 'row',
+		alignItems: 'center',
+	},
 	viewTitleBlock: {
 		paddingHorizontal: 20,
 		paddingTop: 16,
 		paddingBottom: 8,
+		width: '100%',
+		maxWidth: 800,
+		alignSelf: 'center',
 	},
 	viewTitle: {
 		fontSize: 28,
@@ -960,7 +1159,10 @@ const styles = StyleSheet.create({
 	},
 	viewBodyFull: {
 		flex: 1,
-		paddingHorizontal: 12,
+		paddingHorizontal: 0,
+		width: '100%',
+		maxWidth: 800,
+		alignSelf: 'center',
 	},
 	viewBodyContent: {
 		paddingBottom: 24,
@@ -970,7 +1172,10 @@ const styles = StyleSheet.create({
 	},
 	editorScroll: {
 		flex: 1,
-		paddingHorizontal: 12,
+		paddingHorizontal: 0,
+		width: '100%',
+		maxWidth: 800,
+		alignSelf: 'center',
 	},
 	richEditor: {
 		backgroundColor: BG,
@@ -990,12 +1195,14 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 18,
 		paddingTop: 14,
 		paddingBottom: 8,
+		width: '100%',
+		maxWidth: 800,
+		alignSelf: 'center',
 	},
 	floatingDock: {
-		position: 'absolute',
-		left: 0,
-		right: 0,
 		backgroundColor: BG,
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: 'rgba(255,255,255,0.08)',
 	},
 	swatchTray: {
 		flexDirection: 'row',
