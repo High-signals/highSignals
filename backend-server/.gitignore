@@ -1,5 +1,13 @@
 node_modules
 # Keep environment variables out of version control
 .env
+# ...but the template (no secrets) should be committed
+!.env.example
+
+# Google service-account key files (never commit credentials)
+*.json
+!package.json
+!package-lock.json
+!.env.example
 
 /generated/prisma

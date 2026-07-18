@@ -1,8 +1,25 @@
 // API Configuration
+// NOTE: the realtime voice feature needs a persistent host (WebSocket + Google
+// streaming), which Vercel serverless cannot provide. Point EXPO_PUBLIC_API_URL
+// at the new persistent backend (Render/Railway/VPS). The old Vercel URL only
+// remains as a last-resort fallback for the plain REST endpoints.
 const API_BASE_URL =
 	process.env.EXPO_PUBLIC_API_URL ||
 	process.env.REACT_APP_API_URL ||
 	'https://high-signals.vercel.app'
+
+/** The resolved REST base URL (host), exported for non-`call` fetches. */
+export const apiBaseUrl = API_BASE_URL
+
+/**
+ * WebSocket URL for the realtime transcription stream. Derived from the API
+ * host (http→ws, https→wss) unless EXPO_PUBLIC_WS_URL is set explicitly.
+ */
+export function getWsUrl(path = '/ws/transcribe'): string {
+	const explicit = process.env.EXPO_PUBLIC_WS_URL
+	const base = explicit || API_BASE_URL.replace(/^http/, 'ws')
+	return `${base.replace(/\/$/, '')}${path}`
+}
 
 // Store tokens (in production, use secure storage)
 let authTokens = {

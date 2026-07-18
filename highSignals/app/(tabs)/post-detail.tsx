@@ -323,15 +323,60 @@ export default function PostDetailScreen() {
 		editorRef.current?.sendAction(actionName, 'result', param)
 	}
 
-	// Append dictated text to the end of the editor content. Moves the
-	// selection to the end of the editable body, then inserts the text so the
-	// editor's own `input` event fires and onChange picks it up.
-	const appendDictatedText = useCallback((text: string) => {
+	// --- Live voice dictation into the editor ---------------------------------
+	// Interim transcripts render in a grey placeholder span pinned to the end of
+	// the content; a final phrase replaces it with permanent text so the editor's
+	// `input` event fires and onChange picks it up. Mirrors create-post.tsx.
+
+	const updateInterimText = useCallback((text: string) => {
+		const safe = text
+			.replace(/\\/g, '\\\\')
+			.replace(/'/g, "\\'")
+			.replace(/\n/g, ' ')
+		const js = `
+		(function(){
+		  var ed = document.querySelector('.pell-content');
+		  if (!ed) return;
+		  var span = document.getElementById('__interim');
+		  if (!span) {
+		    span = document.createElement('span');
+		    span.id = '__interim';
+		    span.setAttribute('style','color:rgba(255,255,255,0.45);font-style:italic;');
+		    ed.appendChild(span);
+		  }
+		  span.textContent = '${safe}';
+		})();
+		true;
+		`
+		editorRef.current?.commandDOM(js)
+	}, [])
+
+	// Mark the start of a dictation session. If the editor already holds text,
+	// the first committed phrase begins on a new line so voice input doesn't run
+	// into existing content. Decision resolved at commit time in the WebView.
+	const beginVoiceSession = useCallback(() => {
+		const js = `
+		(function(){
+		  var ed = document.querySelector('.pell-content');
+		  if (!ed) return;
+		  var span = document.getElementById('__interim');
+		  if (span) span.remove();
+		  var hasText = ed.textContent.replace(/\\u00a0|\\s/g,'').length > 0;
+		  window.__voiceNewline = hasText;
+		})();
+		true;
+		`
+		editorRef.current?.commandDOM(js)
+	}, [])
+
+	const commitFinalText = useCallback((text: string) => {
 		const safe = text.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
 		const js = `
 		(function(){
 		  var ed = document.querySelector('.pell-content');
 		  if (!ed) return;
+		  var span = document.getElementById('__interim');
+		  if (span) span.parentNode && span.parentNode.removeChild(span);
 		  ed.focus();
 		  var range = document.createRange();
 		  range.selectNodeContents(ed);
@@ -339,8 +384,23 @@ export default function PostDetailScreen() {
 		  var sel = window.getSelection();
 		  sel.removeAllRanges();
 		  sel.addRange(range);
+		  if (window.__voiceNewline) {
+		    document.execCommand('insertParagraph');
+		    window.__voiceNewline = false;
+		  }
 		  document.execCommand('insertText', false, '${safe} ');
 		  ed.dispatchEvent(new Event('input', { bubbles: true }));
+		})();
+		true;
+		`
+		editorRef.current?.commandDOM(js)
+	}, [])
+
+	const clearInterimText = useCallback(() => {
+		const js = `
+		(function(){
+		  var span = document.getElementById('__interim');
+		  if (span && span.parentNode) span.parentNode.removeChild(span);
 		})();
 		true;
 		`
@@ -863,8 +923,13 @@ export default function PostDetailScreen() {
 
 				<RecordingModal
 					visible={showRecordingModal}
-					onClose={() => setShowRecordingModal(false)}
-					onFinalText={appendDictatedText}
+					onClose={() => {
+						clearInterimText()
+						setShowRecordingModal(false)
+					}}
+					onLiveTranscript={updateInterimText}
+					onFinalText={commitFinalText}
+					onSessionStart={beginVoiceSession}
 				/>
 
 				<Modal

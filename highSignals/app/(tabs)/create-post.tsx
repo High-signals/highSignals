@@ -17,6 +17,7 @@ import {
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 const MIN_EDITOR_HEIGHT = Math.max(400, SCREEN_HEIGHT - 320)
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import DateTimePicker, {
 	DateTimePickerAndroid,
@@ -39,6 +40,10 @@ const EDITOR_BOTTOM_PADDING = 420
 
 type PublishOption = 'immediate' | 'schedule' | 'draft'
 
+// AsyncStorage key for an unfinished voice idea (see dashboard resume popup).
+export const VOICE_DRAFT_KEY = 'voiceDraft'
+type VoiceDraft = { filePath: string; createdAt: number }
+
 const COLOR_SWATCHES = [
 	BRAND,
 	'#ffffff',
@@ -56,7 +61,10 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 export default function CreatePostScreen() {
 	const router = useRouter()
-	const params = useLocalSearchParams<{ record?: string }>()
+	const params = useLocalSearchParams<{
+		record?: string
+		resumeVoice?: string
+	}>()
 	const editorRef = useRef<RichEditor>(null)
 	const scrollRef = useRef<ScrollView>(null)
 	const insets = useSafeAreaInsets()
@@ -66,12 +74,40 @@ export default function CreatePostScreen() {
 	const [title, setTitle] = useState('')
 	const [isSaving, setIsSaving] = useState(false)
 	const [showRecordingModal, setShowRecordingModal] = useState(false)
+	// When resuming an unfinished idea, this holds the cached audio file URI so
+	// the modal can prime its Retry button with it.
+	const [resumeFilePath, setResumeFilePath] = useState<string | null>(null)
 
 	// Auto-open the recording modal when arriving from the dashboard's
-	// "Record your idea" card (create-post?record=1).
+	// "Record your idea" card (create-post?record=1) or the draft-resume popup
+	// (create-post?resumeVoice=1).
 	useEffect(() => {
-		if (params.record === '1') setShowRecordingModal(true)
+		if (params.record === '1') {
+			setResumeFilePath(null)
+			setShowRecordingModal(true)
+		}
 	}, [params.record])
+
+	useEffect(() => {
+		if (params.resumeVoice !== '1') return
+		let cancelled = false
+		;(async () => {
+			try {
+				const raw = await AsyncStorage.getItem(VOICE_DRAFT_KEY)
+				if (!raw || cancelled) return
+				const draft: VoiceDraft = JSON.parse(raw)
+				if (draft?.filePath) {
+					setResumeFilePath(draft.filePath)
+					setShowRecordingModal(true)
+				}
+			} catch (err) {
+				console.warn('failed to load voice draft', err)
+			}
+		})()
+		return () => {
+			cancelled = true
+		}
+	}, [params.resumeVoice])
 
 	// Publishing options
 	const [publishOption, setPublishOption] = useState<PublishOption>('draft')
@@ -174,15 +210,69 @@ export default function CreatePostScreen() {
 		editorRef.current?.sendAction(actionName, 'result', param)
 	}
 
-	// Append dictated text to the end of the editor content. Moves the
-	// selection to the end of the editable body, then inserts the text so the
-	// editor's own `input` event fires and onChange/autosave pick it up.
-	const appendDictatedText = useCallback((text: string) => {
+	// --- Live voice dictation into the editor ---------------------------------
+	// Interim (partial) transcripts are shown in a single grey placeholder span
+	// pinned at the end of the content, updated in place as Google refines them.
+	// A final phrase replaces that span with permanent text, so the editor's
+	// `input` event fires and onChange/autosave pick it up.
+
+	const updateInterimText = useCallback((text: string) => {
+		const safe = text
+			.replace(/\\/g, '\\\\')
+			.replace(/'/g, "\\'")
+			.replace(/\n/g, ' ')
+		const js = `
+		(function(){
+		  var ed = document.querySelector('.pell-content');
+		  if (!ed) return;
+		  var span = document.getElementById('__interim');
+		  if (!span) {
+		    span = document.createElement('span');
+		    span.id = '__interim';
+		    span.setAttribute('style','color:rgba(255,255,255,0.45);font-style:italic;');
+		    ed.appendChild(span);
+		  }
+		  span.textContent = '${safe}';
+		})();
+		true;
+		`
+		editorRef.current?.commandDOM(js)
+	}, [])
+
+	// Mark the start of a dictation session (live start or retry). If the editor
+	// already holds text, the first committed phrase should begin on a new line
+	// so voice input doesn't run into whatever the user typed before. A fresh /
+	// empty draft gets no leading blank line. The decision is resolved at commit
+	// time inside the WebView, where the live DOM content is authoritative.
+	const beginVoiceSession = useCallback(() => {
+		const js = `
+		(function(){
+		  var ed = document.querySelector('.pell-content');
+		  if (!ed) return;
+		  var span = document.getElementById('__interim');
+		  var hadInterim = !!span;
+		  if (span) span.remove();
+		  var hasText = ed.textContent.replace(/\\u00a0|\\s/g,'').length > 0;
+		  // Newline needed only if there's pre-existing text this session hasn't
+		  // already broken onto a new line.
+		  window.__voiceNewline = hasText;
+		})();
+		true;
+		`
+		editorRef.current?.commandDOM(js)
+	}, [])
+
+	// Commit a stabilized phrase: drop the interim span and append permanent text.
+	// The first commit of a session prepends a paragraph break when the editor
+	// already had content (see beginVoiceSession).
+	const commitFinalText = useCallback((text: string) => {
 		const safe = text.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
 		const js = `
 		(function(){
 		  var ed = document.querySelector('.pell-content');
 		  if (!ed) return;
+		  var span = document.getElementById('__interim');
+		  if (span) span.parentNode && span.parentNode.removeChild(span);
 		  ed.focus();
 		  var range = document.createRange();
 		  range.selectNodeContents(ed);
@@ -190,12 +280,44 @@ export default function CreatePostScreen() {
 		  var sel = window.getSelection();
 		  sel.removeAllRanges();
 		  sel.addRange(range);
+		  if (window.__voiceNewline) {
+		    document.execCommand('insertParagraph');
+		    window.__voiceNewline = false;
+		  }
 		  document.execCommand('insertText', false, '${safe} ');
 		  ed.dispatchEvent(new Event('input', { bubbles: true }));
 		})();
 		true;
 		`
 		editorRef.current?.commandDOM(js)
+	}, [])
+
+	// Remove any lingering interim span (e.g. on cancel) without committing.
+	const clearInterimText = useCallback(() => {
+		const js = `
+		(function(){
+		  var span = document.getElementById('__interim');
+		  if (span && span.parentNode) span.parentNode.removeChild(span);
+		})();
+		true;
+		`
+		editorRef.current?.commandDOM(js)
+	}, [])
+
+	// --- Voice draft persistence (device) -------------------------------------
+	const saveVoiceDraft = useCallback(async (fileUri: string) => {
+		try {
+			const draft: VoiceDraft = { filePath: fileUri, createdAt: Date.now() }
+			await AsyncStorage.setItem(VOICE_DRAFT_KEY, JSON.stringify(draft))
+		} catch (err) {
+			console.warn('failed to save voice draft', err)
+		}
+	}, [])
+
+	const clearVoiceDraft = useCallback(async () => {
+		try {
+			await AsyncStorage.removeItem(VOICE_DRAFT_KEY)
+		} catch {}
 	}, [])
 
 	const insertDivider = () => {
@@ -745,11 +867,21 @@ export default function CreatePostScreen() {
 					/>
 				</ScrollView>
 			</View>
-			{/* Recording / dictation modal */}
+			{/* Recording / dictation modal — transcript is written into the editor
+			    behind this sheet (interim as a grey span, finals as permanent text). */}
 			<RecordingModal
 				visible={showRecordingModal}
-				onClose={() => setShowRecordingModal(false)}
-				onFinalText={appendDictatedText}
+				onClose={() => {
+					clearInterimText()
+					setResumeFilePath(null)
+					setShowRecordingModal(false)
+				}}
+				onLiveTranscript={updateInterimText}
+				onFinalText={commitFinalText}
+				onSessionStart={beginVoiceSession}
+				resumeFilePath={resumeFilePath}
+				onDraftSave={saveVoiceDraft}
+				onDraftClear={clearVoiceDraft}
 			/>
 			{/* Publish Modal */}
 			<Modal

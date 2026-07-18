@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
 	ActivityIndicator,
+	Alert,
 	Animated,
 	Image,
 	SafeAreaView,
@@ -11,10 +12,12 @@ import {
 	TouchableOpacity,
 	View,
 } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { api, postsEvents } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
+import { VOICE_DRAFT_KEY } from './create-post'
 
 const BRAND = '#d4af37'
 
@@ -57,6 +60,46 @@ export default function DashboardScreen() {
 			}),
 		]).start()
 	}, [fadeAnim, slideAnim])
+
+	// If the app was closed mid-idea, offer to finish the unfinished voice draft.
+	// Prompt at most once per mount.
+	const draftPromptShown = useRef(false)
+	useEffect(() => {
+		if (draftPromptShown.current) return
+		let cancelled = false
+		;(async () => {
+			try {
+				const raw = await AsyncStorage.getItem(VOICE_DRAFT_KEY)
+				if (!raw || cancelled) return
+				draftPromptShown.current = true
+				Alert.alert(
+					'Finish your idea?',
+					'You have an unfinished recorded idea. Want to pick up where you left off?',
+					[
+						{
+							text: 'Discard',
+							style: 'destructive',
+							onPress: () => {
+								AsyncStorage.removeItem(VOICE_DRAFT_KEY).catch(() => {})
+							},
+						},
+						{
+							text: 'Finish it',
+							onPress: () =>
+								router.push(
+									'/(tabs)/create-post?resumeVoice=1' as any,
+								),
+						},
+					],
+				)
+			} catch {
+				// ignore — a missing/corrupt draft simply means no prompt
+			}
+		})()
+		return () => {
+			cancelled = true
+		}
+	}, [router])
 
 	useEffect(() => {
 		let mounted = true
