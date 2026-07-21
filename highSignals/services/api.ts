@@ -6,7 +6,7 @@
 const API_BASE_URL =
 	process.env.EXPO_PUBLIC_API_URL ||
 	process.env.REACT_APP_API_URL ||
-	'https://high-signals.vercel.app'
+	'https://highsignals.onrender.com'
 
 /** The resolved REST base URL (host), exported for non-`call` fetches. */
 export const apiBaseUrl = API_BASE_URL

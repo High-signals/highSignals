@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { PermissionsAndroid, Platform } from 'react-native'
+import { NativeModules, PermissionsAndroid, Platform } from 'react-native'
 import { File, Paths, type FileHandle } from 'expo-file-system'
 import AudioRecord from 'react-native-live-audio-stream'
 import { api, getWsUrl } from '@/services/api'
+
+// react-native-live-audio-stream is a NATIVE module: it only exists in a custom
+// dev/EAS build, NOT in Expo Go. When absent, NativeModules.RNLiveAudioStream is
+// null and AudioRecord.init(...) throws 'Cannot read property init of null',
+// leaving the UI stuck on "connecting". Detect it up front to fail cleanly.
+const AUDIO_NATIVE_AVAILABLE = !!NativeModules.RNLiveAudioStream
 
 const BAR_COUNT = 32
 const IDLE_LEVEL = 0.04
@@ -236,6 +242,14 @@ export function useVoiceTranscription({
 
 	const start = useCallback(async () => {
 		if (recordingRef.current) return
+
+		// Guard: no native audio module (e.g. running in Expo Go) — bail with a
+		// clean error instead of crashing on AudioRecord.init.
+		if (!AUDIO_NATIVE_AVAILABLE) {
+			setStatus('error')
+			return
+		}
+
 		setStatus('connecting')
 
 		const ok = await requestMicPermission()
@@ -454,6 +468,8 @@ export function useVoiceTranscription({
 		isBusy,
 		/** Retry re-stream progress, 0..1 — drives the transcribing bar. */
 		progress,
+		/** False in Expo Go / any build missing the native audio module. */
+		audioAvailable: AUDIO_NATIVE_AVAILABLE,
 		start,
 		stop,
 		cancel,

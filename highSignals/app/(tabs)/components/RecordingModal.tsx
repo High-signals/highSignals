@@ -75,6 +75,7 @@ export default function RecordingModal({
 		hasRecording,
 		isBusy,
 		progress,
+		audioAvailable,
 		start,
 		stop,
 		cancel,
@@ -225,6 +226,14 @@ export default function RecordingModal({
 						{statusLabel(status, hasRecording)}
 					</Text>
 
+					{/* Native audio module missing (e.g. Expo Go) — dictation can't run. */}
+					{!audioAvailable && (
+						<Text style={[styles.status, styles.statusError]}>
+							Voice recording needs the full app build (not Expo Go). Please
+							open the dev/production build to dictate.
+						</Text>
+					)}
+
 					{/* Transcribing progress bar with a speaker icon riding the tip */}
 					{transcribing && <TranscribeProgress progress={progress} />}
 
@@ -232,11 +241,11 @@ export default function RecordingModal({
 					<TouchableOpacity
 						onPress={toggle}
 						activeOpacity={0.85}
-						disabled={isBusy}
+						disabled={isBusy || !audioAvailable}
 						style={[
 							styles.micButton,
 							listening && styles.micButtonActive,
-							isBusy && styles.micButtonDisabled,
+							(isBusy || !audioAvailable) && styles.micButtonDisabled,
 						]}
 					>
 						{listening ? (
