@@ -12,7 +12,7 @@ import {
 	Modal,
 	Alert,
 } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useRouter, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { api, postsEvents } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
@@ -75,8 +75,9 @@ const buildPreviewText = (value?: string | null) => {
 
 export default function GetContentScreen() {
 	const router = useRouter()
+	const params = useLocalSearchParams()
 	const { isAuthenticated } = useAuth()
-	const [filter, setFilter] = useState<FilterType>('all')
+	const [filter, setFilter] = useState<FilterType>((params.tab as FilterType) || 'all')
 	const [searchQuery, setSearchQuery] = useState('')
 	const [posts, setPosts] = useState<Post[]>([])
 	const [loading, setLoading] = useState(true)
@@ -210,6 +211,12 @@ export default function GetContentScreen() {
 		})
 		return unsubscribe
 	}, [isAuthenticated, fetchPosts])
+
+	useEffect(() => {
+		if (params.tab && params.tab !== filter) {
+			setFilter(params.tab as FilterType)
+		}
+	}, [params.tab])
 
 	// Reset pagination when filter or search changes
 	useEffect(() => {
@@ -385,6 +392,7 @@ export default function GetContentScreen() {
 			<ScrollView
 				horizontal
 				showsHorizontalScrollIndicator={false}
+				style={styles.filtersContainer}
 				contentContainerStyle={styles.filters}
 			>
 				{(
@@ -551,7 +559,7 @@ const styles = StyleSheet.create({
 		borderRadius: 8,
 		paddingHorizontal: 12,
 		marginHorizontal: 24,
-		marginBottom: 16,
+		marginBottom: 0,
 		borderWidth: 1,
 		borderColor: 'rgba(212,175,55,0.2)',
 	},
@@ -562,19 +570,28 @@ const styles = StyleSheet.create({
 		color: '#ffffff',
 		fontSize: 14,
 	},
+	filtersContainer: {
+		flexGrow: 0,
+		marginTop: 8,
+		marginBottom: 16,
+		maxHeight: 40,
+	},
 	filters: {
 		flexDirection: 'row',
+		alignItems: 'center',
 		paddingHorizontal: 24,
-		marginBottom: 16,
 		gap: 8,
 	},
 	filterButton: {
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		borderRadius: 16,
+		paddingHorizontal: 16,
+		paddingVertical: 8,
+		borderRadius: 20,
 		backgroundColor: 'rgba(255,255,255,0.05)',
 		borderWidth: 1,
 		borderColor: 'rgba(255,255,255,0.1)',
+		justifyContent: 'center',
+		alignItems: 'center',
+		minWidth: 64,
 	},
 	filterButtonActive: {
 		backgroundColor: '#d4af37',

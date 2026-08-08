@@ -109,11 +109,11 @@ export default function CreatePostScreen() {
 		}
 	}, [params.resumeVoice])
 
-	// Publishing options
-	const [publishOption, setPublishOption] = useState<PublishOption>('draft')
-	const [scheduleDate, setScheduleDate] = useState(new Date())
-	const [showDatePicker, setShowDatePicker] = useState(false)
-	const [showPublishModal, setShowPublishModal] = useState(false)
+	// Content Type options
+	const CONTENT_TYPES = ['Storytelling', 'Listicles', 'Quick Tip', 'Contrarian', 'Before and After', 'POV', 'Voice Over', 'Skit', 'Problem Solution', 'Other']
+	const [contentType, setContentType] = useState<string>('Storytelling')
+	const [customContentType, setCustomContentType] = useState('')
+	const [showContentTypeModal, setShowContentTypeModal] = useState(false)
 
 	// Toolbar UI
 	const [showColors, setShowColors] = useState(false)
@@ -169,6 +169,7 @@ export default function CreatePostScreen() {
 					title: title.trim() || 'Untitled',
 					content,
 				})
+			} else {
 				const initialStatus = params.record === '1' ? 'RECORDING' : 'SCRIPTING'
 				const created = await api.posts.create({
 					title: title.trim() || 'Untitled',
@@ -537,43 +538,15 @@ export default function CreatePostScreen() {
 		}, 30)
 	}
 
-	const combineDateAndTime = (datePart: Date, timePart: Date) => {
-		const next = new Date(datePart)
+	const combineDateAndTime = (date: Date, time: Date) => {
+		const next = new Date(date)
 		next.setHours(
-			timePart.getHours(),
-			timePart.getMinutes(),
-			timePart.getSeconds(),
+			time.getHours(),
+			time.getMinutes(),
+			time.getSeconds(),
 			0,
 		)
 		return next
-	}
-
-	const openScheduleDatePicker = () => {
-		if (Platform.OS === 'android') {
-			DateTimePickerAndroid.open({
-				value: scheduleDate,
-				mode: 'date',
-				onChange: (_event, selectedDate) => {
-					if (!selectedDate) return
-					DateTimePickerAndroid.open({
-						value: selectedDate,
-						mode: 'time',
-						onChange: (_timeEvent, selectedTime) => {
-							if (selectedTime) {
-								setScheduleDate(
-									combineDateAndTime(
-										selectedDate,
-										selectedTime,
-									),
-								)
-							}
-						},
-					})
-				},
-			})
-			return
-		}
-		setShowDatePicker(true)
 	}
 
 	const handleHeaderSavePress = async () => {
@@ -587,13 +560,9 @@ export default function CreatePostScreen() {
 		await performSave()
 	}
 
-	const handlePublish = async () => {
-		if (!title.trim()) {
-			Alert.alert('Title required', 'Please add a title.')
-			return
-		}
-		if (!content) {
-			Alert.alert('Empty post', 'Write something before posting.')
+	const handleFinish = async () => {
+		if (!title.trim() && !content) {
+			Alert.alert('Empty', 'Write something before finishing.')
 			return
 		}
 		if (!isAuthenticated) {
@@ -603,21 +572,15 @@ export default function CreatePostScreen() {
 
 		setIsSaving(true)
 		try {
-			const scheduleTime =
-				publishOption === 'schedule' ? scheduleDate.toISOString() : null
-			const status =
-				publishOption === 'draft'
-					? (params.record === '1' ? 'RECORDING' : 'SCRIPTING')
-					: publishOption === 'schedule'
-						? 'EDITING'
-						: 'POSTED'
+			const finalContentType = contentType === 'Other' ? customContentType.trim() : contentType;
+			const status = params.record === '1' ? 'RECORDING' : 'SCRIPTING'
 
 			if (draftIdRef.current) {
 				await api.posts.update(draftIdRef.current, {
 					title: title.trim(),
 					content,
 					status,
-					scheduledAt: scheduleTime,
+					contentType: finalContentType,
 				})
 			} else {
 				await api.posts.create({
@@ -626,19 +589,13 @@ export default function CreatePostScreen() {
 					platforms: [],
 					mediaUrls: [],
 					status,
-					scheduledAt: scheduleTime,
+					contentType: finalContentType,
 				})
 			}
 
-			Alert.alert(
-				'Success',
-				publishOption === 'draft'
-					? 'Saved as script'
-					: publishOption === 'schedule'
-						? 'Scheduled'
-						: 'Posted',
-			)
-			router.back()
+			Alert.alert('Success', 'Saved!')
+			setShowContentTypeModal(false)
+			router.push('/(tabs)/GetContent')
 		} catch (error: any) {
 			Alert.alert('Error', error.message || 'Failed to save post')
 		} finally {
@@ -767,10 +724,10 @@ export default function CreatePostScreen() {
 						</TouchableOpacity>
 						<TouchableOpacity
 							style={styles.publishStrip}
-							onPress={() => setShowPublishModal(true)}
+							onPress={() => setShowContentTypeModal(true)}
 							activeOpacity={0.85}
 						>
-							<Text style={styles.publishStripText}>Post</Text>
+							<Text style={styles.publishStripText}>Done</Text>
 							<Ionicons
 								name='arrow-forward'
 								size={16}
@@ -883,50 +840,48 @@ export default function CreatePostScreen() {
 				onDraftSave={saveVoiceDraft}
 				onDraftClear={clearVoiceDraft}
 			/>
-			{/* Publish Modal */}
+			{/* Content Type Modal */}
 			<Modal
-				visible={showPublishModal}
+				visible={showContentTypeModal}
 				transparent
 				animationType='slide'
-				onRequestClose={() => setShowPublishModal(false)}
+				onRequestClose={() => setShowContentTypeModal(false)}
 			>
 				<View style={styles.modalOverlay}>
 					<View style={styles.modalContent}>
-						<Text style={styles.modalTitle}>Post</Text>
+						<Text style={styles.modalTitle}>Select Content Type</Text>
 
-						<PublishOptionRow
-							icon='flash-outline'
-							title='Post now'
-							desc='Go live immediately'
-							selected={publishOption === 'immediate'}
-							onPress={() => setPublishOption('immediate')}
-						/>
-						<PublishOptionRow
-							icon='calendar-outline'
-							title='Schedule'
-							desc={
-								publishOption === 'schedule'
-									? scheduleDate.toLocaleString()
-									: 'Pick a date & time'
-							}
-							selected={publishOption === 'schedule'}
-							onPress={() => {
-								setPublishOption('schedule')
-								openScheduleDatePicker()
-							}}
-						/>
-						<PublishOptionRow
-							icon='document-text-outline'
-							title='Save as script'
-							desc='Edit and post later'
-							selected={publishOption === 'draft'}
-							onPress={() => setPublishOption('draft')}
-						/>
+						<ScrollView style={{ maxHeight: 300, width: '100%', marginBottom: 16 }} showsVerticalScrollIndicator={false}>
+							{CONTENT_TYPES.map((type) => (
+								<TouchableOpacity
+									key={type}
+									style={[
+										styles.toolBtn,
+										{ width: '100%', marginVertical: 4, justifyContent: 'flex-start', paddingHorizontal: 16 },
+										contentType === type && { borderColor: BRAND, backgroundColor: 'rgba(212,175,55,0.1)' }
+									]}
+									onPress={() => setContentType(type)}
+								>
+									<Text style={{ color: contentType === type ? BRAND : '#ffffff', fontSize: 16 }}>{type}</Text>
+								</TouchableOpacity>
+							))}
+						</ScrollView>
+
+						{contentType === 'Other' && (
+							<TextInput
+								style={[styles.searchInput, { width: '100%', marginBottom: 16, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)', borderRadius: 8, color: '#ffffff' }]}
+								placeholder='Type your custom content format'
+								placeholderTextColor='rgba(255,255,255,0.4)'
+								value={customContentType}
+								onChangeText={setCustomContentType}
+								maxLength={30}
+							/>
+						)}
 
 						<View style={styles.modalActions}>
 							<TouchableOpacity
 								style={styles.cancelButton}
-								onPress={() => setShowPublishModal(false)}
+								onPress={() => setShowContentTypeModal(false)}
 							>
 								<Text style={styles.cancelText}>Cancel</Text>
 							</TouchableOpacity>
@@ -935,8 +890,8 @@ export default function CreatePostScreen() {
 									styles.confirmButton,
 									isSaving && styles.buttonDisabled,
 								]}
-								onPress={handlePublish}
-								disabled={isSaving}
+								onPress={handleFinish}
+								disabled={isSaving || (contentType === 'Other' && !customContentType.trim())}
 							>
 								{isSaving ? (
 									<ActivityIndicator
@@ -945,7 +900,7 @@ export default function CreatePostScreen() {
 									/>
 								) : (
 									<Text style={styles.confirmText}>
-										Confirm
+										Finish
 									</Text>
 								)}
 							</TouchableOpacity>
@@ -953,21 +908,6 @@ export default function CreatePostScreen() {
 					</View>
 				</View>
 			</Modal>
-			{showDatePicker && Platform.OS === 'ios' && (
-				<DateTimePicker
-					value={scheduleDate}
-					mode='datetime'
-					display='default'
-					onChange={(event, selectedDate) => {
-						if (event?.type === 'dismissed') {
-							setShowDatePicker(false)
-							return
-						}
-						if (selectedDate) setScheduleDate(selectedDate)
-						setShowDatePicker(false)
-					}}
-				/>
-			)}
 		</View>
 	)
 }

@@ -427,38 +427,24 @@ export default function DashboardScreen() {
 					>
 						<TouchableOpacity
 							style={styles.statusCard}
-							onPress={() => router.push('/(tabs)/posts?tab=IDEA' as any)}
+							onPress={() => router.push('/(tabs)/GetContent?tab=all' as any)}
 						>
-							<Text style={styles.statusValue}>{counts.IDEA}</Text>
-							<Text style={styles.statusLabel}>Idea</Text>
+							<Text style={styles.statusValue}>{posts.length}</Text>
+							<Text style={styles.statusLabel}>All</Text>
 						</TouchableOpacity>
 						<TouchableOpacity
 							style={styles.statusCard}
-							onPress={() => router.push('/(tabs)/posts?tab=SCRIPTING' as any)}
+							onPress={() => router.push('/(tabs)/GetContent?tab=SCRIPTING' as any)}
 						>
 							<Text style={styles.statusValue}>{counts.SCRIPTING}</Text>
 							<Text style={styles.statusLabel}>Scripting</Text>
 						</TouchableOpacity>
 						<TouchableOpacity
 							style={styles.statusCard}
-							onPress={() => router.push('/(tabs)/posts?tab=RECORDING' as any)}
-						>
-							<Text style={styles.statusValue}>{counts.RECORDING}</Text>
-							<Text style={styles.statusLabel}>Recording</Text>
-						</TouchableOpacity>
-						<TouchableOpacity
-							style={styles.statusCard}
-							onPress={() => router.push('/(tabs)/posts?tab=EDITING' as any)}
+							onPress={() => router.push('/(tabs)/GetContent?tab=EDITING' as any)}
 						>
 							<Text style={styles.statusValue}>{counts.EDITING}</Text>
 							<Text style={styles.statusLabel}>Editing</Text>
-						</TouchableOpacity>
-						<TouchableOpacity
-							style={styles.statusCard}
-							onPress={() => router.push('/(tabs)/posts?tab=POSTED' as any)}
-						>
-							<Text style={styles.statusValue}>{counts.POSTED}</Text>
-							<Text style={styles.statusLabel}>Posted</Text>
 						</TouchableOpacity>
 					</ScrollView>
 
@@ -664,6 +650,7 @@ const styles = StyleSheet.create({
 	},
 	statusStrip: {
 		flexDirection: 'row',
+		justifyContent: 'center',
 		paddingHorizontal: 24,
 		gap: 10,
 		marginBottom: 18,

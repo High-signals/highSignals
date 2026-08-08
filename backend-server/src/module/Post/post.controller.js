@@ -19,6 +19,7 @@ export const createPostController = asyncHandler(async (req, res, next) => {
 		platformContent,
 		externalPostIds,
 		status,
+		contentType,
 		scheduledAt,
 		publishedAt,
 	} = req.body
@@ -43,6 +44,7 @@ export const createPostController = asyncHandler(async (req, res, next) => {
 		platformContent,
 		externalPostIds,
 		status,
+		contentType,
 		scheduledAt,
 		publishedAt,
 	}
@@ -64,6 +66,7 @@ export const editPostController = asyncHandler(async (req, res, next) => {
 		platformContent,
 		externalPostIds,
 		status,
+		contentType,
 		scheduledAt,
 		publishedAt,
 	} = req.body
@@ -86,6 +89,7 @@ export const editPostController = asyncHandler(async (req, res, next) => {
 	if (platformContent !== undefined) data.platformContent = platformContent
 	if (externalPostIds !== undefined) data.externalPostIds = externalPostIds
 	if (status !== undefined) data.status = status
+	if (contentType !== undefined) data.contentType = contentType
 	if (scheduledAt !== undefined) data.scheduledAt = scheduledAt
 	if (publishedAt !== undefined) data.publishedAt = publishedAt
 

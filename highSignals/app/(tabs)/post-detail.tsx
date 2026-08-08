@@ -297,28 +297,20 @@ export default function PostDetailScreen() {
 		const colors: { [key: string]: string } = {
 			IDEA: '#3b82f6',
 			SCRIPTING: '#9ca3af',
-			DRAFT: '#9ca3af',
 			RECORDING: '#ec4899',
 			EDITING: '#facc15',
-			SCHEDULED: '#facc15',
 			POSTED: '#22c55e',
-			PUBLISHED: '#22c55e',
-			FAILED: '#ef4444',
 		}
 		return colors[status] || '#ffffff'
 	}
 
 	const getStatusLabel = (status: string) => {
 		const labels: { [key: string]: string } = {
-			IDEA: 'IDEA',
-			SCRIPTING: 'SCRIPTING',
-			RECORDING: 'RECORDING',
-			EDITING: 'EDITING',
-			POSTED: 'POSTED',
-			DRAFT: 'SCRIPTING',
-			SCHEDULED: 'EDITING',
-			PUBLISHED: 'POSTED',
-			FAILED: 'FAILED',
+			IDEA: 'Idea',
+			SCRIPTING: 'Scripting',
+			RECORDING: 'Recording',
+			EDITING: 'Editing',
+			POSTED: 'Posted',
 		}
 		return labels[status] || status
 	}
@@ -657,7 +649,7 @@ export default function PostDetailScreen() {
 							setScheduleDate(next)
 							setEditedPost({
 								...editedPost,
-								status: 'SCHEDULED',
+								status: 'EDITING',
 								scheduledAt: next.toISOString(),
 							})
 						},
@@ -672,12 +664,7 @@ export default function PostDetailScreen() {
 	const chooseStatus = (status: string) => {
 		if (!editedPost) return
 		setShowStatusPicker(false)
-		if (status === 'SCHEDULED') {
-			setEditedPost({ ...editedPost, status })
-			openScheduleDatePicker()
-			return
-		}
-		setEditedPost({ ...editedPost, status, scheduledAt: null })
+		setEditedPost({ ...editedPost, status })
 	}
 
 	if (loading) {
@@ -995,7 +982,7 @@ export default function PostDetailScreen() {
 								setScheduleDate(selectedDate)
 								setEditedPost({
 									...editedPost,
-									status: 'SCHEDULED',
+									status: 'EDITING',
 									scheduledAt: selectedDate.toISOString(),
 								})
 							}

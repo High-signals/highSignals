@@ -107,6 +107,7 @@ model Post {
   mediaUrls       String[]
   platformContent Json?
   externalPostIds Json?
+  contentType     String?
   status          POST_STATUS @default(IDEA)
   scheduledAt     DateTime?
   publishedAt     DateTime?
