@@ -162,13 +162,14 @@ export default function DashboardScreen() {
 		() =>
 			posts.reduce(
 				(acc, post) => {
-					if (post.status === 'DRAFT') acc.DRAFT += 1
-					if (post.status === 'SCHEDULED') acc.SCHEDULED += 1
-					if (post.status === 'PUBLISHED') acc.PUBLISHED += 1
-					if (post.status === 'FAILED') acc.FAILED += 1
+					if (post.status === 'IDEA') acc.IDEA += 1
+					else if (post.status === 'SCRIPTING' || post.status === 'DRAFT') acc.SCRIPTING += 1
+					else if (post.status === 'RECORDING') acc.RECORDING += 1
+					else if (post.status === 'EDITING' || post.status === 'SCHEDULED') acc.EDITING += 1
+					else if (post.status === 'POSTED' || post.status === 'PUBLISHED') acc.POSTED += 1
 					return acc
 				},
-				{ DRAFT: 0, SCHEDULED: 0, PUBLISHED: 0, FAILED: 0 },
+				{ IDEA: 0, SCRIPTING: 0, RECORDING: 0, EDITING: 0, POSTED: 0 },
 			),
 		[posts],
 	)
@@ -310,44 +311,64 @@ export default function DashboardScreen() {
 						]}
 					>
 						<TouchableOpacity
-							style={[styles.actionCard, styles.brandCard]}
+							style={[styles.actionCard, styles.balancedCard]}
 							onPress={() => router.push('/(tabs)/create-post' as any)}
 							activeOpacity={0.8}
 						>
-							<View style={styles.cardHeader}>
-								<Ionicons
-									name='create'
-									size={22}
-									color='#000000'
-								/>
-								<Text style={styles.cardTitle}>
-									Create Script
+							<View style={styles.cardTopRow}>
+								<View style={[styles.badgePill, styles.badgePillGold]}>
+									<Text style={styles.badgePillTextGold}>TEXT EDITOR</Text>
+								</View>
+								<View style={styles.iconCircleGold}>
+									<Ionicons
+										name='create-outline'
+										size={18}
+										color={BRAND}
+									/>
+								</View>
+							</View>
+
+							<View style={styles.cardBody}>
+								<Text style={styles.cardTitleUnified}>
+									Write Script
+								</Text>
+								<Text style={styles.cardSubtitleUnified}>
+									Draft & format line by line in rich text
 								</Text>
 							</View>
-							<Text style={styles.cardSubtitle}>
-								Start a new script and post when you're ready
-							</Text>
-							<View style={styles.cardIllustration}>
-								<View style={styles.draftIllustration}>
-									<View style={styles.draftItem}>
-										<View style={styles.draftCheck}>
-											<Ionicons
-												name='checkmark'
-												size={14}
-												color='#000000'
-											/>
-										</View>
-										<View style={styles.draftLines}>
-											<View style={styles.draftLine} />
-											<View style={styles.draftLine} />
-										</View>
+
+							<View style={styles.cardFooter}>
+								<View style={styles.draftItemUnified}>
+									<Ionicons
+										name='document-text-outline'
+										size={16}
+										color='rgba(212,175,55,0.7)'
+									/>
+									<View style={styles.draftLinesUnified}>
+										<View style={styles.draftLineUnified} />
+										<View
+											style={[
+												styles.draftLineUnified,
+												{ width: '60%' },
+											]}
+										/>
 									</View>
+								</View>
+								<View style={styles.actionArrowRow}>
+									<Text style={styles.actionArrowText}>
+										Start Writing
+									</Text>
+									<Ionicons
+										name='arrow-forward'
+										size={14}
+										color={BRAND}
+									/>
 								</View>
 							</View>
 						</TouchableOpacity>
 
 						<TouchableOpacity
-							style={[styles.actionCard, styles.recordCard]}
+							style={[styles.actionCard, styles.balancedCard]}
 							onPress={() =>
 								router.push(
 									'/(tabs)/create-post?record=1' as any,
@@ -355,51 +376,91 @@ export default function DashboardScreen() {
 							}
 							activeOpacity={0.8}
 						>
-							<View style={styles.cardHeader}>
-								<Ionicons name='mic' size={22} color={BRAND} />
-								<Text style={styles.recordCardTitle}>
-									Record your idea
+							<View style={styles.cardTopRow}>
+								<View style={[styles.badgePill, styles.badgePillGold]}>
+									<Text style={styles.badgePillTextGold}>VOICE TO TEXT</Text>
+								</View>
+								<View style={styles.iconCircleGold}>
+									<Ionicons name='mic' size={18} color={BRAND} />
+								</View>
+							</View>
+
+							<View style={styles.cardBody}>
+								<Text style={styles.cardTitleUnified}>
+									Record Idea
+								</Text>
+								<Text style={styles.cardSubtitleUnified}>
+									Speak naturally & auto-transcribe text
 								</Text>
 							</View>
-							<Text style={styles.recordCardSubtitle}>
-								Speak and we'll turn it into a script
-							</Text>
-							<View style={styles.cardIllustration}>
-								<View style={styles.recordWaveform}>
+
+							<View style={styles.cardFooter}>
+								<View style={styles.recordWaveformUnified}>
 									{RECORD_WAVE_BARS.map((h, i) => (
 										<View
 											key={i}
 											style={[
-												styles.recordWaveBar,
-												{ height: h },
+												styles.recordWaveBarUnified,
+												{ height: Math.max(h * 0.65, 5) },
 											]}
 										/>
 									))}
+								</View>
+								<View style={styles.actionArrowRow}>
+									<Text style={styles.actionArrowText}>
+										Start Recording
+									</Text>
+									<Ionicons
+										name='arrow-forward'
+										size={14}
+										color={BRAND}
+									/>
 								</View>
 							</View>
 						</TouchableOpacity>
 					</Animated.View>
 
-					<View style={styles.statusStrip}>
-						<View style={styles.statusCard}>
-							<Text style={styles.statusValue}>
-								{counts.DRAFT}
-							</Text>
-							<Text style={styles.statusLabel}>Scripts</Text>
-						</View>
-						<View style={styles.statusCard}>
-							<Text style={styles.statusValue}>
-								{counts.SCHEDULED}
-							</Text>
-							<Text style={styles.statusLabel}>Schedule</Text>
-						</View>
-						<View style={styles.statusCard}>
-							<Text style={styles.statusValue}>
-								{counts.PUBLISHED}
-							</Text>
+					<ScrollView
+						horizontal
+						showsHorizontalScrollIndicator={false}
+						contentContainerStyle={styles.statusStrip}
+					>
+						<TouchableOpacity
+							style={styles.statusCard}
+							onPress={() => router.push('/(tabs)/posts?tab=IDEA' as any)}
+						>
+							<Text style={styles.statusValue}>{counts.IDEA}</Text>
+							<Text style={styles.statusLabel}>Idea</Text>
+						</TouchableOpacity>
+						<TouchableOpacity
+							style={styles.statusCard}
+							onPress={() => router.push('/(tabs)/posts?tab=SCRIPTING' as any)}
+						>
+							<Text style={styles.statusValue}>{counts.SCRIPTING}</Text>
+							<Text style={styles.statusLabel}>Scripting</Text>
+						</TouchableOpacity>
+						<TouchableOpacity
+							style={styles.statusCard}
+							onPress={() => router.push('/(tabs)/posts?tab=RECORDING' as any)}
+						>
+							<Text style={styles.statusValue}>{counts.RECORDING}</Text>
+							<Text style={styles.statusLabel}>Recording</Text>
+						</TouchableOpacity>
+						<TouchableOpacity
+							style={styles.statusCard}
+							onPress={() => router.push('/(tabs)/posts?tab=EDITING' as any)}
+						>
+							<Text style={styles.statusValue}>{counts.EDITING}</Text>
+							<Text style={styles.statusLabel}>Editing</Text>
+						</TouchableOpacity>
+						<TouchableOpacity
+							style={styles.statusCard}
+							onPress={() => router.push('/(tabs)/posts?tab=POSTED' as any)}
+						>
+							<Text style={styles.statusValue}>{counts.POSTED}</Text>
 							<Text style={styles.statusLabel}>Posted</Text>
-						</View>
-					</View>
+						</TouchableOpacity>
+					</ScrollView>
 
 					<View style={styles.insightCard}>
 						<View style={styles.insightHeader}>
@@ -609,9 +670,9 @@ const styles = StyleSheet.create({
 		marginTop: 23,
 	},
 	statusCard: {
-		flex: 1,
+		minWidth: 85,
 		paddingVertical: 14,
-		paddingHorizontal: 10,
+		paddingHorizontal: 12,
 		borderRadius: 16,
 		backgroundColor: 'rgba(255,255,255,0.05)',
 		borderWidth: 1,
@@ -822,95 +883,108 @@ const styles = StyleSheet.create({
 	},
 	actionCard: {
 		flex: 1,
-		borderRadius: 24,
-		padding: 20,
-		minHeight: 180,
+		borderRadius: 22,
+		padding: 16,
+		minHeight: 195,
 		justifyContent: 'space-between',
 	},
-	brandCard: {
-		backgroundColor: BRAND,
-	},
-	recordCard: {
-		backgroundColor: '#0f0f0f',
+	balancedCard: {
+		backgroundColor: 'rgba(255,255,255,0.045)',
 		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.35)',
+		borderColor: 'rgba(212,175,55,0.22)',
 	},
-	recordCardTitle: {
-		fontSize: 18,
-		fontWeight: '700',
-		color: '#ffffff',
-	},
-	recordCardSubtitle: {
-		marginTop: 8,
-		fontSize: 13,
-		lineHeight: 18,
-		color: 'rgba(255,255,255,0.6)',
-		fontWeight: '600',
-	},
-	recordWaveform: {
+	cardTopRow: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		gap: 4,
-		height: 30,
+		justifyContent: 'space-between',
+		marginBottom: 10,
 	},
-	recordWaveBar: {
+	badgePill: {
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: 6,
+	},
+	badgePillGold: {
+		backgroundColor: 'rgba(212,175,55,0.12)',
+	},
+	badgePillTextGold: {
+		color: BRAND,
+		fontSize: 9,
+		fontWeight: '800',
+		letterSpacing: 0.6,
+	},
+	iconCircleGold: {
+		width: 32,
+		height: 32,
+		borderRadius: 16,
+		backgroundColor: 'rgba(212,175,55,0.15)',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	cardBody: {
+		marginVertical: 6,
+	},
+	cardTitleUnified: {
+		fontSize: 16,
+		fontWeight: '800',
+		color: '#ffffff',
+		marginBottom: 4,
+	},
+	cardSubtitleUnified: {
+		fontSize: 11.5,
+		lineHeight: 16,
+		color: 'rgba(255,255,255,0.65)',
+		fontWeight: '500',
+	},
+	cardFooter: {
+		gap: 10,
+		marginTop: 6,
+	},
+	draftItemUnified: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+		padding: 8,
+		borderRadius: 8,
+		backgroundColor: 'rgba(255,255,255,0.03)',
+		borderWidth: 1,
+		borderColor: 'rgba(255,255,255,0.06)',
+		height: 34,
+	},
+	draftLinesUnified: {
+		flex: 1,
+		gap: 4,
+	},
+	draftLineUnified: {
+		height: 3,
+		backgroundColor: 'rgba(212,175,55,0.5)',
+		borderRadius: 2,
+		width: '100%',
+	},
+	recordWaveformUnified: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 3.5,
+		height: 34,
+		paddingHorizontal: 10,
+		borderRadius: 8,
+		backgroundColor: 'rgba(255,255,255,0.03)',
+		borderWidth: 1,
+		borderColor: 'rgba(255,255,255,0.06)',
+	},
+	recordWaveBarUnified: {
 		width: 3,
 		borderRadius: 1.5,
 		backgroundColor: BRAND,
 	},
-	cardHeader: {
+	actionArrowRow: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		gap: 8,
+		gap: 4,
 	},
-	cardIcon: {
-		fontSize: 24,
-		fontWeight: '800',
-		color: '#000000',
-	},
-	cardTitle: {
-		fontSize: 18,
+	actionArrowText: {
+		fontSize: 11.5,
 		fontWeight: '700',
-		color: '#000000',
-	},
-	cardSubtitle: {
-		marginTop: 8,
-		fontSize: 13,
-		lineHeight: 18,
-		color: 'rgba(0,0,0,0.72)',
-		fontWeight: '600',
-	},
-	cardIllustration: {
-		marginTop: 20,
-	},
-	draftIllustration: {},
-	draftItem: {
-		backgroundColor: 'rgba(0,0,0,0.2)',
-		borderRadius: 12,
-		padding: 12,
-		flexDirection: 'row',
-		gap: 8,
-	},
-	draftCheck: {
-		width: 24,
-		height: 24,
-		borderRadius: 12,
-		backgroundColor: 'rgba(255,255,255,0.3)',
-		justifyContent: 'center',
-		alignItems: 'center',
-	},
-	checkmark: {
-		fontSize: 14,
-		color: '#000000',
-		fontWeight: '800',
-	},
-	draftLines: {
-		flex: 1,
-		gap: 6,
-	},
-	draftLine: {
-		height: 4,
-		backgroundColor: 'rgba(0,0,0,0.3)',
-		borderRadius: 2,
+		color: BRAND,
 	},
 })

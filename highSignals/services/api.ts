@@ -350,3 +350,15 @@ export const api = {
 		},
 	},
 }
+
+export type PostStatus =
+	| 'IDEA'
+	| 'SCRIPTING'
+	| 'RECORDING'
+	| 'EDITING'
+	| 'POSTED'
+	| 'DRAFT'
+	| 'SCHEDULED'
+	| 'PUBLISHED'
+	| 'FAILED'
+

@@ -295,8 +295,13 @@ export default function PostDetailScreen() {
 
 	const getStatusColor = (status: string) => {
 		const colors: { [key: string]: string } = {
+			IDEA: '#3b82f6',
+			SCRIPTING: '#9ca3af',
 			DRAFT: '#9ca3af',
+			RECORDING: '#ec4899',
+			EDITING: '#facc15',
 			SCHEDULED: '#facc15',
+			POSTED: '#22c55e',
 			PUBLISHED: '#22c55e',
 			FAILED: '#ef4444',
 		}
@@ -305,8 +310,13 @@ export default function PostDetailScreen() {
 
 	const getStatusLabel = (status: string) => {
 		const labels: { [key: string]: string } = {
-			DRAFT: 'SCRIPT',
-			SCHEDULED: 'SCHEDULED',
+			IDEA: 'IDEA',
+			SCRIPTING: 'SCRIPTING',
+			RECORDING: 'RECORDING',
+			EDITING: 'EDITING',
+			POSTED: 'POSTED',
+			DRAFT: 'SCRIPTING',
+			SCHEDULED: 'EDITING',
 			PUBLISHED: 'POSTED',
 			FAILED: 'FAILED',
 		}
@@ -947,7 +957,7 @@ export default function PostDetailScreen() {
 							<Text style={styles.pickerTitle}>
 								Update status
 							</Text>
-							{['DRAFT', 'SCHEDULED', 'PUBLISHED'].map((s) => (
+							{['IDEA', 'SCRIPTING', 'RECORDING', 'EDITING', 'POSTED'].map((s) => (
 								<TouchableOpacity
 									key={s}
 									style={styles.pickerOption}

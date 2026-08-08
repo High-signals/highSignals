@@ -1,5 +1,0 @@
-ALTER TABLE "Post"
-DROP COLUMN "platforms";
-
-ALTER TABLE "Post"
-ADD COLUMN "platforms" "PLATFORM"[] NOT NULL DEFAULT '{}';

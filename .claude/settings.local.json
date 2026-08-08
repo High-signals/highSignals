@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npx tsc *)",
       "Bash(cat app.json)",
-      "Bash(ls eas.json)"
+      "Bash(ls eas.json)",
+      "Bash(git check-ignore *)"
     ],
     "deny": [
       "Bash(npx tsc --watch *)",

@@ -169,13 +169,13 @@ export default function CreatePostScreen() {
 					title: title.trim() || 'Untitled',
 					content,
 				})
-			} else {
+				const initialStatus = params.record === '1' ? 'RECORDING' : 'SCRIPTING'
 				const created = await api.posts.create({
 					title: title.trim() || 'Untitled',
 					content,
 					platforms: [],
 					mediaUrls: [],
-					status: 'DRAFT',
+					status: initialStatus,
 					scheduledAt: null,
 				})
 				const newId = created?.post?.id || created?.id
@@ -607,10 +607,10 @@ export default function CreatePostScreen() {
 				publishOption === 'schedule' ? scheduleDate.toISOString() : null
 			const status =
 				publishOption === 'draft'
-					? 'DRAFT'
+					? (params.record === '1' ? 'RECORDING' : 'SCRIPTING')
 					: publishOption === 'schedule'
-						? 'SCHEDULED'
-						: 'PUBLISHED'
+						? 'EDITING'
+						: 'POSTED'
 
 			if (draftIdRef.current) {
 				await api.posts.update(draftIdRef.current, {

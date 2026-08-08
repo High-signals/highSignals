@@ -21,7 +21,7 @@ export async function createPostService(userId, data) {
 			platforms: data.platforms,
 			platformContent: data.platformContent || null,
 			externalPostIds: data.externalPostIds || null,
-			status: data.status || 'DRAFT',
+			status: data.status || 'IDEA',
 			scheduledAt: data.scheduledAt || null,
 			publishedAt: data.publishedAt || null,
 		},

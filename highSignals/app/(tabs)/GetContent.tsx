@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
 	View,
 	Text,
@@ -8,24 +8,34 @@ import {
 	TextInput,
 	ActivityIndicator,
 	RefreshControl,
+	ScrollView,
+	Modal,
+	Alert,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { api, postsEvents } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
 
-type FilterType = 'all' | 'PUBLISHED' | 'SCHEDULED' | 'DRAFT'
+type FilterType = 'all' | 'IDEA' | 'SCRIPTING' | 'RECORDING' | 'EDITING' | 'POSTED'
 
 const FILTER_LABELS: Record<FilterType, string> = {
 	all: 'All',
-	DRAFT: 'Scripts',
-	SCHEDULED: 'Scheduled',
-	PUBLISHED: 'Posted',
+	IDEA: 'Idea',
+	SCRIPTING: 'Scripting',
+	RECORDING: 'Recording',
+	EDITING: 'Editing',
+	POSTED: 'Posted',
 }
 
 const STATUS_LABELS: Record<string, string> = {
-	DRAFT: 'SCRIPT',
-	SCHEDULED: 'SCHEDULED',
+	IDEA: 'IDEA',
+	SCRIPTING: 'SCRIPTING',
+	RECORDING: 'RECORDING',
+	EDITING: 'EDITING',
+	POSTED: 'POSTED',
+	DRAFT: 'SCRIPTING',
+	SCHEDULED: 'EDITING',
 	PUBLISHED: 'POSTED',
 }
 
@@ -77,6 +87,34 @@ export default function GetContentScreen() {
 		hasMore: true,
 		isLoadingMore: false,
 	})
+	const [selectedPostForStatus, setSelectedPostForStatus] = useState<Post | null>(null)
+	const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null)
+
+	const STAGES = [
+		{ key: 'IDEA', label: 'Idea', icon: 'bulb-outline', color: '#3b82f6' },
+		{ key: 'SCRIPTING', label: 'Scripting', icon: 'create-outline', color: '#888888' },
+		{ key: 'RECORDING', label: 'Recording', icon: 'mic-outline', color: '#ec4899' },
+		{ key: 'EDITING', label: 'Editing', icon: 'cut-outline', color: '#FFD700' },
+		{ key: 'POSTED', label: 'Posted', icon: 'checkmark-done-outline', color: '#4ade80' },
+	]
+
+	const handleUpdateStatus = async (post: Post, newStatus: string) => {
+		if (post.status === newStatus) {
+			setSelectedPostForStatus(null)
+			return
+		}
+
+		setUpdatingStatusId(post.id)
+		try {
+			await api.posts.update(post.id, { status: newStatus })
+			setSelectedPostForStatus(null)
+			fetchPosts(1, false)
+		} catch (err: any) {
+			console.error('Failed to update status', err)
+		} finally {
+			setUpdatingStatusId(null)
+		}
+	}
 
 	// Fetch posts with pagination support
 	const fetchPosts = useCallback(
@@ -187,7 +225,12 @@ export default function GetContentScreen() {
 
 	// Filter posts by current filter and search (client-side filtering)
 	const filteredPosts = posts.filter((post) => {
-		const matchesFilter = filter === 'all' || post.status === filter
+		const matchesFilter =
+			filter === 'all' ||
+			post.status === filter ||
+			(filter === 'SCRIPTING' && post.status === 'DRAFT') ||
+			(filter === 'EDITING' && post.status === 'SCHEDULED') ||
+			(filter === 'POSTED' && post.status === 'PUBLISHED')
 		const matchesSearch =
 			(post.title || 'Untitled')
 				.toLowerCase()
@@ -198,9 +241,14 @@ export default function GetContentScreen() {
 
 	const getStatusColor = (status: string) => {
 		const colors: { [key: string]: string } = {
-			PUBLISHED: '#4ade80',
-			SCHEDULED: '#FFD700',
+			IDEA: '#3b82f6',
+			SCRIPTING: '#888888',
 			DRAFT: '#888888',
+			RECORDING: '#ec4899',
+			EDITING: '#FFD700',
+			SCHEDULED: '#FFD700',
+			POSTED: '#4ade80',
+			PUBLISHED: '#4ade80',
 		}
 		return colors[status] || '#FFFFFF'
 	}
@@ -212,7 +260,17 @@ export default function GetContentScreen() {
 			onPress={() => router.push(`/(tabs)/post-detail?postId=${item.id}`)}
 		>
 			<View style={styles.postHeader}>
-				<View style={styles.postLeft}>
+				<TouchableOpacity
+					style={[
+						styles.postLeft,
+						{ borderColor: getStatusColor(item.status) + '44' },
+					]}
+					onPress={(e) => {
+						e.stopPropagation()
+						setSelectedPostForStatus(item)
+					}}
+					activeOpacity={0.7}
+				>
 					<View
 						style={[
 							styles.statusDot,
@@ -227,7 +285,12 @@ export default function GetContentScreen() {
 					>
 						{STATUS_LABELS[item.status] || item.status}
 					</Text>
-				</View>
+					<Ionicons
+						name='chevron-down'
+						size={12}
+						color={getStatusColor(item.status)}
+					/>
+				</TouchableOpacity>
 				<Text style={styles.postDate}>
 					{new Date(item.createdAt).toLocaleDateString()}
 				</Text>
@@ -319,9 +382,13 @@ export default function GetContentScreen() {
 				/>
 			</View>
 
-			<View style={styles.filters}>
+			<ScrollView
+				horizontal
+				showsHorizontalScrollIndicator={false}
+				contentContainerStyle={styles.filters}
+			>
 				{(
-					['all', 'DRAFT', 'SCHEDULED', 'PUBLISHED'] as FilterType[]
+					['all', 'IDEA', 'SCRIPTING', 'RECORDING', 'EDITING', 'POSTED'] as FilterType[]
 				).map((f) => (
 					<TouchableOpacity
 						key={f}
@@ -341,7 +408,7 @@ export default function GetContentScreen() {
 						</Text>
 					</TouchableOpacity>
 				))}
-			</View>
+			</ScrollView>
 
 			{filteredPosts.length === 0 ? (
 				emptyComponent
@@ -364,6 +431,92 @@ export default function GetContentScreen() {
 					}
 				/>
 			)}
+
+			<Modal
+				visible={!!selectedPostForStatus}
+				transparent
+				animationType='fade'
+				onRequestClose={() => setSelectedPostForStatus(null)}
+			>
+				<TouchableOpacity
+					style={styles.modalOverlay}
+					activeOpacity={1}
+					onPress={() => setSelectedPostForStatus(null)}
+				>
+					<View style={styles.modalSheet}>
+						<View style={styles.sheetHeader}>
+							<Text style={styles.sheetTitle} numberOfLines={1}>
+								{selectedPostForStatus?.title
+									? `Update status: ${selectedPostForStatus.title}`
+									: 'Update Post Status'}
+							</Text>
+							<TouchableOpacity
+								onPress={() => setSelectedPostForStatus(null)}
+							>
+								<Ionicons name='close-circle' size={24} color='#666666' />
+							</TouchableOpacity>
+						</View>
+
+						<View style={styles.stageOptionsList}>
+							{STAGES.map((stage) => {
+								const isCurrent =
+									selectedPostForStatus?.status === stage.key ||
+									(stage.key === 'SCRIPTING' && selectedPostForStatus?.status === 'DRAFT') ||
+									(stage.key === 'EDITING' && selectedPostForStatus?.status === 'SCHEDULED') ||
+									(stage.key === 'POSTED' && selectedPostForStatus?.status === 'PUBLISHED')
+								const isUpdatingThis =
+									updatingStatusId === selectedPostForStatus?.id
+
+								return (
+									<TouchableOpacity
+										key={stage.key}
+										style={[
+											styles.stageOptionRow,
+											isCurrent && styles.stageOptionRowActive,
+										]}
+										onPress={() =>
+											selectedPostForStatus &&
+											handleUpdateStatus(selectedPostForStatus, stage.key)
+										}
+										disabled={isUpdatingThis}
+									>
+										<View style={styles.stageLeft}>
+											<View
+												style={[
+													styles.stageIconBg,
+													{ backgroundColor: stage.color + '22' },
+												]}
+											>
+												<Ionicons
+													name={stage.icon as any}
+													size={18}
+													color={stage.color}
+												/>
+											</View>
+											<Text
+												style={[
+													styles.stageLabel,
+													isCurrent && styles.stageLabelActive,
+												]}
+											>
+												{stage.label}
+											</Text>
+										</View>
+
+										{isCurrent && (
+											<Ionicons
+												name='checkmark'
+												size={18}
+												color='#d4af37'
+											/>
+										)}
+									</TouchableOpacity>
+								)
+							})}
+						</View>
+					</View>
+				</TouchableOpacity>
+			</Modal>
 		</View>
 	)
 }
@@ -456,12 +609,17 @@ const styles = StyleSheet.create({
 	postLeft: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		gap: 8,
+		gap: 6,
+		paddingHorizontal: 8,
+		paddingVertical: 3,
+		borderRadius: 10,
+		borderWidth: 1,
+		backgroundColor: 'rgba(255,255,255,0.04)',
 	},
 	statusDot: {
-		width: 8,
-		height: 8,
-		borderRadius: 4,
+		width: 6,
+		height: 6,
+		borderRadius: 3,
 	},
 	statusText: {
 		fontSize: 11,
@@ -513,5 +671,73 @@ const styles = StyleSheet.create({
 	footerText: {
 		fontSize: 12,
 		color: 'rgba(255,255,255,0.6)',
+	},
+	modalOverlay: {
+		flex: 1,
+		backgroundColor: 'rgba(0,0,0,0.7)',
+		justifyContent: 'flex-end',
+	},
+	modalSheet: {
+		backgroundColor: '#161618',
+		borderTopLeftRadius: 24,
+		borderTopRightRadius: 24,
+		padding: 20,
+		borderWidth: 1,
+		borderColor: 'rgba(255,255,255,0.1)',
+	},
+	sheetHeader: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		marginBottom: 16,
+		paddingBottom: 12,
+		borderBottomWidth: 1,
+		borderBottomColor: 'rgba(255,255,255,0.08)',
+	},
+	sheetTitle: {
+		fontSize: 15,
+		fontWeight: '700',
+		color: '#ffffff',
+		flex: 1,
+		marginRight: 10,
+	},
+	stageOptionsList: {
+		gap: 8,
+		paddingBottom: 10,
+	},
+	stageOptionRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		padding: 12,
+		borderRadius: 14,
+		backgroundColor: 'rgba(255,255,255,0.03)',
+		borderWidth: 1,
+		borderColor: 'rgba(255,255,255,0.06)',
+	},
+	stageOptionRowActive: {
+		backgroundColor: 'rgba(212,175,55,0.12)',
+		borderColor: 'rgba(212,175,55,0.4)',
+	},
+	stageLeft: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 12,
+	},
+	stageIconBg: {
+		width: 32,
+		height: 32,
+		borderRadius: 16,
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	stageLabel: {
+		fontSize: 14,
+		fontWeight: '600',
+		color: 'rgba(255,255,255,0.8)',
+	},
+	stageLabelActive: {
+		color: '#d4af37',
+		fontWeight: '700',
 	},
 })
