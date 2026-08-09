@@ -32,7 +32,7 @@ export default function TabsLayout() {
 		},
 		{
 			href: '/(tabs)/GetContent',
-			label: 'Posts',
+			label: 'Content',
 			icon: 'document-text-outline',
 			activeIcon: 'document-text',
 		},

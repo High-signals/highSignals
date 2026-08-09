@@ -7,6 +7,9 @@ import {
 	ScrollView,
 	ActivityIndicator,
 	Image,
+	Modal,
+	TextInput,
+	Alert,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -26,6 +29,10 @@ export default function ProfileScreen() {
 	const { isAuthenticated, logout } = useAuth()
 	const [user, setUser] = useState<UserProfile | null>(null)
 	const [loading, setLoading] = useState(true)
+	
+	const [showFeedbackModal, setShowFeedbackModal] = useState(false)
+	const [feedbackData, setFeedbackData] = useState({ name: '', email: '', feedback: '' })
+	const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false)
 
 	useEffect(() => {
 		if (isAuthenticated) {
@@ -67,13 +74,33 @@ export default function ProfileScreen() {
 			description: 'Browse all your content and posts',
 			onPress: () => router.push('/GetContent' as any),
 		},
-		// {
-		//   icon: 'settings-outline',
-		//   title: 'Settings',
-		//   description: 'App preferences and account settings',
-		//   onPress: () => router.push('/Settings' as any),
-		// },
+		{
+			icon: 'chatbubble-ellipses-outline',
+			title: 'Send Feedback',
+			description: 'Share your thoughts or report issues',
+			onPress: () => {
+				setFeedbackData({ name: user?.name || '', email: user?.email || '', feedback: '' })
+				setShowFeedbackModal(true)
+			},
+		},
 	]
+
+	const submitFeedback = async () => {
+		if (!feedbackData.feedback.trim()) {
+			Alert.alert('Error', 'Please enter some feedback.')
+			return
+		}
+		try {
+			setIsSubmittingFeedback(true)
+			await api.profile.submitFeedback(feedbackData)
+			Alert.alert('Success', 'Thank you for your feedback!')
+			setShowFeedbackModal(false)
+		} catch (error: any) {
+			Alert.alert('Error', error.message || 'Failed to send feedback.')
+		} finally {
+			setIsSubmittingFeedback(false)
+		}
+	}
 
 	if (loading) {
 		return (
@@ -174,6 +201,72 @@ export default function ProfileScreen() {
 
 				<View style={{ height: 40 }} />
 			</ScrollView>
+
+			<Modal
+				visible={showFeedbackModal}
+				transparent
+				animationType="fade"
+				onRequestClose={() => setShowFeedbackModal(false)}
+			>
+				<TouchableOpacity 
+					style={styles.modalOverlay}
+					activeOpacity={1}
+					onPress={() => setShowFeedbackModal(false)}
+				>
+					<TouchableOpacity activeOpacity={1} style={styles.modalContent}>
+						<Text style={styles.modalTitle}>Send Feedback</Text>
+						
+						<Text style={styles.inputLabel}>Name</Text>
+						<TextInput
+							style={styles.inputField}
+							value={feedbackData.name}
+							onChangeText={(t) => setFeedbackData(prev => ({ ...prev, name: t }))}
+							placeholder="Your Name"
+							placeholderTextColor="rgba(255,255,255,0.4)"
+						/>
+						
+						<Text style={styles.inputLabel}>Email</Text>
+						<TextInput
+							style={styles.inputField}
+							value={feedbackData.email}
+							onChangeText={(t) => setFeedbackData(prev => ({ ...prev, email: t }))}
+							placeholder="Your Email"
+							keyboardType="email-address"
+							placeholderTextColor="rgba(255,255,255,0.4)"
+						/>
+
+						<Text style={styles.inputLabel}>Feedback</Text>
+						<TextInput
+							style={[styles.inputField, { height: 100, textAlignVertical: 'top' }]}
+							value={feedbackData.feedback}
+							onChangeText={(t) => setFeedbackData(prev => ({ ...prev, feedback: t }))}
+							placeholder="What's on your mind?"
+							multiline
+							placeholderTextColor="rgba(255,255,255,0.4)"
+						/>
+
+						<View style={styles.modalActions}>
+							<TouchableOpacity 
+								style={[styles.modalBtn, { backgroundColor: 'transparent' }]}
+								onPress={() => setShowFeedbackModal(false)}
+							>
+								<Text style={[styles.modalBtnText, { color: '#ffffff' }]}>Cancel</Text>
+							</TouchableOpacity>
+							<TouchableOpacity 
+								style={[styles.modalBtn, { backgroundColor: '#d4af37' }]}
+								onPress={submitFeedback}
+								disabled={isSubmittingFeedback}
+							>
+								{isSubmittingFeedback ? (
+									<ActivityIndicator size="small" color="#000000" />
+								) : (
+									<Text style={[styles.modalBtnText, { color: '#000000' }]}>Submit</Text>
+								)}
+							</TouchableOpacity>
+						</View>
+					</TouchableOpacity>
+				</TouchableOpacity>
+			</Modal>
 		</View>
 	)
 }
@@ -306,5 +399,58 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 		fontWeight: '700',
 		color: '#f87171',
+	},
+	modalOverlay: {
+		flex: 1,
+		backgroundColor: 'rgba(0,0,0,0.7)',
+		justifyContent: 'center',
+		alignItems: 'center',
+		padding: 24,
+	},
+	modalContent: {
+		backgroundColor: '#161618',
+		borderRadius: 16,
+		padding: 24,
+		width: '100%',
+		borderWidth: 1,
+		borderColor: 'rgba(255,255,255,0.1)',
+	},
+	modalTitle: {
+		fontSize: 18,
+		fontWeight: '700',
+		color: '#ffffff',
+		marginBottom: 20,
+	},
+	inputLabel: {
+		fontSize: 14,
+		color: 'rgba(255,255,255,0.6)',
+		marginBottom: 6,
+	},
+	inputField: {
+		backgroundColor: 'rgba(255,255,255,0.05)',
+		borderRadius: 8,
+		paddingHorizontal: 12,
+		paddingVertical: 10,
+		color: '#ffffff',
+		borderWidth: 1,
+		borderColor: 'rgba(255,255,255,0.1)',
+		marginBottom: 16,
+	},
+	modalActions: {
+		flexDirection: 'row',
+		justifyContent: 'flex-end',
+		gap: 12,
+		marginTop: 8,
+	},
+	modalBtn: {
+		paddingHorizontal: 16,
+		paddingVertical: 10,
+		borderRadius: 8,
+		minWidth: 80,
+		alignItems: 'center',
+	},
+	modalBtnText: {
+		fontWeight: '600',
+		fontSize: 14,
 	},
 })

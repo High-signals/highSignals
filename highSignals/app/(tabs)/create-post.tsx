@@ -145,6 +145,7 @@ export default function CreatePostScreen() {
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const lastSavedSnapshotRef = useRef<string>('')
 	const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
+	const [showAiText, setShowAiText] = useState(false)
 
 	const performSave = useCallback(async () => {
 		const snapshot = JSON.stringify({ title, content })
@@ -652,12 +653,7 @@ export default function CreatePostScreen() {
 					)}
 				</View>
 
-				<TouchableOpacity
-					onPress={handleHeaderSavePress}
-					style={styles.headerIconBtn}
-				>
-					<Ionicons name='save-outline' size={22} color={BRAND} />
-				</TouchableOpacity>
+				<View style={styles.headerIconBtn} />
 			</View>
 
 			{/* Title input — no card */}
@@ -734,6 +730,22 @@ export default function CreatePostScreen() {
 								size={16}
 								color='#000000'
 							/>
+						</TouchableOpacity>
+						
+						<TouchableOpacity 
+							style={styles.aiButton}
+							activeOpacity={0.8}
+							onPress={() => {
+								setShowAiText(true)
+								setTimeout(() => setShowAiText(false), 10000)
+							}}
+						>
+							<Ionicons name="sparkles" size={16} color="#d4af37" />
+							{showAiText ? (
+								<Text style={styles.aiButtonText}>Coming soon</Text>
+							) : (
+								<Text style={styles.aiButtonText}>AI</Text>
+							)}
 						</TouchableOpacity>
 					</View>
 				)}
@@ -1099,6 +1111,30 @@ const styles = StyleSheet.create({
 		marginBottom: 8,
 		paddingVertical: 12,
 		borderRadius: 12,
+	},
+	aiButton: {
+		position: 'absolute',
+		right: 12,
+		top: -46,
+		backgroundColor: 'rgba(20,20,20,0.9)',
+		borderWidth: 1,
+		borderColor: 'rgba(212,175,55,0.3)',
+		borderRadius: 20,
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 6,
+		elevation: 4,
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.3,
+		shadowRadius: 4,
+	},
+	aiButtonText: {
+		color: '#d4af37',
+		fontSize: 12,
+		fontWeight: '600',
 	},
 	micPill: {
 		width: 52,

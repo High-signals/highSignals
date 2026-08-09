@@ -232,6 +232,17 @@ export const api = {
 				true,
 			)
 		},
+
+		submitFeedback: async (feedbackData: { name: string; email: string; feedback: string }) => {
+			return api.call(
+				'/api/user/feedback',
+				{
+					method: 'POST',
+					body: JSON.stringify(feedbackData),
+				},
+				true,
+			)
+		},
 	},
 
 	// ICP endpoints
@@ -289,6 +300,7 @@ export const api = {
 			limit?: number
 			search?: string
 			status?: string
+			sort?: string
 		}) => {
 			// Build query string if params provided
 			let endpoint = '/api/post'
@@ -302,6 +314,8 @@ export const api = {
 					params.append('search', queryParams.search)
 				if (queryParams.status)
 					params.append('status', queryParams.status)
+				if (queryParams.sort)
+					params.append('sort', queryParams.sort)
 
 				const queryString = params.toString()
 				if (queryString) {

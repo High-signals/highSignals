@@ -1,4 +1,5 @@
 import asyncWrapper from '../../shared/service/asyncHandler.js'
+import { sendFeedbackEmail } from '../../shared/service/sendFeedbackEmail.js'
 import {
 	getUserProfile,
 	updateUserProfile,
@@ -58,4 +59,16 @@ export const deleteAvatarController = asyncWrapper(async (req, res) => {
 	const userId = req.user.id
 	const updated = await deleteUserAvatar(userId)
 	res.json(updated)
+})
+
+export const submitFeedbackController = asyncWrapper(async (req, res) => {
+	const { name, email, feedback } = req.body
+	if (!name || !email || !feedback) {
+		return res.status(400).json({ message: 'Name, email, and feedback are required.' })
+	}
+	const result = await sendFeedbackEmail(name, email, feedback)
+	if (!result.success) {
+		return res.status(500).json({ message: result.error || 'Failed to send feedback' })
+	}
+	res.json({ message: 'Feedback sent successfully' })
 })

@@ -559,10 +559,11 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
-		backgroundColor: '#000000',
+		backgroundColor: '#0a192f',
 	},
 	container: {
 		flex: 1,
+		backgroundColor: '#0a192f',
 	},
 	scrollContent: {
 		paddingBottom: 100,

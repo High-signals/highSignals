@@ -117,7 +117,7 @@ export default function GetContentScreen() {
 		}
 	}
 
-	const [sortOption, setSortOption] = useState<'NEWEST' | 'OLDEST' | 'FAVOURITES'>('NEWEST')
+	const [sortOption, setSortOption] = useState<'NEWEST' | 'OLDEST' | 'FAVOURITES' | null>(null)
 	const [showSortModal, setShowSortModal] = useState(false)
 
 	// Fetch posts with pagination support
@@ -135,7 +135,7 @@ export default function GetContentScreen() {
 					page: String(page),
 					limit: String(pagination.limit),
 					search: searchQuery,
-					sort: sortOption,
+					...(sortOption && { sort: sortOption }),
 					// Only filter if not 'all'
 					...(filter !== 'all' && { status: filter }),
 				})
@@ -170,7 +170,7 @@ export default function GetContentScreen() {
 				setLoading(false)
 			}
 		},
-		[pagination.limit, searchQuery, filter],
+		[pagination.limit, searchQuery, filter, sortOption],
 	)
 
 	// Handle refresh (pull to refresh)
@@ -421,7 +421,11 @@ export default function GetContentScreen() {
 					/>
 				</View>
 				<TouchableOpacity style={styles.sortButton} onPress={() => setShowSortModal(true)}>
-					<Ionicons name="options-outline" size={20} color="#ffffff" />
+					<Ionicons 
+						name={sortOption ? "options" : "options-outline"} 
+						size={20} 
+						color={sortOption ? "#d4af37" : "#ffffff"} 
+					/>
 				</TouchableOpacity>
 			</View>
 
@@ -589,7 +593,7 @@ export default function GetContentScreen() {
 								key={option.id}
 								style={styles.pickerOption}
 								onPress={() => {
-									setSortOption(option.id)
+									setSortOption(prev => prev === option.id ? null : option.id)
 									setShowSortModal(false)
 								}}
 							>
@@ -856,5 +860,33 @@ const styles = StyleSheet.create({
 	stageLabelActive: {
 		color: '#d4af37',
 		fontWeight: '700',
+	},
+	pickerSheet: {
+		backgroundColor: '#161618',
+		borderTopLeftRadius: 24,
+		borderTopRightRadius: 24,
+		padding: 20,
+		paddingBottom: 32,
+		borderWidth: 1,
+		borderColor: 'rgba(255,255,255,0.1)',
+	},
+	pickerTitle: {
+		fontSize: 16,
+		fontWeight: '800',
+		color: '#ffffff',
+		marginBottom: 16,
+	},
+	pickerOption: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 12,
+		paddingVertical: 14,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		borderBottomColor: 'rgba(255,255,255,0.06)',
+	},
+	pickerOptionText: {
+		fontSize: 14,
+		color: '#ffffff',
+		fontWeight: '600',
 	},
 })

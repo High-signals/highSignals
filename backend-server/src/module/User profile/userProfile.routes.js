@@ -9,6 +9,7 @@ import {
 	editContentPlatformsController,
 	uploadAvatarController,
 	deleteAvatarController,
+	submitFeedbackController,
 } from './userProfile.controller.js'
 
 const router = express.Router()
@@ -425,5 +426,7 @@ router.post('/avatar', avatarUpload.single('file'), uploadAvatarController)
  *         description: Unauthorized
  */
 router.delete('/avatar', deleteAvatarController)
+
+router.post('/feedback', submitFeedbackController)
 
 export default router
