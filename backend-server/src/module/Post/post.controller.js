@@ -20,6 +20,7 @@ export const createPostController = asyncHandler(async (req, res, next) => {
 		externalPostIds,
 		status,
 		contentType,
+		isFavourite,
 		scheduledAt,
 		publishedAt,
 	} = req.body
@@ -45,6 +46,7 @@ export const createPostController = asyncHandler(async (req, res, next) => {
 		externalPostIds,
 		status,
 		contentType,
+		isFavourite,
 		scheduledAt,
 		publishedAt,
 	}
@@ -67,6 +69,7 @@ export const editPostController = asyncHandler(async (req, res, next) => {
 		externalPostIds,
 		status,
 		contentType,
+		isFavourite,
 		scheduledAt,
 		publishedAt,
 	} = req.body
@@ -90,6 +93,7 @@ export const editPostController = asyncHandler(async (req, res, next) => {
 	if (externalPostIds !== undefined) data.externalPostIds = externalPostIds
 	if (status !== undefined) data.status = status
 	if (contentType !== undefined) data.contentType = contentType
+	if (isFavourite !== undefined) data.isFavourite = isFavourite
 	if (scheduledAt !== undefined) data.scheduledAt = scheduledAt
 	if (publishedAt !== undefined) data.publishedAt = publishedAt
 
@@ -122,12 +126,13 @@ export const getAllPostsController = asyncHandler(async (req, res, next) => {
 		throw new AppError('Unauthorized', 401)
 	}
 
-	const { search = '', page = 1, limit = 10 } = req.query
+	const { search = '', page = 1, limit = 10, sort = 'NEWEST' } = req.query
 
 	const result = await getAllPostsService(userId, {
 		search,
 		page: Number(page),
 		limit: Number(limit),
+		sort,
 	})
 
 	return res.status(200).json(result)

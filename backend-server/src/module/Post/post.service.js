@@ -22,6 +22,7 @@ export async function createPostService(userId, data) {
 			platformContent: data.platformContent || null,
 			externalPostIds: data.externalPostIds || null,
 			contentType: data.contentType || null,
+			isFavourite: data.isFavourite || false,
 			status: data.status || 'IDEA',
 			scheduledAt: data.scheduledAt || null,
 			publishedAt: data.publishedAt || null,
@@ -96,7 +97,7 @@ export async function deletePostService(userId, postId) {
 	}
 }
 
-export async function getAllPostsService(userId, { search, page, limit }) {
+export async function getAllPostsService(userId, { search, page, limit, sort }) {
 	const skip = (page - 1) * limit
 
 	const searchFilter = search
@@ -108,15 +109,23 @@ export async function getAllPostsService(userId, { search, page, limit }) {
 			}
 		: {}
 
+	let orderBy = { createdAt: 'desc' }
+	let favoriteFilter = {}
+
+	if (sort === 'OLDEST') {
+		orderBy = { createdAt: 'asc' }
+	} else if (sort === 'FAVOURITES') {
+		favoriteFilter = { isFavourite: true }
+	}
+
 	const posts = await prisma.post.findMany({
 		where: {
 			userId,
 			isDeleted: false,
 			...searchFilter,
+			...favoriteFilter,
 		},
-		orderBy: {
-			createdAt: 'desc',
-		},
+		orderBy,
 		skip,
 		take: limit,
 	})
@@ -126,6 +135,7 @@ export async function getAllPostsService(userId, { search, page, limit }) {
 			userId,
 			isDeleted: false,
 			...searchFilter,
+			...favoriteFilter,
 		},
 	})
 

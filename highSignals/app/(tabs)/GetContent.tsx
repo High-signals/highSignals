@@ -117,6 +117,9 @@ export default function GetContentScreen() {
 		}
 	}
 
+	const [sortOption, setSortOption] = useState<'NEWEST' | 'OLDEST' | 'FAVOURITES'>('NEWEST')
+	const [showSortModal, setShowSortModal] = useState(false)
+
 	// Fetch posts with pagination support
 	const fetchPosts = useCallback(
 		async (page: number = 1, append: boolean = false) => {
@@ -132,6 +135,7 @@ export default function GetContentScreen() {
 					page: String(page),
 					limit: String(pagination.limit),
 					search: searchQuery,
+					sort: sortOption,
 					// Only filter if not 'all'
 					...(filter !== 'all' && { status: filter }),
 				})
@@ -228,9 +232,9 @@ export default function GetContentScreen() {
 			}))
 			fetchPosts(1, false)
 		}
-	}, [filter, searchQuery, isAuthenticated, fetchPosts])
+	}, [filter, searchQuery, sortOption, isAuthenticated, fetchPosts])
 
-	// Filter posts by current filter and search (client-side filtering)
+	// Filter posts by current filter and search (client-side filtering fallback)
 	const filteredPosts = posts.filter((post) => {
 		const matchesFilter =
 			filter === 'all' ||
@@ -248,16 +252,33 @@ export default function GetContentScreen() {
 
 	const getStatusColor = (status: string) => {
 		const colors: { [key: string]: string } = {
-			IDEA: '#3b82f6',
-			SCRIPTING: '#888888',
-			DRAFT: '#888888',
-			RECORDING: '#ec4899',
-			EDITING: '#FFD700',
-			SCHEDULED: '#FFD700',
-			POSTED: '#4ade80',
-			PUBLISHED: '#4ade80',
+			IDEA: '#3b82f6', // blue
+			SCRIPTING: '#a855f7', // purple
+			RECORDING: '#ef4444', // red
+			EDITING: '#f59e0b', // amber
+			POSTED: '#22c55e', // green
 		}
 		return colors[status] || '#FFFFFF'
+	}
+
+	const handleToggleFavourite = async (post: Post) => {
+		try {
+			// Optimistically update
+			setPosts((prev) =>
+				prev.map((p) =>
+					p.id === post.id ? { ...p, isFavourite: !p.isFavourite } : p
+				)
+			)
+			await api.posts.update(post.id, { isFavourite: !post.isFavourite })
+		} catch (error) {
+			// Revert on error
+			setPosts((prev) =>
+				prev.map((p) =>
+					p.id === post.id ? { ...p, isFavourite: p.isFavourite } : p
+				)
+			)
+			Alert.alert('Error', 'Failed to update favourite status')
+		}
 	}
 
 	const renderPost = ({ item }: { item: Post }) => (
@@ -298,9 +319,6 @@ export default function GetContentScreen() {
 						color={getStatusColor(item.status)}
 					/>
 				</TouchableOpacity>
-				<Text style={styles.postDate}>
-					{new Date(item.createdAt).toLocaleDateString()}
-				</Text>
 			</View>
 
 			<Text style={styles.postTitle} numberOfLines={2}>
@@ -310,6 +328,19 @@ export default function GetContentScreen() {
 			<Text style={styles.postContent} numberOfLines={3}>
 				{buildPreviewText(item.content)}
 			</Text>
+
+			<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+				<Text style={styles.postDate}>
+					{new Date(item.createdAt).toLocaleDateString()}
+				</Text>
+				<TouchableOpacity onPress={() => handleToggleFavourite(item)}>
+					<Ionicons
+						name={item.isFavourite ? 'star' : 'star-outline'}
+						size={20}
+						color={item.isFavourite ? '#d4af37' : 'rgba(255,255,255,0.3)'}
+					/>
+				</TouchableOpacity>
+			</View>
 		</TouchableOpacity>
 	)
 
@@ -374,19 +405,24 @@ export default function GetContentScreen() {
 				</TouchableOpacity>
 			</View>
 
-			<View style={styles.searchContainer}>
-				<Ionicons
-					name='search-outline'
-					size={20}
-					color='rgba(255,255,255,0.4)'
-				/>
-				<TextInput
-					style={styles.searchInput}
-					placeholder='Search content...'
-					placeholderTextColor='rgba(255,255,255,0.4)'
-					value={searchQuery}
-					onChangeText={setSearchQuery}
-				/>
+			<View style={styles.searchWrapper}>
+				<View style={styles.searchContainer}>
+					<Ionicons
+						name='search-outline'
+						size={20}
+						color='rgba(255,255,255,0.4)'
+					/>
+					<TextInput
+						style={styles.searchInput}
+						placeholder='Search content...'
+						placeholderTextColor='rgba(255,255,255,0.4)'
+						value={searchQuery}
+						onChangeText={setSearchQuery}
+					/>
+				</View>
+				<TouchableOpacity style={styles.sortButton} onPress={() => setShowSortModal(true)}>
+					<Ionicons name="options-outline" size={20} color="#ffffff" />
+				</TouchableOpacity>
 			</View>
 
 			<ScrollView
@@ -407,6 +443,7 @@ export default function GetContentScreen() {
 						onPress={() => setFilter(f)}
 					>
 						<Text
+							numberOfLines={1}
 							style={[
 								styles.filterText,
 								filter === f && styles.filterTextActive,
@@ -422,6 +459,7 @@ export default function GetContentScreen() {
 				emptyComponent
 			) : (
 				<FlatList
+					style={{ marginTop: 16, flex: 1 }}
 					data={filteredPosts}
 					renderItem={renderPost}
 					keyExtractor={(item) => item.id}
@@ -525,6 +563,51 @@ export default function GetContentScreen() {
 					</View>
 				</TouchableOpacity>
 			</Modal>
+
+			<Modal
+				visible={showSortModal}
+				transparent
+				animationType='fade'
+				onRequestClose={() => setShowSortModal(false)}
+			>
+				<TouchableOpacity
+					style={styles.modalOverlay}
+					activeOpacity={1}
+					onPress={() => setShowSortModal(false)}
+				>
+					<View style={styles.pickerSheet}>
+						<Text style={styles.pickerTitle}>Sort Posts</Text>
+						
+						{(
+							[
+								{ id: 'NEWEST', label: 'Date (Newest to Oldest)' },
+								{ id: 'OLDEST', label: 'Oldest to Newest' },
+								{ id: 'FAVOURITES', label: 'Favourites' },
+							] as const
+						).map((option) => (
+							<TouchableOpacity
+								key={option.id}
+								style={styles.pickerOption}
+								onPress={() => {
+									setSortOption(option.id)
+									setShowSortModal(false)
+								}}
+							>
+								<Ionicons
+									name={
+										sortOption === option.id
+											? 'radio-button-on'
+											: 'radio-button-off'
+									}
+									size={24}
+									color={sortOption === option.id ? '#d4af37' : 'rgba(255,255,255,0.4)'}
+								/>
+								<Text style={styles.pickerOptionText}>{option.label}</Text>
+							</TouchableOpacity>
+						))}
+					</View>
+				</TouchableOpacity>
+			</Modal>
 		</View>
 	)
 }
@@ -552,16 +635,31 @@ const styles = StyleSheet.create({
 		color: 'rgba(255,255,255,0.5)',
 		marginTop: 4,
 	},
+	searchWrapper: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginHorizontal: 24,
+		gap: 12,
+	},
 	searchContainer: {
+		flex: 1,
 		flexDirection: 'row',
 		alignItems: 'center',
 		backgroundColor: 'rgba(255,255,255,0.05)',
 		borderRadius: 8,
 		paddingHorizontal: 12,
-		marginHorizontal: 24,
-		marginBottom: 0,
 		borderWidth: 1,
 		borderColor: 'rgba(212,175,55,0.2)',
+	},
+	sortButton: {
+		width: 44,
+		height: 44,
+		borderRadius: 8,
+		backgroundColor: 'rgba(255,255,255,0.05)',
+		borderWidth: 1,
+		borderColor: 'rgba(212,175,55,0.2)',
+		justifyContent: 'center',
+		alignItems: 'center',
 	},
 	searchInput: {
 		flex: 1,
@@ -572,26 +670,27 @@ const styles = StyleSheet.create({
 	},
 	filtersContainer: {
 		flexGrow: 0,
-		marginTop: 8,
-		marginBottom: 16,
-		maxHeight: 40,
+		marginTop: 16,
+		marginBottom: 0,
+		height: 36,
 	},
 	filters: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		paddingHorizontal: 24,
 		gap: 8,
+		height: 36,
 	},
 	filterButton: {
-		paddingHorizontal: 16,
-		paddingVertical: 8,
-		borderRadius: 20,
+		width: 100,
+		height: 36,
+		borderRadius: 18,
 		backgroundColor: 'rgba(255,255,255,0.05)',
 		borderWidth: 1,
 		borderColor: 'rgba(255,255,255,0.1)',
 		justifyContent: 'center',
 		alignItems: 'center',
-		minWidth: 64,
+		flexShrink: 0,
 	},
 	filterButtonActive: {
 		backgroundColor: '#d4af37',
@@ -606,6 +705,7 @@ const styles = StyleSheet.create({
 		color: '#0a192f',
 	},
 	listContent: {
+		paddingTop: 24,
 		paddingHorizontal: 24,
 		paddingBottom: 36,
 	},

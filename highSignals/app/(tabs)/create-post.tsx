@@ -114,6 +114,8 @@ export default function CreatePostScreen() {
 	const [contentType, setContentType] = useState<string>('Storytelling')
 	const [customContentType, setCustomContentType] = useState('')
 	const [showContentTypeModal, setShowContentTypeModal] = useState(false)
+	const [customAlert, setCustomAlert] = useState({ visible: false, title: '', message: '' })
+	const showAlert = (title: string, message: string) => setCustomAlert({ visible: true, title, message })
 
 	// Toolbar UI
 	const [showColors, setShowColors] = useState(false)
@@ -551,7 +553,7 @@ export default function CreatePostScreen() {
 
 	const handleHeaderSavePress = async () => {
 		if (!title.trim()) {
-			Alert.alert(
+			showAlert(
 				'Title required',
 				'Add a title so you can find this script later.',
 			)
@@ -562,11 +564,11 @@ export default function CreatePostScreen() {
 
 	const handleFinish = async () => {
 		if (!title.trim() && !content) {
-			Alert.alert('Empty', 'Write something before finishing.')
+			showAlert('Empty', 'Write something before finishing.')
 			return
 		}
 		if (!isAuthenticated) {
-			Alert.alert('Not signed in', 'Please log in first.')
+			showAlert('Not signed in', 'Please log in first.')
 			return
 		}
 
@@ -593,14 +595,13 @@ export default function CreatePostScreen() {
 				})
 			}
 
-			Alert.alert('Success', 'Saved!')
+			showAlert('Success', 'Saved!')
 			setShowContentTypeModal(false)
 			router.push('/(tabs)/GetContent')
 		} catch (error: any) {
-			Alert.alert('Error', error.message || 'Failed to save post')
+			showAlert('Error', error.message || 'Failed to save post')
 		} finally {
 			setIsSaving(false)
-			setShowPublishModal(false)
 		}
 	}
 
@@ -905,6 +906,30 @@ export default function CreatePostScreen() {
 								)}
 							</TouchableOpacity>
 						</View>
+					</View>
+				</View>
+			</Modal>
+
+			{/* Custom Alert Modal */}
+			<Modal
+				visible={customAlert.visible}
+				transparent
+				animationType='fade'
+				onRequestClose={() => setCustomAlert(prev => ({ ...prev, visible: false }))}
+			>
+				<View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }]}>
+					<View style={[styles.modalContent, { alignItems: 'center', width: '75%', paddingVertical: 32, borderRadius: 24, borderTopWidth: 0 }]}>
+						<Ionicons name="information-circle-outline" size={48} color={BRAND} style={{ marginBottom: 16 }} />
+						<Text style={[styles.modalTitle, { textAlign: 'center', marginBottom: 8 }]}>{customAlert.title}</Text>
+						<Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, textAlign: 'center', marginBottom: 24, lineHeight: 20 }}>
+							{customAlert.message}
+						</Text>
+						<TouchableOpacity
+							style={[styles.confirmButton, { width: '100%' }]}
+							onPress={() => setCustomAlert(prev => ({ ...prev, visible: false }))}
+						>
+							<Text style={styles.confirmText}>Okay</Text>
+						</TouchableOpacity>
 					</View>
 				</View>
 			</Modal>

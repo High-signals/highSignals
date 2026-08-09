@@ -108,6 +108,7 @@ model Post {
   platformContent Json?
   externalPostIds Json?
   contentType     String?
+  isFavourite     Boolean     @default(false)
   status          POST_STATUS @default(IDEA)
   scheduledAt     DateTime?
   publishedAt     DateTime?
