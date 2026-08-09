@@ -22,6 +22,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router'
 import DateTimePicker, {
 	DateTimePickerAndroid,
 } from '@react-native-community/datetimepicker'
+import Toast from 'react-native-toast-message'
+import * as Haptics from 'expo-haptics'
 import { Ionicons } from '@expo/vector-icons'
 import { RichEditor, actions } from 'react-native-pell-rich-editor'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -565,11 +567,11 @@ export default function CreatePostScreen() {
 
 	const handleFinish = async () => {
 		if (!title.trim() && !content) {
-			showAlert('Empty', 'Write something before finishing.')
+			Toast.show({ type: 'error', text1: 'Empty', text2: 'Write something before finishing.' })
 			return
 		}
 		if (!isAuthenticated) {
-			showAlert('Not signed in', 'Please log in first.')
+			Toast.show({ type: 'error', text1: 'Not signed in', text2: 'Please log in first.' })
 			return
 		}
 
@@ -596,11 +598,12 @@ export default function CreatePostScreen() {
 				})
 			}
 
-			showAlert('Success', 'Saved!')
+			Toast.show({ type: 'success', text1: 'Success', text2: 'Saved!' })
+			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
 			setShowContentTypeModal(false)
 			router.push('/(tabs)/GetContent')
 		} catch (error: any) {
-			showAlert('Error', error.message || 'Failed to save post')
+			Toast.show({ type: 'error', text1: 'Error', text2: error.message || 'Failed to save post' })
 		} finally {
 			setIsSaving(false)
 		}
@@ -736,6 +739,7 @@ export default function CreatePostScreen() {
 							style={styles.aiButton}
 							activeOpacity={0.8}
 							onPress={() => {
+								Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
 								setShowAiText(true)
 								setTimeout(() => setShowAiText(false), 10000)
 							}}

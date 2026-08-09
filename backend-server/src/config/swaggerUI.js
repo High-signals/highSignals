@@ -11,9 +11,9 @@ const options = {
 	definition: {
 		openapi: '3.0.0',
 		info: {
-			title: 'HighSignals API',
+			title: 'Scripnals API',
 			version: '1.0.0',
-			description: 'HighSignals API documentation',
+			description: 'Scripnals API documentation',
 		},
 		servers: [
 			{

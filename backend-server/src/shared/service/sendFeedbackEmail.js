@@ -12,11 +12,11 @@ export async function sendFeedbackEmail(name, email, feedback) {
 			},
 			body: JSON.stringify({
 				sender: {
-					email: process.env.EMAIL_FROM || 'noreply@highsignals.com',
-					name: 'HighSignals App',
+					email: process.env.EMAIL_FROM || 'noreply@scripnals.com',
+					name: 'Scripnals App',
 				},
 				to: [{ email: 'repzysam@gmail.com' }],
-				subject: `HighSignals Feedback from ${name}`,
+				subject: `Scripnals Feedback from ${name}`,
 				htmlContent: `
 					<h2>New Feedback Received</h2>
 					<p><strong>Name:</strong> ${name}</p>

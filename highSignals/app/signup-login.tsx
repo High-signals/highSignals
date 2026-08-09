@@ -394,7 +394,7 @@ export default function SignupLoginScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#0a192f', // HighSignals brand blue
+		backgroundColor: '#0a192f', // Scripnals brand blue
 	},
 	scrollContent: {
 		flexGrow: 1,
@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
 
 	// Primary Button - BRAND GOLD
 	primaryButton: {
-		backgroundColor: '#d4af37', // HighSignals brand gold
+		backgroundColor: '#d4af37', // Scripnals brand gold
 		paddingVertical: 16,
 		borderRadius: 12,
 		alignItems: 'center',

@@ -10,15 +10,22 @@ import {
 	Alert,
 } from 'react-native'
 import { useRouter } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
+import CustomAlert from './components/CustomAlert'
 
 export default function SettingsScreen() {
 	const router = useRouter()
 	const [notifications, setNotifications] = useState(true)
+	const [alertConfig, setAlertConfig] = useState({ visible: false, title: '', message: '' })
 	const slideAnim = new Animated.Value(-300)
+
+	const handleAction = (title: string, message: string) => {
+		setAlertConfig({ visible: true, title, message })
+	}
 
 	const handleNavigate = (route?: string) => {
 		if (!route) {
-			Alert.alert('Coming Soon', 'This feature is not available yet')
+			handleAction('Coming Soon', 'This feature is not available yet')
 			return
 		}
 
@@ -198,10 +205,17 @@ export default function SettingsScreen() {
 				</TouchableOpacity>
 
 				{/* Version */}
-				<Text style={styles.versionText}>HighSignals v1.0.0</Text>
+				<Text style={styles.versionText}>Scripnals v1.0.0</Text>
 
 				<View style={{ height: 100 }} />
 			</ScrollView>
+			
+			<CustomAlert 
+				visible={alertConfig.visible}
+				title={alertConfig.title}
+				message={alertConfig.message}
+				onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+			/>
 		</View>
 	)
 }

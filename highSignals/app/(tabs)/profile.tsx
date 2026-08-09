@@ -9,8 +9,8 @@ import {
 	Image,
 	Modal,
 	TextInput,
-	Alert,
 } from 'react-native'
+import Toast from 'react-native-toast-message'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { api } from '@/services/api'
@@ -87,16 +87,28 @@ export default function ProfileScreen() {
 
 	const submitFeedback = async () => {
 		if (!feedbackData.feedback.trim()) {
-			Alert.alert('Error', 'Please enter some feedback.')
+			Toast.show({
+				type: 'error',
+				text1: 'Error',
+				text2: 'Please enter some feedback.',
+			})
 			return
 		}
 		try {
 			setIsSubmittingFeedback(true)
 			await api.profile.submitFeedback(feedbackData)
-			Alert.alert('Success', 'Thank you for your feedback!')
 			setShowFeedbackModal(false)
+			Toast.show({
+				type: 'success',
+				text1: 'Success',
+				text2: 'Thank you for your feedback!',
+			})
 		} catch (error: any) {
-			Alert.alert('Error', error.message || 'Failed to send feedback.')
+			Toast.show({
+				type: 'error',
+				text1: 'Error',
+				text2: error.message || 'Failed to send feedback.',
+			})
 		} finally {
 			setIsSubmittingFeedback(false)
 		}

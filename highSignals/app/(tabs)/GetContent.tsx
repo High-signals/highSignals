@@ -11,9 +11,12 @@ import {
 	ScrollView,
 	Modal,
 	Alert,
+	Animated,
 } from 'react-native'
+import { SwipeListView } from 'react-native-swipe-list-view'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import * as Haptics from 'expo-haptics'
 import { api, postsEvents } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
 
@@ -119,6 +122,48 @@ export default function GetContentScreen() {
 
 	const [sortOption, setSortOption] = useState<'NEWEST' | 'OLDEST' | 'FAVOURITES' | null>(null)
 	const [showSortModal, setShowSortModal] = useState(false)
+
+	const handleToggleFavourite = async (post: Post) => {
+		try {
+			// Optimistic UI update
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+			setPosts(currentPosts => currentPosts.map(p => 
+				p.id === post.id ? { ...p, isFavourite: !p.isFavourite } : p
+			))
+			
+			// Actual API call
+			await api.posts.update(post.id, { isFavourite: !post.isFavourite })
+		} catch (error) {
+			// Revert on error
+			setPosts(currentPosts => currentPosts.map(p => 
+				p.id === post.id ? { ...p, isFavourite: post.isFavourite } : p
+			))
+			console.error('Failed to toggle favourite', error)
+		}
+	}
+
+	const handleDeletePost = async (id: string) => {
+		Alert.alert(
+			'Delete Script',
+			'Are you sure you want to delete this script? This cannot be undone.',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{
+					text: 'Delete',
+					style: 'destructive',
+					onPress: async () => {
+						try {
+							Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+							await api.posts.delete(id)
+							setPosts(currentPosts => currentPosts.filter(p => p.id !== id))
+						} catch (error) {
+							console.error('Failed to delete post:', error)
+						}
+					}
+				}
+			]
+		)
+	}
 
 	// Fetch posts with pagination support
 	const fetchPosts = useCallback(
@@ -261,87 +306,73 @@ export default function GetContentScreen() {
 		return colors[status] || '#FFFFFF'
 	}
 
-	const handleToggleFavourite = async (post: Post) => {
-		try {
-			// Optimistically update
-			setPosts((prev) =>
-				prev.map((p) =>
-					p.id === post.id ? { ...p, isFavourite: !p.isFavourite } : p
-				)
-			)
-			await api.posts.update(post.id, { isFavourite: !post.isFavourite })
-		} catch (error) {
-			// Revert on error
-			setPosts((prev) =>
-				prev.map((p) =>
-					p.id === post.id ? { ...p, isFavourite: p.isFavourite } : p
-				)
-			)
-			Alert.alert('Error', 'Failed to update favourite status')
-		}
-	}
+
 
 	const renderPost = ({ item }: { item: Post }) => (
-		<TouchableOpacity
-			style={styles.postCard}
-			activeOpacity={0.75}
-			onPress={() => router.push(`/(tabs)/post-detail?postId=${item.id}`)}
-		>
-			<View style={styles.postHeader}>
+		<View style={{ backgroundColor: 'transparent' }}>
+			<View style={{ backgroundColor: '#0a192f', borderRadius: 16 }}>
 				<TouchableOpacity
-					style={[
-						styles.postLeft,
-						{ borderColor: getStatusColor(item.status) + '44' },
-					]}
-					onPress={(e) => {
-						e.stopPropagation()
-						setSelectedPostForStatus(item)
-					}}
-					activeOpacity={0.7}
+					style={[styles.postCard, { marginBottom: 0 }]}
+					activeOpacity={1}
+					onPress={() => router.push(`/(tabs)/post-detail?postId=${item.id}`)}
 				>
-					<View
-						style={[
-							styles.statusDot,
-							{ backgroundColor: getStatusColor(item.status) },
-						]}
-					/>
-					<Text
-						style={[
-							styles.statusText,
-							{ color: getStatusColor(item.status) },
-						]}
-					>
-						{STATUS_LABELS[item.status] || item.status}
+					<View style={styles.postHeader}>
+						<TouchableOpacity
+							style={[
+								styles.postLeft,
+								{ borderColor: getStatusColor(item.status) + '44' },
+							]}
+							onPress={(e) => {
+								e.stopPropagation()
+								setSelectedPostForStatus(item)
+							}}
+							activeOpacity={0.7}
+						>
+							<View
+								style={[
+									styles.statusDot,
+									{ backgroundColor: getStatusColor(item.status) },
+								]}
+							/>
+							<Text
+								style={[
+									styles.statusText,
+									{ color: getStatusColor(item.status) },
+								]}
+							>
+								{STATUS_LABELS[item.status] || item.status}
+							</Text>
+							<Ionicons
+								name='chevron-down'
+								size={12}
+								color={getStatusColor(item.status)}
+							/>
+						</TouchableOpacity>
+					</View>
+
+					<Text style={styles.postTitle} numberOfLines={2}>
+						{item.title || 'Untitled Post'}
 					</Text>
-					<Ionicons
-						name='chevron-down'
-						size={12}
-						color={getStatusColor(item.status)}
-					/>
+
+					<Text style={styles.postContent} numberOfLines={3}>
+						{buildPreviewText(item.content)}
+					</Text>
+
+					<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+						<Text style={styles.postDate}>
+							{new Date(item.createdAt).toLocaleDateString()}
+						</Text>
+						{/* Favourite icon handled by swipe action now, but if you want it visible on card too: */}
+						<Ionicons
+							name={item.isFavourite ? 'star' : 'star-outline'}
+							size={20}
+							color={item.isFavourite ? '#d4af37' : 'rgba(255,255,255,0.3)'}
+						/>
+					</View>
 				</TouchableOpacity>
 			</View>
-
-			<Text style={styles.postTitle} numberOfLines={2}>
-				{item.title || 'Untitled Post'}
-			</Text>
-
-			<Text style={styles.postContent} numberOfLines={3}>
-				{buildPreviewText(item.content)}
-			</Text>
-
-			<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-				<Text style={styles.postDate}>
-					{new Date(item.createdAt).toLocaleDateString()}
-				</Text>
-				<TouchableOpacity onPress={() => handleToggleFavourite(item)}>
-					<Ionicons
-						name={item.isFavourite ? 'star' : 'star-outline'}
-						size={20}
-						color={item.isFavourite ? '#d4af37' : 'rgba(255,255,255,0.3)'}
-					/>
-				</TouchableOpacity>
-			</View>
-		</TouchableOpacity>
+			<View style={{ height: 14 }} />
+		</View>
 	)
 
 	// Footer component to show loading indicator when fetching more posts
@@ -371,18 +402,7 @@ export default function GetContentScreen() {
 		</View>
 	)
 
-	if (loading) {
-		return (
-			<View
-				style={[
-					styles.container,
-					{ justifyContent: 'center', alignItems: 'center' },
-				]}
-			>
-				<ActivityIndicator size='large' color='#d4af37' />
-			</View>
-		)
-	}
+
 
 	return (
 		<View style={styles.container}>
@@ -405,6 +425,14 @@ export default function GetContentScreen() {
 				</TouchableOpacity>
 			</View>
 
+			{loading && posts.length === 0 ? (
+				<View style={styles.listContent}>
+					{[1, 2, 3, 4].map((i) => (
+						<View key={i} style={styles.skeletonCard} />
+					))}
+				</View>
+			) : (
+				<>
 			<View style={styles.searchWrapper}>
 				<View style={styles.searchContainer}>
 					<Ionicons
@@ -462,24 +490,99 @@ export default function GetContentScreen() {
 			{filteredPosts.length === 0 ? (
 				emptyComponent
 			) : (
-				<FlatList
+				<SwipeListView
 					style={{ marginTop: 16, flex: 1 }}
 					data={filteredPosts}
-					renderItem={renderPost}
+					renderItem={({ item }) => renderPost({ item })}
 					keyExtractor={(item) => item.id}
-					contentContainerStyle={styles.listContent}
+					contentContainerStyle={[styles.listContent, filteredPosts.length === 0 && { flexGrow: 1 }]}
 					showsVerticalScrollIndicator={false}
 					onEndReached={onEndReached}
 					onEndReachedThreshold={0.5}
 					ListFooterComponent={renderFooter}
+					onRowOpen={(rowKey, rowMap, toValue) => {
+						const post = posts.find(p => p.id === rowKey)
+						
+						// Instantly close the row visually first
+						rowMap[rowKey]?.closeRow()
+
+						// Delay the state update and API call so the close animation completes smoothly
+						setTimeout(() => {
+							if (toValue > 0 && post) {
+								// Swiped Right -> Favourite
+								handleToggleFavourite(post)
+							} else if (toValue < 0) {
+								// Swiped Left -> Delete
+								handleDeletePost(rowKey)
+							}
+						}, 250)
+					}}
+					renderHiddenItem={(data, rowMap) => (
+						<View style={styles.rowBack}>
+							<TouchableOpacity
+								style={styles.backLeftBtn}
+								onPress={() => {
+									handleToggleFavourite(data.item)
+									rowMap[data.item.id]?.closeRow()
+								}}
+								activeOpacity={0.8}
+							>
+								<Ionicons name="star" size={24} color="#ffffff" />
+							</TouchableOpacity>
+							<TouchableOpacity
+								style={styles.backRightBtn}
+								onPress={() => {
+									handleDeletePost(data.item.id)
+									rowMap[data.item.id]?.closeRow()
+								}}
+								activeOpacity={0.8}
+							>
+								<Ionicons name="trash" size={24} color="#ffffff" />
+							</TouchableOpacity>
+						</View>
+					)}
+					leftOpenValue={75}
+					rightOpenValue={-75}
+					previewRowKey={filteredPosts.length > 0 ? filteredPosts[0].id : undefined}
+					previewOpenValue={-40}
+					previewOpenDelay={3000}
+					ListEmptyComponent={
+						!loading ? (
+							<View style={styles.emptyStateContainer}>
+								<Ionicons name="document-text-outline" size={64} color="rgba(255,255,255,0.2)" />
+								<Text style={styles.emptyStateTitle}>No scripts found</Text>
+								<Text style={styles.emptyStateSubtitle}>
+									{searchQuery || filter !== 'all' 
+										? 'Try adjusting your filters or search.' 
+										: "You haven't written any scripts yet."}
+								</Text>
+								{(!searchQuery && filter === 'all') && (
+									<TouchableOpacity 
+										style={styles.emptyStateBtn}
+										onPress={() => {
+											Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+											router.push('/create-post' as any)
+										}}
+									>
+										<Text style={styles.emptyStateBtnText}>Create New</Text>
+									</TouchableOpacity>
+								)}
+							</View>
+						) : null
+					}
 					refreshControl={
 						<RefreshControl
 							refreshing={refreshing}
-							onRefresh={onRefresh}
+							onRefresh={() => {
+								Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+								onRefresh()
+							}}
 							tintColor='#d4af37'
 						/>
 					}
 				/>
+			)}
+			</>
 			)}
 
 			<Modal
@@ -632,7 +735,75 @@ const styles = StyleSheet.create({
 	headerTitle: {
 		fontSize: 24,
 		fontWeight: '700',
+		color: '#a3a3a3',
+	},
+	skeletonCard: {
+		height: 120,
+		backgroundColor: 'rgba(255,255,255,0.05)',
+		borderRadius: 16,
+		marginBottom: 14,
+	},
+	emptyStateContainer: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+		marginTop: 60,
+	},
+	emptyStateTitle: {
 		color: '#ffffff',
+		fontSize: 18,
+		fontWeight: '600',
+		marginTop: 16,
+	},
+	emptyStateSubtitle: {
+		color: 'rgba(255,255,255,0.5)',
+		fontSize: 14,
+		marginTop: 8,
+		textAlign: 'center',
+		paddingHorizontal: 32,
+	},
+	emptyStateBtn: {
+		marginTop: 24,
+		backgroundColor: '#d4af37',
+		paddingHorizontal: 20,
+		paddingVertical: 10,
+		borderRadius: 8,
+	},
+	emptyStateBtnText: {
+		color: '#000000',
+		fontWeight: '600',
+		fontSize: 14,
+	},
+	rowBack: {
+		alignItems: 'center',
+		backgroundColor: 'transparent',
+		flex: 1,
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+	},
+	backLeftBtn: {
+		alignItems: 'center',
+		bottom: 14,
+		justifyContent: 'center',
+		position: 'absolute',
+		top: 0,
+		width: 75,
+		backgroundColor: '#d4af37',
+		left: 0,
+		borderTopLeftRadius: 16,
+		borderBottomLeftRadius: 16,
+	},
+	backRightBtn: {
+		alignItems: 'center',
+		bottom: 14,
+		justifyContent: 'center',
+		position: 'absolute',
+		top: 0,
+		width: 75,
+		backgroundColor: '#ef4444',
+		right: 0,
+		borderTopRightRadius: 16,
+		borderBottomRightRadius: 16,
 	},
 	headerSubtitle: {
 		fontSize: 12,

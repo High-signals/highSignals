@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
 // API Configuration
 // NOTE: the realtime voice feature needs a persistent host (WebSocket + Google
 // streaming), which Vercel serverless cannot provide. Point EXPO_PUBLIC_API_URL
@@ -6,7 +8,7 @@
 const API_BASE_URL =
 	process.env.EXPO_PUBLIC_API_URL ||
 	process.env.REACT_APP_API_URL ||
-	'https://highsignals.onrender.com'
+	'https://scripnals.onrender.com'
 
 /** The resolved REST base URL (host), exported for non-`call` fetches. */
 export const apiBaseUrl = API_BASE_URL
@@ -73,6 +75,8 @@ export const api = {
 		options: RequestInit = {},
 		requiresAuth = true,
 	) => {
+		const url = `${API_BASE_URL}${endpoint}`
+		const method = options.method || 'GET'
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
 			...options.headers,
@@ -82,22 +86,58 @@ export const api = {
 			headers.Authorization = `Bearer ${authTokens.accessToken}`
 		}
 
-		const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-			...options,
+		const config: RequestInit = {
+			method,
 			headers,
-		})
-
-		const data = await response.json()
-
-		if (!response.ok) {
-			const err: Error & { status?: number } = new Error(
-				data.message || 'API Error',
-			)
-			err.status = response.status
-			throw err
+			...options,
 		}
 
-		return data
+		try {
+			const response = await fetch(url, config)
+
+			if (!response.ok) {
+				let errorMessage = 'An error occurred'
+				try {
+					const textData = await response.text()
+					try {
+						const errorData = JSON.parse(textData)
+						errorMessage = errorData.message || errorMessage
+					} catch (e) {
+						errorMessage = textData || errorMessage
+					}
+				} catch (e) {
+					// Fallback
+				}
+				throw new Error(errorMessage)
+			}
+
+			const data = await response.json()
+
+			// Cache successful GET requests for offline support
+			if (method === 'GET' && requiresAuth) {
+				try {
+					await AsyncStorage.setItem(`cache_${endpoint}`, JSON.stringify(data))
+				} catch (err) {
+					console.warn('Cache write failed:', err)
+				}
+			}
+
+			return data
+		} catch (error: any) {
+			// If network fails, try to return cached data for GET requests
+			if (method === 'GET' && requiresAuth) {
+				try {
+					const cachedData = await AsyncStorage.getItem(`cache_${endpoint}`)
+					if (cachedData) {
+						console.log(`Serving cached data for ${endpoint}`)
+						return JSON.parse(cachedData)
+					}
+				} catch (err) {
+					console.warn('Cache read failed:', err)
+				}
+			}
+			throw error
+		}
 	},
 
 	// Auth endpoints

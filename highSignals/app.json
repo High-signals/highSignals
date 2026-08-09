@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "highSignals",
+    "name": "Scripnals",
     "slug": "highSignals",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo1.png",
-    "scheme": "highsignals",
+    "scheme": "scripnals",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -45,9 +45,11 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "Allow highSignals to use the microphone for voice dictation.",
-          "speechRecognitionPermission": "Allow highSignals to transcribe your speech into your script.",
-          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+          "microphonePermission": "Allow Scripnals to use the microphone for voice dictation.",
+          "speechRecognitionPermission": "Allow Scripnals to transcribe your speech into your script.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
         }
       ]
     ],

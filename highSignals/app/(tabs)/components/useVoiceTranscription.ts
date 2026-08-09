@@ -158,7 +158,7 @@ export function useVoiceTranscription({
 				PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
 				{
 					title: 'Microphone access',
-					message: 'highSignals needs your mic to transcribe your idea.',
+					message: 'Scripnals needs your mic to transcribe your idea.',
 					buttonPositive: 'Allow',
 				},
 			)

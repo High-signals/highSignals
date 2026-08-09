@@ -8,8 +8,8 @@ import {
 	TextInput,
 	Image,
 	ActivityIndicator,
-	Alert,
 } from 'react-native'
+import Toast from 'react-native-toast-message'
 import { useRouter } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { api } from '@/services/api'
@@ -46,7 +46,7 @@ export default function ProfileEditScreen() {
 			})
 		} catch (error) {
 			console.error('Error loading profile:', error)
-			Alert.alert('Error', 'Failed to load profile')
+			Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load profile' })
 		} finally {
 			setLoading(false)
 		}
@@ -56,10 +56,7 @@ export default function ProfileEditScreen() {
 		const permission =
 			await ImagePicker.requestMediaLibraryPermissionsAsync()
 		if (!permission.granted) {
-			Alert.alert(
-				'Permission needed',
-				'Please allow photo access to change your avatar.',
-			)
+			Toast.show({ type: 'error', text1: 'Permission needed', text2: 'Please allow photo access to change your avatar.' })
 			return
 		}
 
@@ -84,10 +81,7 @@ export default function ProfileEditScreen() {
 			setForm((prev) => ({ ...prev, avatar: updated.avatar || null }))
 		} catch (error: any) {
 			console.error('Avatar upload failed', error)
-			Alert.alert(
-				'Upload failed',
-				error?.message || 'Could not upload avatar',
-			)
+			Toast.show({ type: 'error', text1: 'Upload failed', text2: error?.message || 'Could not upload avatar' })
 			setForm((prev) => ({ ...prev, avatar: previousAvatar }))
 		} finally {
 			setUploadingAvatar(false)
@@ -96,7 +90,7 @@ export default function ProfileEditScreen() {
 
 	const handleSave = async () => {
 		if (!form.name.trim()) {
-			Alert.alert('Error', 'Name is required')
+			Toast.show({ type: 'error', text1: 'Error', text2: 'Name is required' })
 			return
 		}
 
@@ -106,11 +100,11 @@ export default function ProfileEditScreen() {
 				name: form.name.trim(),
 				bio: form.bio,
 			})
-			Alert.alert('Success', 'Profile updated successfully')
+			Toast.show({ type: 'success', text1: 'Success', text2: 'Profile updated successfully' })
 			router.back()
 		} catch (error: any) {
 			console.error('Error saving profile:', error)
-			Alert.alert('Error', error.message || 'Failed to save profile')
+			Toast.show({ type: 'error', text1: 'Error', text2: error.message || 'Failed to save profile' })
 		} finally {
 			setSaving(false)
 		}

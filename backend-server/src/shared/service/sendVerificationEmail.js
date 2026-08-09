@@ -13,7 +13,7 @@ export async function sendVerificationEmail(email, otp) {
 			body: JSON.stringify({
 				sender: {
 					email: process.env.EMAIL_FROM,
-					name: 'HighSignals',
+					name: 'Scripnals',
 				},
 				to: [{ email }],
 				templateId: Number(process.env.BREVO_TEMPLATE_ID),
