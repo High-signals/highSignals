@@ -166,13 +166,14 @@ export default function ProfileScreen() {
 							key={index}
 							style={styles.menuItem}
 							onPress={item.onPress}
+							activeOpacity={0.8}
 						>
 							<View style={styles.menuItemLeft}>
 								<View style={styles.menuIcon}>
 									<Ionicons
 										name={item.icon as any}
-										size={24}
-										color='#d4af37'
+										size={22}
+										color='#1D4A79'
 									/>
 								</View>
 								<View style={styles.menuItemText}>
@@ -185,9 +186,9 @@ export default function ProfileScreen() {
 								</View>
 							</View>
 							<Ionicons
-								name='chevron-forward-outline'
-								size={20}
-								color='rgba(255,255,255,0.3)'
+								name='chevron-forward'
+								size={18}
+								color='#8E9BAE'
 							/>
 						</TouchableOpacity>
 					))}
@@ -201,11 +202,12 @@ export default function ProfileScreen() {
 							await logout()
 							router.replace('/signup-login')
 						}}
+						activeOpacity={0.8}
 					>
 						<Ionicons
 							name='log-out-outline'
 							size={20}
-							color='#f87171'
+							color='#DC2626'
 						/>
 						<Text style={styles.logoutText}>Log Out</Text>
 					</TouchableOpacity>
@@ -234,7 +236,7 @@ export default function ProfileScreen() {
 							value={feedbackData.name}
 							onChangeText={(t) => setFeedbackData(prev => ({ ...prev, name: t }))}
 							placeholder="Your Name"
-							placeholderTextColor="rgba(255,255,255,0.4)"
+							placeholderTextColor="#8E9BAE"
 						/>
 						
 						<Text style={styles.inputLabel}>Email</Text>
@@ -244,7 +246,7 @@ export default function ProfileScreen() {
 							onChangeText={(t) => setFeedbackData(prev => ({ ...prev, email: t }))}
 							placeholder="Your Email"
 							keyboardType="email-address"
-							placeholderTextColor="rgba(255,255,255,0.4)"
+							placeholderTextColor="#8E9BAE"
 						/>
 
 						<Text style={styles.inputLabel}>Feedback</Text>
@@ -254,25 +256,25 @@ export default function ProfileScreen() {
 							onChangeText={(t) => setFeedbackData(prev => ({ ...prev, feedback: t }))}
 							placeholder="What's on your mind?"
 							multiline
-							placeholderTextColor="rgba(255,255,255,0.4)"
+							placeholderTextColor="#8E9BAE"
 						/>
 
 						<View style={styles.modalActions}>
 							<TouchableOpacity 
-								style={[styles.modalBtn, { backgroundColor: 'transparent' }]}
+								style={[styles.modalBtn, { backgroundColor: '#F5EFE6', borderWidth: 1, borderColor: '#EADBCE' }]}
 								onPress={() => setShowFeedbackModal(false)}
 							>
-								<Text style={[styles.modalBtnText, { color: '#ffffff' }]}>Cancel</Text>
+								<Text style={[styles.modalBtnText, { color: '#163354' }]}>Cancel</Text>
 							</TouchableOpacity>
 							<TouchableOpacity 
-								style={[styles.modalBtn, { backgroundColor: '#d4af37' }]}
+								style={[styles.modalBtn, { backgroundColor: '#1D4A79' }]}
 								onPress={submitFeedback}
 								disabled={isSubmittingFeedback}
 							>
 								{isSubmittingFeedback ? (
-									<ActivityIndicator size="small" color="#000000" />
+									<ActivityIndicator size="small" color="#FFFFFF" />
 								) : (
-									<Text style={[styles.modalBtnText, { color: '#000000' }]}>Submit</Text>
+									<Text style={[styles.modalBtnText, { color: '#FFFFFF' }]}>Submit</Text>
 								)}
 							</TouchableOpacity>
 						</View>
@@ -286,98 +288,100 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#0a192f',
+		backgroundColor: '#FBF9F5',
 	},
 	profileCard: {
 		alignItems: 'center',
 		padding: 24,
 		marginTop: 16,
-		marginBottom: 24,
-		backgroundColor: 'rgba(212,175,55,0.05)',
-		borderRadius: 16,
+		marginBottom: 20,
+		backgroundColor: '#FAF7F2',
+		borderRadius: 20,
 		marginHorizontal: 20,
-		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.2)',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
 	profileImageContainer: {
-		marginBottom: 16,
+		marginBottom: 14,
 	},
 	profileImage: {
 		width: 80,
 		height: 80,
 		borderRadius: 40,
 		borderWidth: 2,
-		borderColor: '#d4af37',
+		borderColor: '#1D4A79',
 	},
 	profilePlaceholder: {
 		width: 80,
 		height: 80,
 		borderRadius: 40,
-		backgroundColor: '#d4af37',
+		backgroundColor: '#1D4A79',
 		justifyContent: 'center',
 		alignItems: 'center',
-		borderWidth: 2,
-		borderColor: '#d4af37',
 	},
 	initials: {
-		fontSize: 32,
-		fontWeight: '700',
-		color: '#0a192f',
+		fontSize: 28,
+		fontWeight: '800',
+		color: '#FFFFFF',
 	},
 	userName: {
 		fontSize: 20,
-		fontWeight: '700',
-		color: '#ffffff',
+		fontWeight: '800',
+		color: '#163354',
 		marginBottom: 4,
 	},
 	userEmail: {
-		fontSize: 14,
-		color: 'rgba(255,255,255,0.6)',
-		marginBottom: 8,
+		fontSize: 13.5,
+		color: '#64748B',
+		marginBottom: 6,
+		fontWeight: '500',
 	},
 	userBio: {
 		fontSize: 13,
-		color: 'rgba(255,255,255,0.5)',
+		color: '#475569',
 		textAlign: 'center',
-		marginTop: 8,
+		marginTop: 6,
+		lineHeight: 18,
 	},
 	menuSection: {
 		paddingHorizontal: 20,
-		marginBottom: 24,
+		marginBottom: 20,
 	},
 	sectionTitle: {
-		fontSize: 16,
-		fontWeight: '700',
-		color: '#d4af37',
+		fontSize: 13,
+		fontWeight: '800',
+		color: '#163354',
 		marginBottom: 12,
 		textTransform: 'uppercase',
-		letterSpacing: 0.5,
+		letterSpacing: 0.7,
 	},
 	menuItem: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
-		paddingVertical: 16,
-		paddingHorizontal: 12,
-		marginBottom: 8,
-		backgroundColor: 'rgba(255,255,255,0.03)',
-		borderRadius: 12,
-		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.15)',
+		paddingVertical: 14,
+		paddingHorizontal: 14,
+		marginBottom: 10,
+		backgroundColor: '#FAF7F2',
+		borderRadius: 16,
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
 	menuItemLeft: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		flex: 1,
-		gap: 12,
+		gap: 14,
 	},
 	menuIcon: {
-		width: 44,
-		height: 44,
-		borderRadius: 8,
-		backgroundColor: 'rgba(212,175,55,0.1)',
+		width: 42,
+		height: 42,
+		borderRadius: 12,
+		backgroundColor: '#F5EFE6',
 		justifyContent: 'center',
 		alignItems: 'center',
+		borderWidth: 1,
+		borderColor: '#EADBCE',
 	},
 	menuItemText: {
 		flex: 1,
@@ -385,16 +389,16 @@ const styles = StyleSheet.create({
 	menuItemTitle: {
 		fontSize: 15,
 		fontWeight: '700',
-		color: '#ffffff',
+		color: '#163354',
 		marginBottom: 2,
 	},
 	menuItemDescription: {
 		fontSize: 12,
-		color: 'rgba(255,255,255,0.5)',
+		color: '#64748B',
 	},
 	accountSection: {
 		paddingHorizontal: 20,
-		marginTop: 16,
+		marginTop: 10,
 	},
 	logoutButton: {
 		flexDirection: 'row',
@@ -402,51 +406,53 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		gap: 8,
 		paddingVertical: 14,
-		borderRadius: 8,
-		backgroundColor: 'rgba(255,107,107,0.1)',
-		borderWidth: 1,
-		borderColor: '#f87171',
+		borderRadius: 14,
+		backgroundColor: '#FDE8E8',
+		borderWidth: 1.5,
+		borderColor: '#FECACA',
 	},
 	logoutText: {
-		fontSize: 16,
+		fontSize: 15,
 		fontWeight: '700',
-		color: '#f87171',
+		color: '#DC2626',
 	},
 	modalOverlay: {
 		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.7)',
+		backgroundColor: 'rgba(0,0,0,0.5)',
 		justifyContent: 'center',
 		alignItems: 'center',
 		padding: 24,
 	},
 	modalContent: {
-		backgroundColor: '#161618',
-		borderRadius: 16,
+		backgroundColor: '#FAF7F2',
+		borderRadius: 20,
 		padding: 24,
 		width: '100%',
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.1)',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
 	modalTitle: {
 		fontSize: 18,
-		fontWeight: '700',
-		color: '#ffffff',
-		marginBottom: 20,
+		fontWeight: '800',
+		color: '#163354',
+		marginBottom: 18,
 	},
 	inputLabel: {
-		fontSize: 14,
-		color: 'rgba(255,255,255,0.6)',
+		fontSize: 13,
+		fontWeight: '700',
+		color: '#163354',
 		marginBottom: 6,
 	},
 	inputField: {
-		backgroundColor: 'rgba(255,255,255,0.05)',
-		borderRadius: 8,
+		backgroundColor: '#FFFFFF',
+		borderRadius: 10,
 		paddingHorizontal: 12,
 		paddingVertical: 10,
-		color: '#ffffff',
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.1)',
-		marginBottom: 16,
+		color: '#163354',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
+		marginBottom: 14,
+		fontSize: 14,
 	},
 	modalActions: {
 		flexDirection: 'row',
@@ -455,14 +461,14 @@ const styles = StyleSheet.create({
 		marginTop: 8,
 	},
 	modalBtn: {
-		paddingHorizontal: 16,
-		paddingVertical: 10,
-		borderRadius: 8,
-		minWidth: 80,
+		paddingHorizontal: 18,
+		paddingVertical: 11,
+		borderRadius: 10,
+		minWidth: 84,
 		alignItems: 'center',
 	},
 	modalBtnText: {
-		fontWeight: '600',
+		fontWeight: '700',
 		fontSize: 14,
 	},
 })

@@ -223,7 +223,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#000000',
+		backgroundColor: '#FBF9F5',
 	},
 	header: {
 		flexDirection: 'row',
@@ -234,14 +234,14 @@ const styles = StyleSheet.create({
 		paddingBottom: 20,
 	},
 	backButton: {
-		fontSize: 28,
-		color: '#ffffff',
-		fontWeight: '600',
+		fontSize: 26,
+		color: '#163354',
+		fontWeight: '700',
 	},
 	headerTitle: {
 		fontSize: 18,
 		fontWeight: '800',
-		color: '#ffffff',
+		color: '#163354',
 	},
 	scrollContent: {
 		paddingBottom: 40,
@@ -250,14 +250,14 @@ const styles = StyleSheet.create({
 	// Sections
 	section: {
 		paddingHorizontal: 24,
-		marginBottom: 32,
+		marginBottom: 28,
 	},
 	sectionTitle: {
-		fontSize: 14,
-		fontWeight: '700',
-		color: 'rgba(255,255,255,0.5)',
-		marginBottom: 16,
-		letterSpacing: 1,
+		fontSize: 13,
+		fontWeight: '800',
+		color: '#163354',
+		marginBottom: 12,
+		letterSpacing: 0.8,
 		textTransform: 'uppercase',
 	},
 
@@ -266,12 +266,12 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
-		backgroundColor: 'rgba(255,255,255,0.05)',
-		borderRadius: 12,
+		backgroundColor: '#FAF7F2',
+		borderRadius: 16,
 		padding: 16,
-		marginBottom: 8,
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.1)',
+		marginBottom: 10,
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
 	menuLeft: {
 		flexDirection: 'row',
@@ -284,37 +284,40 @@ const styles = StyleSheet.create({
 	},
 	menuText: {
 		fontSize: 15,
-		fontWeight: '600',
-		color: '#ffffff',
+		fontWeight: '700',
+		color: '#163354',
 	},
 	menuArrow: {
-		fontSize: 20,
-		color: 'rgba(255,255,255,0.3)',
+		fontSize: 18,
+		color: '#8E9BAE',
+		fontWeight: '600',
 	},
 
 	// Premium Card
 	premiumCard: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-		borderRadius: 16,
+		backgroundColor: '#FAF7F2',
+		borderRadius: 18,
 		padding: 20,
 		marginHorizontal: 24,
 		marginBottom: 24,
-		borderWidth: 2,
-		borderColor: '#00D9FF',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
 	premiumIcon: {
-		width: 50,
-		height: 50,
-		borderRadius: 25,
-		backgroundColor: 'rgba(255,255,255,0.2)',
+		width: 48,
+		height: 48,
+		borderRadius: 24,
+		backgroundColor: '#F5EFE6',
 		justifyContent: 'center',
 		alignItems: 'center',
 		marginRight: 16,
+		borderWidth: 1,
+		borderColor: '#EADBCE',
 	},
 	premiumEmoji: {
-		fontSize: 24,
+		fontSize: 22,
 	},
 	premiumContent: {
 		flex: 1,
@@ -322,23 +325,24 @@ const styles = StyleSheet.create({
 	premiumTitle: {
 		fontSize: 16,
 		fontWeight: '800',
-		color: '#ffffff',
+		color: '#163354',
 		marginBottom: 4,
 	},
 	premiumDesc: {
 		fontSize: 13,
-		color: 'rgba(255,255,255,0.8)',
+		color: '#64748B',
 	},
 	premiumArrow: {
-		fontSize: 24,
-		color: '#ffffff',
-		fontWeight: '600',
+		fontSize: 20,
+		color: '#1D4A79',
+		fontWeight: '700',
 	},
 
 	// Version
 	versionText: {
 		fontSize: 12,
-		color: 'rgba(255,255,255,0.3)',
+		color: '#8E9BAE',
 		textAlign: 'center',
+		fontWeight: '500',
 	},
 })

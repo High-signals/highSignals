@@ -95,11 +95,11 @@ export default function GetContentScreen() {
 	const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null)
 
 	const STAGES = [
-		{ key: 'IDEA', label: 'Idea', icon: 'bulb-outline', color: '#3b82f6' },
-		{ key: 'SCRIPTING', label: 'Scripting', icon: 'create-outline', color: '#888888' },
-		{ key: 'RECORDING', label: 'Recording', icon: 'mic-outline', color: '#ec4899' },
-		{ key: 'EDITING', label: 'Editing', icon: 'cut-outline', color: '#FFD700' },
-		{ key: 'POSTED', label: 'Posted', icon: 'checkmark-done-outline', color: '#4ade80' },
+		{ key: 'IDEA', label: 'Idea', icon: 'bulb-outline', color: '#0284C7', bg: '#E0F2FE' },
+		{ key: 'SCRIPTING', label: 'Scripting', icon: 'create-outline', color: '#7C3AED', bg: '#F3E8FF' },
+		{ key: 'RECORDING', label: 'Recording', icon: 'mic-outline', color: '#E11D48', bg: '#FFE4E6' },
+		{ key: 'EDITING', label: 'Editing', icon: 'cut-outline', color: '#D97706', bg: '#FEF3C7' },
+		{ key: 'POSTED', label: 'Posted', icon: 'checkmark-done-outline', color: '#059669', bg: '#D1FAE5' },
 	]
 
 	const handleUpdateStatus = async (post: Post, newStatus: string) => {
@@ -295,92 +295,109 @@ export default function GetContentScreen() {
 		return matchesFilter && matchesSearch
 	})
 
-	const getStatusColor = (status: string) => {
-		const colors: { [key: string]: string } = {
-			IDEA: '#3b82f6', // blue
-			SCRIPTING: '#a855f7', // purple
-			RECORDING: '#ef4444', // red
-			EDITING: '#f59e0b', // amber
-			POSTED: '#22c55e', // green
+	const getStatusBadgeStyle = (status: string) => {
+		switch (status) {
+			case 'IDEA':
+				return { bg: '#E0F2FE', text: '#0284C7', dot: '#0284C7', border: '#BAE6FD' }
+			case 'SCRIPTING':
+			case 'DRAFT':
+				return { bg: '#F3E8FF', text: '#7C3AED', dot: '#7C3AED', border: '#DDD6FE' }
+			case 'RECORDING':
+				return { bg: '#FFE4E6', text: '#E11D48', dot: '#E11D48', border: '#FECDD3' }
+			case 'EDITING':
+			case 'SCHEDULED':
+				return { bg: '#FEF3C7', text: '#D97706', dot: '#D97706', border: '#FDE68A' }
+			case 'POSTED':
+			case 'PUBLISHED':
+				return { bg: '#D1FAE5', text: '#059669', dot: '#059669', border: '#A7F3D0' }
+			default:
+				return { bg: '#F1F5F9', text: '#64748B', dot: '#94A3B8', border: '#E2E8F0' }
 		}
-		return colors[status] || '#FFFFFF'
 	}
 
-
-
-	const renderPost = ({ item }: { item: Post }) => (
-		<View style={{ backgroundColor: 'transparent' }}>
-			<View style={{ backgroundColor: '#0a192f', borderRadius: 16 }}>
-				<TouchableOpacity
-					style={[styles.postCard, { marginBottom: 0 }]}
-					activeOpacity={1}
-					onPress={() => router.push(`/(tabs)/post-detail?postId=${item.id}`)}
-				>
-					<View style={styles.postHeader}>
-						<TouchableOpacity
-							style={[
-								styles.postLeft,
-								{ borderColor: getStatusColor(item.status) + '44' },
-							]}
-							onPress={(e) => {
-								e.stopPropagation()
-								setSelectedPostForStatus(item)
-							}}
-							activeOpacity={0.7}
-						>
-							<View
+	const renderPost = ({ item }: { item: Post }) => {
+		const badge = getStatusBadgeStyle(item.status)
+		return (
+			<View style={{ backgroundColor: 'transparent' }}>
+				<View style={{ backgroundColor: '#FAF7F2', borderRadius: 18, borderWidth: 1.5, borderColor: '#EADBCE' }}>
+					<TouchableOpacity
+						style={[styles.postCard, { marginBottom: 0 }]}
+						activeOpacity={0.9}
+						onPress={() => router.push(`/(tabs)/post-detail?postId=${item.id}`)}
+					>
+						<View style={styles.postHeader}>
+							<TouchableOpacity
 								style={[
-									styles.statusDot,
-									{ backgroundColor: getStatusColor(item.status) },
+									styles.postLeft,
+									{ backgroundColor: badge.bg, borderColor: badge.border },
 								]}
-							/>
-							<Text
-								style={[
-									styles.statusText,
-									{ color: getStatusColor(item.status) },
-								]}
+								onPress={(e) => {
+									e.stopPropagation()
+									setSelectedPostForStatus(item)
+								}}
+								activeOpacity={0.7}
 							>
-								{STATUS_LABELS[item.status] || item.status}
-							</Text>
-							<Ionicons
-								name='chevron-down'
-								size={12}
-								color={getStatusColor(item.status)}
-							/>
-						</TouchableOpacity>
-					</View>
+								<View
+									style={[
+										styles.statusDot,
+										{ backgroundColor: badge.dot },
+									]}
+								/>
+								<Text
+									style={[
+										styles.statusText,
+										{ color: badge.text },
+									]}
+								>
+									{STATUS_LABELS[item.status] || item.status}
+								</Text>
+								<Ionicons
+									name='chevron-down'
+									size={12}
+									color={badge.text}
+								/>
+							</TouchableOpacity>
+						</View>
 
-					<Text style={styles.postTitle} numberOfLines={2}>
-						{item.title || 'Untitled Post'}
-					</Text>
-
-					<Text style={styles.postContent} numberOfLines={3}>
-						{buildPreviewText(item.content)}
-					</Text>
-
-					<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-						<Text style={styles.postDate}>
-							{new Date(item.createdAt).toLocaleDateString()}
+						<Text style={styles.postTitle} numberOfLines={2}>
+							{item.title || 'Untitled Post'}
 						</Text>
-						{/* Favourite icon handled by swipe action now, but if you want it visible on card too: */}
-						<Ionicons
-							name={item.isFavourite ? 'star' : 'star-outline'}
-							size={20}
-							color={item.isFavourite ? '#d4af37' : 'rgba(255,255,255,0.3)'}
-						/>
-					</View>
-				</TouchableOpacity>
+
+						<Text style={styles.postContent} numberOfLines={3}>
+							{buildPreviewText(item.content)}
+						</Text>
+
+						<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+							<Text style={styles.postDate}>
+								{new Date(item.createdAt).toLocaleDateString()}
+							</Text>
+							<TouchableOpacity
+								onPress={(e) => {
+									e.stopPropagation()
+									handleToggleFavourite(item)
+								}}
+								hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+							>
+								<Ionicons
+									name={item.isFavourite ? 'star' : 'star-outline'}
+									size={18}
+									color={item.isFavourite ? '#D4AF37' : '#94A3B8'}
+								/>
+							</TouchableOpacity>
+						</View>
+					</TouchableOpacity>
+				</View>
+				<View style={{ height: 12 }} />
 			</View>
-			<View style={{ height: 14 }} />
-		</View>
-	)
+		)
+	}
 
 	// Footer component to show loading indicator when fetching more posts
 	const renderFooter = () => {
 		if (!pagination.isLoadingMore) return null
 		return (
 			<View style={styles.footerLoader}>
-				<ActivityIndicator size='small' color='#d4af37' />
+				<ActivityIndicator size='small' color='#1D4A79' />
 				<Text style={styles.footerText}>Loading more posts...</Text>
 			</View>
 		)
@@ -388,7 +405,7 @@ export default function GetContentScreen() {
 
 	const emptyComponent = (
 		<View style={styles.emptyState}>
-			<Text style={styles.emptyEmoji}>*</Text>
+			<Text style={styles.emptyEmoji}>📝</Text>
 			<Text style={styles.emptyText}>
 				{filter === 'all'
 					? 'No content found'
@@ -402,25 +419,24 @@ export default function GetContentScreen() {
 		</View>
 	)
 
-
-
 	return (
 		<View style={styles.container}>
 			<View style={styles.header}>
 				<View>
-					<Text style={styles.headerTitle}>Your Content</Text>
+					<Text style={styles.headerTitle}>Content List</Text>
 					<Text style={styles.headerSubtitle}>
 						{filteredPosts.length} post
 						{filteredPosts.length !== 1 ? 's' : ''}
 					</Text>
 				</View>
 				<TouchableOpacity
+					style={styles.addIconButton}
 					onPress={() => router.push('/(tabs)/create-post')}
 				>
 					<Ionicons
-						name='add-circle-outline'
-						size={28}
-						color='#d4af37'
+						name='add'
+						size={22}
+						color='#163354'
 					/>
 				</TouchableOpacity>
 			</View>
@@ -437,13 +453,13 @@ export default function GetContentScreen() {
 				<View style={styles.searchContainer}>
 					<Ionicons
 						name='search-outline'
-						size={20}
-						color='rgba(255,255,255,0.4)'
+						size={18}
+						color='#8E9BAE'
 					/>
 					<TextInput
 						style={styles.searchInput}
 						placeholder='Search content...'
-						placeholderTextColor='rgba(255,255,255,0.4)'
+						placeholderTextColor='#8E9BAE'
 						value={searchQuery}
 						onChangeText={setSearchQuery}
 					/>
@@ -451,8 +467,8 @@ export default function GetContentScreen() {
 				<TouchableOpacity style={styles.sortButton} onPress={() => setShowSortModal(true)}>
 					<Ionicons 
 						name={sortOption ? "options" : "options-outline"} 
-						size={20} 
-						color={sortOption ? "#d4af37" : "#ffffff"} 
+						size={18} 
+						color={sortOption ? "#1D4A79" : "#163354"} 
 					/>
 				</TouchableOpacity>
 			</View>
@@ -599,14 +615,12 @@ export default function GetContentScreen() {
 					<View style={styles.modalSheet}>
 						<View style={styles.sheetHeader}>
 							<Text style={styles.sheetTitle} numberOfLines={1}>
-								{selectedPostForStatus?.title
-									? `Update status: ${selectedPostForStatus.title}`
-									: 'Update Post Status'}
+								Status Update Modal
 							</Text>
 							<TouchableOpacity
 								onPress={() => setSelectedPostForStatus(null)}
 							>
-								<Ionicons name='close-circle' size={24} color='#666666' />
+								<Ionicons name='close-circle' size={24} color='#8E9BAE' />
 							</TouchableOpacity>
 						</View>
 
@@ -625,7 +639,10 @@ export default function GetContentScreen() {
 										key={stage.key}
 										style={[
 											styles.stageOptionRow,
-											isCurrent && styles.stageOptionRowActive,
+											isCurrent && {
+												backgroundColor: stage.bg,
+												borderColor: stage.color + '66',
+											},
 										]}
 										onPress={() =>
 											selectedPostForStatus &&
@@ -637,7 +654,7 @@ export default function GetContentScreen() {
 											<View
 												style={[
 													styles.stageIconBg,
-													{ backgroundColor: stage.color + '22' },
+													{ backgroundColor: stage.bg },
 												]}
 											>
 												<Ionicons
@@ -649,7 +666,10 @@ export default function GetContentScreen() {
 											<Text
 												style={[
 													styles.stageLabel,
-													isCurrent && styles.stageLabelActive,
+													isCurrent && {
+														color: stage.color,
+														fontWeight: '800',
+													},
 												]}
 											>
 												{stage.label}
@@ -660,7 +680,7 @@ export default function GetContentScreen() {
 											<Ionicons
 												name='checkmark'
 												size={18}
-												color='#d4af37'
+												color={stage.color}
 											/>
 										)}
 									</TouchableOpacity>
@@ -706,10 +726,13 @@ export default function GetContentScreen() {
 											? 'radio-button-on'
 											: 'radio-button-off'
 									}
-									size={24}
-									color={sortOption === option.id ? '#d4af37' : 'rgba(255,255,255,0.4)'}
+									size={22}
+									color={sortOption === option.id ? '#1D4A79' : '#8E9BAE'}
 								/>
-								<Text style={styles.pickerOptionText}>{option.label}</Text>
+								<Text style={[
+									styles.pickerOptionText,
+									sortOption === option.id && { color: '#163354', fontWeight: '700' },
+								]}>{option.label}</Text>
 							</TouchableOpacity>
 						))}
 					</View>
@@ -722,24 +745,34 @@ export default function GetContentScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#0a192f',
+		backgroundColor: '#FBF9F5',
 	},
 	header: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
-		paddingHorizontal: 24,
+		paddingHorizontal: 20,
 		paddingTop: 16,
-		paddingBottom: 16,
+		paddingBottom: 14,
 	},
 	headerTitle: {
 		fontSize: 24,
-		fontWeight: '700',
-		color: '#a3a3a3',
+		fontWeight: '800',
+		color: '#163354',
+	},
+	addIconButton: {
+		width: 38,
+		height: 38,
+		borderRadius: 19,
+		backgroundColor: '#F5EFE6',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
+		justifyContent: 'center',
+		alignItems: 'center',
 	},
 	skeletonCard: {
 		height: 120,
-		backgroundColor: 'rgba(255,255,255,0.05)',
+		backgroundColor: '#F5EFE6',
 		borderRadius: 16,
 		marginBottom: 14,
 	},
@@ -750,28 +783,28 @@ const styles = StyleSheet.create({
 		marginTop: 60,
 	},
 	emptyStateTitle: {
-		color: '#ffffff',
+		color: '#163354',
 		fontSize: 18,
-		fontWeight: '600',
+		fontWeight: '700',
 		marginTop: 16,
 	},
 	emptyStateSubtitle: {
-		color: 'rgba(255,255,255,0.5)',
+		color: '#64748B',
 		fontSize: 14,
 		marginTop: 8,
 		textAlign: 'center',
 		paddingHorizontal: 32,
 	},
 	emptyStateBtn: {
-		marginTop: 24,
-		backgroundColor: '#d4af37',
+		marginTop: 20,
+		backgroundColor: '#1D4A79',
 		paddingHorizontal: 20,
 		paddingVertical: 10,
-		borderRadius: 8,
+		borderRadius: 10,
 	},
 	emptyStateBtnText: {
-		color: '#000000',
-		fontWeight: '600',
+		color: '#FFFFFF',
+		fontWeight: '700',
 		fontSize: 14,
 	},
 	rowBack: {
@@ -783,56 +816,57 @@ const styles = StyleSheet.create({
 	},
 	backLeftBtn: {
 		alignItems: 'center',
-		bottom: 14,
+		bottom: 12,
 		justifyContent: 'center',
 		position: 'absolute',
 		top: 0,
 		width: 75,
-		backgroundColor: '#d4af37',
+		backgroundColor: '#D4AF37',
 		left: 0,
-		borderTopLeftRadius: 16,
-		borderBottomLeftRadius: 16,
+		borderTopLeftRadius: 18,
+		borderBottomLeftRadius: 18,
 	},
 	backRightBtn: {
 		alignItems: 'center',
-		bottom: 14,
+		bottom: 12,
 		justifyContent: 'center',
 		position: 'absolute',
 		top: 0,
 		width: 75,
-		backgroundColor: '#ef4444',
+		backgroundColor: '#EF4444',
 		right: 0,
-		borderTopRightRadius: 16,
-		borderBottomRightRadius: 16,
+		borderTopRightRadius: 18,
+		borderBottomRightRadius: 18,
 	},
 	headerSubtitle: {
 		fontSize: 12,
-		color: 'rgba(255,255,255,0.5)',
-		marginTop: 4,
+		color: '#64748B',
+		marginTop: 2,
+		fontWeight: '500',
 	},
 	searchWrapper: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		marginHorizontal: 24,
-		gap: 12,
+		marginHorizontal: 20,
+		gap: 10,
 	},
 	searchContainer: {
 		flex: 1,
 		flexDirection: 'row',
 		alignItems: 'center',
-		backgroundColor: 'rgba(255,255,255,0.05)',
-		borderRadius: 8,
+		backgroundColor: '#FFFFFF',
+		borderRadius: 12,
 		paddingHorizontal: 12,
-		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.2)',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
 	sortButton: {
 		width: 44,
 		height: 44,
-		borderRadius: 8,
-		backgroundColor: 'rgba(255,255,255,0.05)',
-		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.2)',
+		borderRadius: 12,
+		backgroundColor: '#F5EFE6',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
@@ -840,73 +874,69 @@ const styles = StyleSheet.create({
 		flex: 1,
 		paddingVertical: 10,
 		paddingHorizontal: 8,
-		color: '#ffffff',
+		color: '#163354',
 		fontSize: 14,
+		fontWeight: '500',
 	},
 	filtersContainer: {
 		flexGrow: 0,
-		marginTop: 16,
+		marginTop: 14,
 		marginBottom: 0,
 		height: 36,
 	},
 	filters: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		paddingHorizontal: 24,
+		paddingHorizontal: 20,
 		gap: 8,
 		height: 36,
 	},
 	filterButton: {
-		width: 100,
-		height: 36,
-		borderRadius: 18,
-		backgroundColor: 'rgba(255,255,255,0.05)',
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.1)',
+		paddingHorizontal: 16,
+		height: 34,
+		borderRadius: 17,
+		backgroundColor: '#F5EFE6',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 		justifyContent: 'center',
 		alignItems: 'center',
 		flexShrink: 0,
 	},
 	filterButtonActive: {
-		backgroundColor: '#d4af37',
-		borderColor: '#d4af37',
+		backgroundColor: '#1D4A79',
+		borderColor: '#1D4A79',
 	},
 	filterText: {
 		fontSize: 12,
 		fontWeight: '600',
-		color: 'rgba(255,255,255,0.6)',
+		color: '#64748B',
 	},
 	filterTextActive: {
-		color: '#0a192f',
+		color: '#FFFFFF',
+		fontWeight: '700',
 	},
 	listContent: {
-		paddingTop: 24,
-		paddingHorizontal: 24,
-		paddingBottom: 36,
+		paddingTop: 16,
+		paddingHorizontal: 20,
+		paddingBottom: 40,
 	},
 	postCard: {
-		backgroundColor: 'rgba(255,255,255,0.035)',
-		borderRadius: 16,
 		padding: 16,
-		marginBottom: 14,
-		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.12)',
 	},
 	postHeader: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
-		marginBottom: 12,
+		marginBottom: 10,
 	},
 	postLeft: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		gap: 6,
+		gap: 5,
 		paddingHorizontal: 8,
 		paddingVertical: 3,
-		borderRadius: 10,
+		borderRadius: 8,
 		borderWidth: 1,
-		backgroundColor: 'rgba(255,255,255,0.04)',
 	},
 	statusDot: {
 		width: 6,
@@ -914,44 +944,45 @@ const styles = StyleSheet.create({
 		borderRadius: 3,
 	},
 	statusText: {
-		fontSize: 11,
-		fontWeight: '700',
+		fontSize: 10.5,
+		fontWeight: '800',
 		textTransform: 'uppercase',
 		letterSpacing: 0.5,
 	},
 	postTitle: {
 		fontSize: 16,
-		fontWeight: '700',
-		color: '#ffffff',
-		marginBottom: 8,
+		fontWeight: '800',
+		color: '#163354',
+		marginBottom: 6,
 		lineHeight: 22,
 	},
 	postContent: {
 		fontSize: 13,
-		color: 'rgba(255,255,255,0.6)',
-		lineHeight: 18,
+		color: '#475569',
+		lineHeight: 19,
 	},
 	postDate: {
 		fontSize: 11,
-		color: 'rgba(255,255,255,0.5)',
+		color: '#8E9BAE',
+		fontWeight: '500',
 	},
 	emptyState: {
 		alignItems: 'center',
 		paddingTop: 60,
 	},
 	emptyEmoji: {
-		fontSize: 64,
-		marginBottom: 16,
+		fontSize: 48,
+		marginBottom: 12,
 	},
 	emptyText: {
-		fontSize: 18,
+		fontSize: 17,
 		fontWeight: '700',
-		color: '#ffffff',
-		marginBottom: 8,
+		color: '#163354',
+		marginBottom: 6,
 	},
 	emptySubtext: {
-		fontSize: 14,
-		color: 'rgba(255,255,255,0.5)',
+		fontSize: 13,
+		color: '#64748B',
 	},
 	footerLoader: {
 		flexDirection: 'row',
@@ -962,20 +993,21 @@ const styles = StyleSheet.create({
 	},
 	footerText: {
 		fontSize: 12,
-		color: 'rgba(255,255,255,0.6)',
+		color: '#64748B',
 	},
 	modalOverlay: {
 		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.7)',
+		backgroundColor: 'rgba(0,0,0,0.5)',
 		justifyContent: 'flex-end',
 	},
 	modalSheet: {
-		backgroundColor: '#161618',
+		backgroundColor: '#FAF7F2',
 		borderTopLeftRadius: 24,
 		borderTopRightRadius: 24,
 		padding: 20,
+		paddingBottom: 32,
 		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.1)',
+		borderColor: '#EADBCE',
 	},
 	sheetHeader: {
 		flexDirection: 'row',
@@ -984,12 +1016,12 @@ const styles = StyleSheet.create({
 		marginBottom: 16,
 		paddingBottom: 12,
 		borderBottomWidth: 1,
-		borderBottomColor: 'rgba(255,255,255,0.08)',
+		borderBottomColor: '#EADBCE',
 	},
 	sheetTitle: {
-		fontSize: 15,
-		fontWeight: '700',
-		color: '#ffffff',
+		fontSize: 16,
+		fontWeight: '800',
+		color: '#163354',
 		flex: 1,
 		marginRight: 10,
 	},
@@ -1003,13 +1035,13 @@ const styles = StyleSheet.create({
 		justifyContent: 'space-between',
 		padding: 12,
 		borderRadius: 14,
-		backgroundColor: 'rgba(255,255,255,0.03)',
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.06)',
+		backgroundColor: '#FFFFFF',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
 	stageOptionRowActive: {
-		backgroundColor: 'rgba(212,175,55,0.12)',
-		borderColor: 'rgba(212,175,55,0.4)',
+		backgroundColor: '#E0F2FE',
+		borderColor: '#BAE6FD',
 	},
 	stageLeft: {
 		flexDirection: 'row',
@@ -1025,26 +1057,25 @@ const styles = StyleSheet.create({
 	},
 	stageLabel: {
 		fontSize: 14,
-		fontWeight: '600',
-		color: 'rgba(255,255,255,0.8)',
+		fontWeight: '700',
+		color: '#163354',
 	},
 	stageLabelActive: {
-		color: '#d4af37',
-		fontWeight: '700',
+		fontWeight: '800',
 	},
 	pickerSheet: {
-		backgroundColor: '#161618',
+		backgroundColor: '#FAF7F2',
 		borderTopLeftRadius: 24,
 		borderTopRightRadius: 24,
 		padding: 20,
 		paddingBottom: 32,
 		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.1)',
+		borderColor: '#EADBCE',
 	},
 	pickerTitle: {
 		fontSize: 16,
 		fontWeight: '800',
-		color: '#ffffff',
+		color: '#163354',
 		marginBottom: 16,
 	},
 	pickerOption: {
@@ -1053,11 +1084,11 @@ const styles = StyleSheet.create({
 		gap: 12,
 		paddingVertical: 14,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: 'rgba(255,255,255,0.06)',
+		borderBottomColor: '#EADBCE',
 	},
 	pickerOptionText: {
 		fontSize: 14,
-		color: '#ffffff',
+		color: '#475569',
 		fontWeight: '600',
 	},
 })

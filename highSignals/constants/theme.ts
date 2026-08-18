@@ -1,24 +1,58 @@
 export const COLORS = {
-  background: '#0a192f',
-  surface: '#112240',
-  surfaceLight: '#1d3557',
-  surfaceHover: '#264573',
+  // Base backgrounds
+  background: '#FBF9F5',
+  surface: '#FFFFFF',
+  surfaceCard: '#F5EFE6',
+  surfaceLight: '#FAF7F2',
+  surfaceHover: '#EDE6DA',
+  border: '#EADBCE',
+  borderLight: '#EFEAE2',
 
-  gold: '#d4af37',
-  goldLight: '#e8c94a',
-  goldMuted: 'rgba(212,175,55,0.15)',
-  goldBorder: 'rgba(212,175,55,0.25)',
+  // Primary Navy Brand
+  navy: '#163354',
+  navyLight: '#1D4A79',
+  navyDark: '#0F243C',
+  navyMuted: 'rgba(22, 51, 84, 0.08)',
+  navyBorder: 'rgba(22, 51, 84, 0.15)',
 
-  text: '#e6f1ff',
-  textMuted: 'rgba(230,241,255,0.7)',
-  textSubtle: 'rgba(230,241,255,0.4)',
+  // Gold / Warm Sand Accents
+  gold: '#D4AF37',
+  goldLight: '#E8C94A',
+  goldMuted: '#F4EFE6',
+  goldBorder: '#EADBCE',
+  sand: '#EADBCE',
+  sandDark: '#D8C8B4',
 
-  success: '#4ade80',
-  warning: '#fbbf24',
-  error: '#f87171',
-  info: '#60a5fa',
+  // Typography
+  text: '#163354',
+  textSecondary: '#4A5568',
+  textMuted: '#7E8B9B',
+  textSubtle: '#A6B4C4',
 
-  white: '#ffffff',
+  // Status Badges & Accents
+  ideaBg: '#E0F2FE',
+  ideaText: '#0284C7',
+  scriptingBg: '#F3E8FF',
+  scriptingText: '#7C3AED',
+  recordingBg: '#FFE4E6',
+  recordingText: '#E11D48',
+  editingBg: '#FEF3C7',
+  editingText: '#D97706',
+  postedBg: '#D1FAE5',
+  postedText: '#059669',
+
+  // Destructive / Danger
+  dangerBg: '#FEE2E2',
+  dangerBorder: '#FECACA',
+  dangerText: '#DC2626',
+
+  // Functional
+  success: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  info: '#3B82F6',
+
+  white: '#FFFFFF',
   black: '#000000',
   transparent: 'transparent',
 } as const

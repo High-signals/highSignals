@@ -31,9 +31,10 @@ import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
 import RecordingModal from './components/RecordingModal'
 
-const BRAND = '#d4af37'
-const BG = '#000000'
-const PANEL = '#0f0f0f'
+const BRAND = '#1D4A79'
+const BRAND_GOLD = '#D4AF37'
+const BG = '#FBF9F5'
+const PANEL = '#FAF7F2'
 const TOOLBAR_HEIGHT = 55
 const PUBLISH_STRIP_HEIGHT = 56
 // Padding inside the editor body so the cursor never sits flush against
@@ -47,16 +48,17 @@ export const VOICE_DRAFT_KEY = 'voiceDraft'
 type VoiceDraft = { filePath: string; createdAt: number }
 
 const COLOR_SWATCHES = [
-	BRAND,
-	'#ffffff',
-	'#9ca3af',
-	'#ef4444',
-	'#f97316',
-	'#facc15',
-	'#22c55e',
-	'#3b82f6',
-	'#a855f7',
-	'#ec4899',
+	'#163354',
+	'#1D4A79',
+	'#D4AF37',
+	'#64748B',
+	'#EF4444',
+	'#F97316',
+	'#FACC15',
+	'#10B981',
+	'#3B82F6',
+	'#8B5CF6',
+	'#EC4899',
 ]
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
@@ -639,7 +641,7 @@ export default function CreatePostScreen() {
 					onPress={() => router.back()}
 					style={styles.headerIconBtn}
 				>
-					<Ionicons name='close' size={24} color='#ffffff' />
+					<Ionicons name='close' size={24} color='#163354' />
 				</TouchableOpacity>
 
 				<View style={styles.headerCenter}>
@@ -656,14 +658,18 @@ export default function CreatePostScreen() {
 					)}
 				</View>
 
-				<View style={styles.headerIconBtn} />
+				<View style={styles.headerIconBtn}>
+					<TouchableOpacity onPress={handleHeaderSavePress}>
+						<Ionicons name='create-outline' size={22} color='#1D4A79' />
+					</TouchableOpacity>
+				</View>
 			</View>
 
 			{/* Title input — no card */}
 			<TextInput
 				style={styles.titleInput}
 				placeholder='Title'
-				placeholderTextColor='rgba(255,255,255,0.35)'
+				placeholderTextColor='#8E9BAE'
 				value={title}
 				onChangeText={setTitle}
 			/>
@@ -695,10 +701,10 @@ export default function CreatePostScreen() {
 					}}
 					editorStyle={{
 						backgroundColor: BG,
-						color: '#ffffff',
+						color: '#163354',
 						caretColor: BRAND,
-						placeholderColor: 'rgba(255,255,255,0.3)',
-						contentCSSText: `font-size: 17px; line-height: 28px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #ffffff; padding: 8px 18px ${EDITOR_BOTTOM_PADDING}px 18px; margin: 0; } input[type="checkbox"] { accent-color: #d4af37; margin-right: 8px; transform: scale(1.15); vertical-align: middle; } .dummy-todo {`,
+						placeholderColor: '#8E9BAE',
+						contentCSSText: `font-size: 17px; line-height: 28px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #163354; padding: 8px 18px ${EDITOR_BOTTOM_PADDING}px 18px; margin: 0; } input[type="checkbox"] { accent-color: #1D4A79; margin-right: 8px; transform: scale(1.15); vertical-align: middle; } .dummy-todo {`,
 					}}
 					placeholder='Start writing…'
 					useContainer={false}
@@ -718,7 +724,7 @@ export default function CreatePostScreen() {
 						>
 							<Ionicons
 								name='mic-outline'
-								size={20}
+								size={22}
 								color={BRAND}
 							/>
 						</TouchableOpacity>
@@ -731,7 +737,7 @@ export default function CreatePostScreen() {
 							<Ionicons
 								name='arrow-forward'
 								size={16}
-								color='#000000'
+								color='#FFFFFF'
 							/>
 						</TouchableOpacity>
 						
@@ -744,7 +750,7 @@ export default function CreatePostScreen() {
 								setTimeout(() => setShowAiText(false), 10000)
 							}}
 						>
-							<Ionicons name="sparkles" size={16} color="#d4af37" />
+							<Ionicons name="sparkles" size={15} color="#D4AF37" />
 							{showAiText ? (
 								<Text style={styles.aiButtonText}>Coming soon</Text>
 							) : (
@@ -869,26 +875,33 @@ export default function CreatePostScreen() {
 						<Text style={styles.modalTitle}>Select Content Type</Text>
 
 						<ScrollView style={{ maxHeight: 300, width: '100%', marginBottom: 16 }} showsVerticalScrollIndicator={false}>
-							{CONTENT_TYPES.map((type) => (
-								<TouchableOpacity
-									key={type}
-									style={[
-										styles.toolBtn,
-										{ width: '100%', marginVertical: 4, justifyContent: 'flex-start', paddingHorizontal: 16 },
-										contentType === type && { borderColor: BRAND, backgroundColor: 'rgba(212,175,55,0.1)' }
-									]}
-									onPress={() => setContentType(type)}
-								>
-									<Text style={{ color: contentType === type ? BRAND : '#ffffff', fontSize: 16 }}>{type}</Text>
-								</TouchableOpacity>
-							))}
+							{CONTENT_TYPES.map((type) => {
+								const isSelected = contentType === type
+								return (
+									<TouchableOpacity
+										key={type}
+										style={[
+											styles.contentTypeItem,
+											isSelected && styles.contentTypeItemSelected,
+										]}
+										onPress={() => setContentType(type)}
+									>
+										<Text style={[
+											styles.contentTypeText,
+											isSelected && styles.contentTypeTextSelected,
+										]}>
+											{type}
+										</Text>
+									</TouchableOpacity>
+								)
+							})}
 						</ScrollView>
 
 						{contentType === 'Other' && (
 							<TextInput
-								style={[styles.searchInput, { width: '100%', marginBottom: 16, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)', borderRadius: 8, color: '#ffffff' }]}
+								style={[styles.searchInput, { width: '100%', marginBottom: 16, borderWidth: 1, borderColor: '#EADBCE', borderRadius: 10, color: '#163354', backgroundColor: '#FFFFFF', padding: 12 }]}
 								placeholder='Type your custom content format'
-								placeholderTextColor='rgba(255,255,255,0.4)'
+								placeholderTextColor='#8E9BAE'
 								value={customContentType}
 								onChangeText={setCustomContentType}
 								maxLength={30}
@@ -912,7 +925,7 @@ export default function CreatePostScreen() {
 							>
 								{isSaving ? (
 									<ActivityIndicator
-										color='#000000'
+										color='#FFFFFF'
 										size='small'
 									/>
 								) : (
@@ -933,11 +946,11 @@ export default function CreatePostScreen() {
 				animationType='fade'
 				onRequestClose={() => setCustomAlert(prev => ({ ...prev, visible: false }))}
 			>
-				<View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }]}>
-					<View style={[styles.modalContent, { alignItems: 'center', width: '75%', paddingVertical: 32, borderRadius: 24, borderTopWidth: 0 }]}>
-						<Ionicons name="information-circle-outline" size={48} color={BRAND} style={{ marginBottom: 16 }} />
-						<Text style={[styles.modalTitle, { textAlign: 'center', marginBottom: 8 }]}>{customAlert.title}</Text>
-						<Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, textAlign: 'center', marginBottom: 24, lineHeight: 20 }}>
+				<View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }]}>
+					<View style={[styles.modalContent, { alignItems: 'center', width: '80%', paddingVertical: 28, borderRadius: 20, borderTopWidth: 0, borderWidth: 1, borderColor: '#EADBCE' }]}>
+						<Ionicons name="information-circle-outline" size={44} color={BRAND_GOLD} style={{ marginBottom: 12 }} />
+						<Text style={[styles.modalTitle, { textAlign: 'center', marginBottom: 6 }]}>{customAlert.title}</Text>
+						<Text style={{ color: '#475569', fontSize: 14, textAlign: 'center', marginBottom: 20, lineHeight: 20 }}>
 							{customAlert.message}
 						</Text>
 						<TouchableOpacity
@@ -962,7 +975,7 @@ function ToolbarIcon({
 }) {
 	return (
 		<TouchableOpacity onPress={onPress} style={styles.toolBtn}>
-			<Ionicons name={name} size={22} color={BRAND} />
+			<Ionicons name={name} size={20} color='#163354' />
 		</TouchableOpacity>
 	)
 }
@@ -1042,11 +1055,11 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',
-		paddingHorizontal: 12,
+		paddingHorizontal: 16,
 		paddingTop: 16,
-		paddingBottom: 8,
-		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: 'rgba(255,255,255,0.08)',
+		paddingBottom: 10,
+		borderBottomWidth: 1,
+		borderBottomColor: '#EFEAE2',
 	},
 	headerCenter: {
 		flex: 1,
@@ -1055,26 +1068,26 @@ const styles = StyleSheet.create({
 	headerTitle: {
 		fontSize: 16,
 		fontWeight: '700',
-		color: '#ffffff',
+		color: '#163354',
 	},
 	saveLabel: {
 		fontSize: 11,
-		color: 'rgba(255,255,255,0.45)',
+		color: '#8E9BAE',
 		marginTop: 2,
 	},
 	saveLabelError: {
-		color: '#ef4444',
+		color: '#EF4444',
 	},
 	headerIconBtn: {
-		width: 44,
-		height: 44,
+		width: 40,
+		height: 40,
 		alignItems: 'center',
 		justifyContent: 'center',
 	},
 	titleInput: {
-		fontSize: 26,
+		fontSize: 24,
 		fontWeight: '800',
-		color: '#ffffff',
+		color: '#163354',
 		paddingHorizontal: 18,
 		paddingTop: 14,
 		paddingBottom: 8,
@@ -1093,17 +1106,17 @@ const styles = StyleSheet.create({
 		backgroundColor: BG,
 	},
 	floatingDock: {
-		backgroundColor: BG,
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: 'rgba(255,255,255,0.08)',
+		backgroundColor: PANEL,
+		borderTopWidth: 1,
+		borderTopColor: '#EADBCE',
 	},
 	publishContainer: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		gap: 10,
 		backgroundColor: BG,
-		paddingHorizontal: 12,
-		paddingBottom: 4,
+		paddingHorizontal: 16,
+		paddingBottom: 8,
 	},
 	publishStrip: {
 		flex: 1,
@@ -1111,48 +1124,46 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'center',
 		gap: 6,
-		backgroundColor: BRAND,
-		marginBottom: 8,
+		backgroundColor: '#1D4A79',
 		paddingVertical: 12,
 		borderRadius: 12,
 	},
 	aiButton: {
 		position: 'absolute',
-		right: 12,
+		right: 16,
 		top: -46,
-		backgroundColor: 'rgba(20,20,20,0.9)',
-		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.3)',
+		backgroundColor: '#F5EFE6',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 		borderRadius: 20,
 		paddingHorizontal: 12,
-		paddingVertical: 8,
+		paddingVertical: 6,
 		flexDirection: 'row',
 		alignItems: 'center',
-		gap: 6,
-		elevation: 4,
-		shadowColor: '#000',
+		gap: 5,
+		elevation: 3,
+		shadowColor: '#163354',
 		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.3,
+		shadowOpacity: 0.08,
 		shadowRadius: 4,
 	},
 	aiButtonText: {
-		color: '#d4af37',
+		color: '#163354',
 		fontSize: 12,
-		fontWeight: '600',
+		fontWeight: '700',
 	},
 	micPill: {
-		width: 52,
-		height: 48,
-		marginBottom: 8,
+		width: 48,
+		height: 44,
 		borderRadius: 12,
 		alignItems: 'center',
 		justifyContent: 'center',
 		borderWidth: 1.5,
-		borderColor: BRAND,
-		backgroundColor: 'rgba(212,175,55,0.08)',
+		borderColor: '#EADBCE',
+		backgroundColor: '#F5EFE6',
 	},
 	publishStripText: {
-		color: '#000000',
+		color: '#FFFFFF',
 		fontWeight: '800',
 		fontSize: 15,
 	},
@@ -1163,21 +1174,21 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 14,
 		paddingVertical: 10,
 		backgroundColor: PANEL,
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: 'rgba(255,255,255,0.08)',
+		borderTopWidth: 1,
+		borderTopColor: '#EADBCE',
 	},
 	swatch: {
 		width: 28,
 		height: 28,
 		borderRadius: 14,
 		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.15)',
+		borderColor: '#EADBCE',
 	},
 	toolbarOuter: {
 		backgroundColor: PANEL,
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: 'rgba(255,255,255,0.08)',
-		maxHeight: 55,
+		borderTopWidth: 1,
+		borderTopColor: '#EADBCE',
+		maxHeight: 52,
 	},
 	toolbar: {
 		flexDirection: 'row',
@@ -1187,49 +1198,70 @@ const styles = StyleSheet.create({
 		gap: 2,
 	},
 	toolBtn: {
-		minWidth: 40,
-		height: 40,
-		paddingHorizontal: 8,
+		minWidth: 38,
+		height: 38,
+		paddingHorizontal: 6,
 		alignItems: 'center',
 		justifyContent: 'center',
 		borderRadius: 8,
 	},
 	toolBtnLabel: {
-		color: BRAND,
+		color: '#163354',
 		fontWeight: '800',
-		fontSize: 14,
+		fontSize: 13.5,
 	},
 	toolBtnTextLabel: {
-		color: BRAND,
+		color: '#163354',
 		fontWeight: '800',
-		fontSize: 16,
+		fontSize: 15,
 		textDecorationLine: 'underline',
 	},
 	toolDivider: {
 		width: 1,
-		height: 22,
-		backgroundColor: 'rgba(255,255,255,0.1)',
+		height: 20,
+		backgroundColor: '#EADBCE',
 		marginHorizontal: 4,
 	},
 	modalOverlay: {
 		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.6)',
+		backgroundColor: 'rgba(0,0,0,0.5)',
 		justifyContent: 'flex-end',
 	},
 	modalContent: {
-		backgroundColor: '#0f0f0f',
+		backgroundColor: '#FAF7F2',
 		borderTopLeftRadius: 24,
 		borderTopRightRadius: 24,
 		padding: 20,
 		paddingBottom: 32,
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: 'rgba(255,255,255,0.1)',
+		borderTopWidth: 1,
+		borderTopColor: '#EADBCE',
 	},
 	modalTitle: {
 		fontSize: 18,
 		fontWeight: '800',
-		color: '#ffffff',
+		color: '#163354',
 		marginBottom: 16,
+	},
+	contentTypeItem: {
+		width: '100%',
+		marginVertical: 4,
+		justifyContent: 'center',
+		alignItems: 'center',
+		paddingVertical: 12,
+		paddingHorizontal: 16,
+		borderRadius: 10,
+	},
+	contentTypeItemSelected: {
+		backgroundColor: '#EBDCB9',
+	},
+	contentTypeText: {
+		color: '#475569',
+		fontSize: 15,
+		fontWeight: '500',
+	},
+	contentTypeTextSelected: {
+		color: '#163354',
+		fontWeight: '700',
 	},
 	option: {
 		flexDirection: 'row',
@@ -1238,14 +1270,14 @@ const styles = StyleSheet.create({
 		paddingVertical: 14,
 		paddingHorizontal: 14,
 		borderRadius: 12,
-		backgroundColor: 'rgba(255,255,255,0.04)',
+		backgroundColor: '#FFFFFF',
 		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.06)',
+		borderColor: '#EADBCE',
 		marginBottom: 8,
 	},
 	optionSelected: {
 		borderColor: BRAND,
-		backgroundColor: 'rgba(212,175,55,0.08)',
+		backgroundColor: '#F5EFE6',
 	},
 	optionLeft: {
 		flexDirection: 'row',
@@ -1253,21 +1285,21 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	optionTitle: {
-		color: '#ffffff',
+		color: '#163354',
 		fontWeight: '700',
 		fontSize: 14,
 	},
 	optionDesc: {
-		color: 'rgba(255,255,255,0.5)',
+		color: '#64748B',
 		fontSize: 12,
 		marginTop: 2,
 	},
 	radio: {
-		width: 22,
-		height: 22,
-		borderRadius: 11,
+		width: 20,
+		height: 20,
+		borderRadius: 10,
 		borderWidth: 2,
-		borderColor: 'rgba(255,255,255,0.25)',
+		borderColor: '#CBD5E1',
 		alignItems: 'center',
 		justifyContent: 'center',
 	},
@@ -1282,30 +1314,34 @@ const styles = StyleSheet.create({
 	},
 	modalActions: {
 		flexDirection: 'row',
-		gap: 10,
+		gap: 12,
 		marginTop: 12,
 	},
 	cancelButton: {
 		flex: 1,
-		paddingVertical: 14,
+		paddingVertical: 13,
 		borderRadius: 12,
 		alignItems: 'center',
-		backgroundColor: 'rgba(255,255,255,0.06)',
+		backgroundColor: '#FFFFFF',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
 	cancelText: {
-		color: '#ffffff',
+		color: '#163354',
 		fontWeight: '700',
+		fontSize: 15,
 	},
 	confirmButton: {
 		flex: 1,
-		paddingVertical: 14,
+		paddingVertical: 13,
 		borderRadius: 12,
 		alignItems: 'center',
-		backgroundColor: BRAND,
+		backgroundColor: '#1D4A79',
 	},
 	confirmText: {
-		color: '#000000',
+		color: '#FFFFFF',
 		fontWeight: '800',
+		fontSize: 15,
 	},
 	buttonDisabled: {
 		opacity: 0.6,

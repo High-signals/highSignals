@@ -7,7 +7,7 @@ import Toast from 'react-native-toast-message'
 export default function RootLayout() {
 	return (
 		<AuthProvider>
-			<View style={{ flex: 1, backgroundColor: '#000' }}>
+			<View style={{ flex: 1, backgroundColor: '#FBF9F5' }}>
 				{/* Slot renders the active route based on file structure */}
 				<Slot />
 			</View>

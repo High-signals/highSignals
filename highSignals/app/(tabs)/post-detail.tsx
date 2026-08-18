@@ -28,9 +28,10 @@ import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
 import RecordingModal from './components/RecordingModal'
 
-const BRAND = '#d4af37'
-const BG = '#000000'
-const PANEL = '#0f0f0f'
+const BRAND = '#1D4A79'
+const BRAND_GOLD = '#D4AF37'
+const BG = '#FBF9F5'
+const PANEL = '#FAF7F2'
 const TOOLBAR_HEIGHT = 52
 // Padding inside the editor body so the cursor never sits flush against
 // the bottom — scrollToEnd then reliably parks the cursor above the toolbar.
@@ -51,16 +52,17 @@ interface Post {
 }
 
 const COLOR_SWATCHES = [
-	BRAND,
-	'#ffffff',
-	'#9ca3af',
-	'#ef4444',
-	'#f97316',
-	'#facc15',
-	'#22c55e',
-	'#3b82f6',
-	'#a855f7',
-	'#ec4899',
+	'#163354',
+	'#1D4A79',
+	'#D4AF37',
+	'#64748B',
+	'#EF4444',
+	'#F97316',
+	'#FACC15',
+	'#10B981',
+	'#3B82F6',
+	'#8B5CF6',
+	'#EC4899',
 ]
 
 const escapeHtml = (value: string) =>
@@ -292,25 +294,30 @@ export default function PostDetailScreen() {
 			],
 		)
 	}
-
 	const getStatusColor = (status: string) => {
 		const colors: { [key: string]: string } = {
-			IDEA: '#3b82f6',
-			SCRIPTING: '#9ca3af',
-			RECORDING: '#ec4899',
-			EDITING: '#facc15',
-			POSTED: '#22c55e',
+			IDEA: '#0284C7',
+			SCRIPTING: '#7C3AED',
+			DRAFT: '#7C3AED',
+			RECORDING: '#E11D48',
+			EDITING: '#D97706',
+			SCHEDULED: '#D97706',
+			POSTED: '#059669',
+			PUBLISHED: '#059669',
 		}
-		return colors[status] || '#ffffff'
+		return colors[status] || '#163354'
 	}
 
 	const getStatusLabel = (status: string) => {
 		const labels: { [key: string]: string } = {
-			IDEA: 'Idea',
-			SCRIPTING: 'Scripting',
-			RECORDING: 'Recording',
-			EDITING: 'Editing',
-			POSTED: 'Posted',
+			IDEA: 'IDEA',
+			SCRIPTING: 'SCRIPTING',
+			DRAFT: 'SCRIPTING',
+			RECORDING: 'RECORDING',
+			EDITING: 'EDITING',
+			SCHEDULED: 'EDITING',
+			POSTED: 'POSTED',
+			PUBLISHED: 'POSTED',
 		}
 		return labels[status] || status
 	}
@@ -343,7 +350,7 @@ export default function PostDetailScreen() {
 		  if (!span) {
 		    span = document.createElement('span');
 		    span.id = '__interim';
-		    span.setAttribute('style','color:rgba(255,255,255,0.45);font-style:italic;');
+		    span.setAttribute('style','color:#8E9BAE;font-style:italic;');
 		    ed.appendChild(span);
 		  }
 		  span.textContent = '${safe}';
@@ -414,9 +421,6 @@ export default function PostDetailScreen() {
 	}
 
 	const installChecklistExitHandler = () => {
-		// pell.js's checklist doesn't exit on empty enter or backspace.
-		// Inject a keydown listener that detects an empty checklist <li>
-		// and breaks out into a fresh paragraph.
 		const js = `
 		(function(){
 		  if (window.__checklistExitInstalled) return;
@@ -440,7 +444,6 @@ export default function PostDetailScreen() {
 		    var p = document.createElement('div');
 		    p.innerHTML = '<br/>';
 		    if (li.nextSibling){
-		      // split: move siblings after li into a new ul after the paragraph
 		      var newUl = ul.cloneNode(false);
 		      var n = li.nextSibling;
 		      while (n){ var nx = n.nextSibling; newUl.appendChild(n); n = nx; }
@@ -479,12 +482,12 @@ export default function PostDetailScreen() {
 		      .floating-toolbar {
 		        position: absolute;
 		        display: none;
-		        background: rgba(15, 23, 42, 0.95);
-		        border: 1px solid rgba(212, 175, 55, 0.4);
-		        border-radius: 8px;
+		        background: rgba(250, 247, 242, 0.98);
+		        border: 1.5px solid #EADBCE;
+		        border-radius: 10px;
 		        padding: 4px;
 		        z-index: 99999;
-		        box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+		        box-shadow: 0 4px 16px rgba(22, 51, 84, 0.12);
 		        flex-direction: row;
 		        align-items: center;
 		        gap: 2px;
@@ -500,11 +503,11 @@ export default function PostDetailScreen() {
 		      .floating-btn {
 		        background: transparent;
 		        border: none;
-		        color: #e2e8f0;
+		        color: #163354;
 		        padding: 6px 10px;
 		        font-size: 13px;
 		        font-weight: bold;
-		        border-radius: 4px;
+		        border-radius: 6px;
 		        cursor: pointer;
 		        display: flex;
 		        align-items: center;
@@ -514,13 +517,13 @@ export default function PostDetailScreen() {
 		        outline: none;
 		      }
 		      .floating-btn:active, .floating-btn.active {
-		        background: rgba(212, 175, 55, 0.2);
-		        color: #d4af37;
+		        background: #EBDCB9;
+		        color: #163354;
 		      }
 		      .floating-divider {
 		        width: 1px;
 		        height: 18px;
-		        background: rgba(255, 255, 255, 0.15);
+		        background: #EADBCE;
 		        margin: 0 4px;
 		      }
 		    \`;
@@ -578,9 +581,6 @@ export default function PostDetailScreen() {
 		      
 		      var toolbarWidth = toolbar.offsetWidth || 240;
 		      var toolbarHeight = toolbar.offsetHeight || 38;
-		      // Gap large enough to clear the native selection handles so our
-		      // toolbar doesn't collide with Android's copy/paste menu (which
-		      // sits above the selection). Default below the selection.
 		      var gap = 30;
 
 		      var absoluteLeft = rect.left + (rect.width / 2) - (toolbarWidth / 2) + window.pageXOffset;
@@ -590,8 +590,6 @@ export default function PostDetailScreen() {
 		      if (absoluteLeft + toolbarWidth > window.innerWidth - 8) {
 		        absoluteLeft = window.innerWidth - toolbarWidth - 8;
 		      }
-		      // If placing below would push it off the bottom of the viewport,
-		      // fall back to above the selection.
 		      if (rect.bottom + gap + toolbarHeight > window.innerHeight - 8) {
 		        absoluteTop = rect.top + window.pageYOffset - toolbarHeight - gap;
 		      }
@@ -684,7 +682,7 @@ export default function PostDetailScreen() {
 					<Ionicons
 						name='alert-circle-outline'
 						size={54}
-						color='rgba(255,255,255,0.3)'
+						color='#94A3B8'
 					/>
 					<Text style={styles.errorText}>Post not found</Text>
 				</View>
@@ -704,7 +702,7 @@ export default function PostDetailScreen() {
 						}}
 						style={styles.headerIconBtn}
 					>
-						<Ionicons name='close' size={24} color='#ffffff' />
+						<Ionicons name='close' size={24} color='#163354' />
 					</TouchableOpacity>
 
 					<View style={styles.headerCenter}>
@@ -749,7 +747,7 @@ export default function PostDetailScreen() {
 						>
 							<Ionicons
 								name='mic-outline'
-								size={24}
+								size={22}
 								color={BRAND}
 							/>
 						</TouchableOpacity>
@@ -778,7 +776,7 @@ export default function PostDetailScreen() {
 							setEditedPost({ ...editedPost, title: text })
 						}
 						placeholder='Title'
-						placeholderTextColor='rgba(255,255,255,0.35)'
+						placeholderTextColor='#8E9BAE'
 					/>
 
 					<ScrollView
@@ -813,10 +811,10 @@ export default function PostDetailScreen() {
 							}}
 							editorStyle={{
 								backgroundColor: BG,
-								color: '#ffffff',
+								color: '#163354',
 								caretColor: BRAND,
-								placeholderColor: 'rgba(255,255,255,0.3)',
-								contentCSSText: `font-size: 17px; line-height: 28px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #ffffff; padding: 8px 18px ${EDITOR_BOTTOM_PADDING}px 18px; margin: 0; } input[type="checkbox"] { accent-color: #d4af37; margin-right: 8px; transform: scale(1.15); vertical-align: middle; } .dummy-todo {`,
+								placeholderColor: '#8E9BAE',
+								contentCSSText: `font-size: 17px; line-height: 28px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #163354; padding: 8px 18px ${EDITOR_BOTTOM_PADDING}px 18px; margin: 0; } input[type="checkbox"] { accent-color: #1D4A79; margin-right: 8px; transform: scale(1.15); vertical-align: middle; } .dummy-todo {`,
 							}}
 							placeholder='Start writing…'
 							useContainer={false}
@@ -994,7 +992,7 @@ export default function PostDetailScreen() {
 	)
 	}
 
-	// VIEW MODE — clean reader
+	// VIEW MODE — clean reader (Screens 6 & bottom-left)
 	return (
 		<View style={styles.container}>
 			<View style={styles.viewHeader}>
@@ -1002,13 +1000,15 @@ export default function PostDetailScreen() {
 					onPress={() => router.back()}
 					style={styles.headerIconBtn}
 				>
-					<Ionicons name='arrow-back' size={22} color='#ffffff' />
+					<Ionicons name='arrow-back' size={22} color='#163354' />
 				</TouchableOpacity>
 
 				<View style={styles.headerCenter}>
-					<Text style={[styles.statusInline, { color: statusColor }]}>
-						{getStatusLabel(displayPost?.status || '')}
-					</Text>
+					<View style={styles.statusBadgePill}>
+						<Text style={[styles.statusInline, { color: statusColor }]}>
+							{getStatusLabel(displayPost?.status || '')}
+						</Text>
+					</View>
 				</View>
 
 				<TouchableOpacity
@@ -1018,7 +1018,7 @@ export default function PostDetailScreen() {
 					}}
 					style={styles.headerIconBtn}
 				>
-					<Ionicons name='create-outline' size={22} color={BRAND} />
+					<Ionicons name='create-outline' size={22} color='#1D4A79' />
 				</TouchableOpacity>
 			</View>
 
@@ -1051,9 +1051,9 @@ export default function PostDetailScreen() {
 					}}
 					editorStyle={{
 						backgroundColor: BG,
-						color: '#ffffff',
+						color: '#163354',
 						contentCSSText:
-							"font-size: 16px; line-height: 26px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: rgba(255,255,255,0.9); padding: 0 20px 24px 20px; margin: 0; } input[type=\"checkbox\"] { accent-color: #d4af37; margin-right: 8px; transform: scale(1.15); vertical-align: middle; } .dummy-todo {",
+							"font-size: 16px; line-height: 26px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1E293B; padding: 0 20px 24px 20px; margin: 0; } input[type=\"checkbox\"] { accent-color: #1D4A79; margin-right: 8px; transform: scale(1.15); vertical-align: middle; } .dummy-todo {",
 					}}
 					useContainer={false}
 					initialHeight={500}
@@ -1067,7 +1067,7 @@ export default function PostDetailScreen() {
 					onPress={handleDeletePost}
 					disabled={isSaving}
 				>
-					<Ionicons name='trash-outline' size={18} color='#ef4444' />
+					<Ionicons name='trash-outline' size={18} color='#DC2626' />
 					<Text style={styles.deleteButtonText}>Delete post</Text>
 				</TouchableOpacity>
 			</View>
@@ -1084,7 +1084,7 @@ function ToolbarIcon({
 }) {
 	return (
 		<TouchableOpacity onPress={onPress} style={styles.toolBtn}>
-			<Ionicons name={name} size={22} color={BRAND} />
+			<Ionicons name={name} size={20} color='#163354' />
 		</TouchableOpacity>
 	)
 }
@@ -1140,7 +1140,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 32,
 	},
 	errorText: {
-		color: '#ef4444',
+		color: '#EF4444',
 		fontSize: 16,
 		textAlign: 'center',
 		marginTop: 16,
@@ -1150,21 +1150,21 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',
-		paddingHorizontal: 12,
+		paddingHorizontal: 16,
 		paddingTop: 16,
-		paddingBottom: 8,
-		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: 'rgba(255,255,255,0.08)',
+		paddingBottom: 10,
+		borderBottomWidth: 1,
+		borderBottomColor: '#EFEAE2',
 	},
 	editHeader: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',
-		paddingHorizontal: 12,
+		paddingHorizontal: 16,
 		paddingTop: 16,
-		paddingBottom: 8,
-		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: 'rgba(255,255,255,0.08)',
+		paddingBottom: 10,
+		borderBottomWidth: 1,
+		borderBottomColor: '#EFEAE2',
 	},
 	headerCenter: {
 		flex: 1,
@@ -1173,32 +1173,38 @@ const styles = StyleSheet.create({
 	headerTitle: {
 		fontSize: 16,
 		fontWeight: '700',
-		color: '#ffffff',
+		color: '#163354',
+	},
+	statusBadgePill: {
+		paddingHorizontal: 10,
+		paddingVertical: 3,
+		borderRadius: 8,
+		backgroundColor: '#F5EFE6',
 	},
 	statusInline: {
 		fontSize: 11,
 		fontWeight: '800',
 		textTransform: 'uppercase',
 		letterSpacing: 0.7,
-		marginTop: 2,
 	},
 	saveLabel: {
 		fontSize: 11,
-		color: 'rgba(255,255,255,0.45)',
+		color: '#8E9BAE',
 		marginTop: 2,
 	},
 	saveLabelError: {
-		color: '#ef4444',
+		color: '#EF4444',
 	},
 	headerIconBtn: {
-		width: 44,
-		height: 44,
+		width: 40,
+		height: 40,
 		alignItems: 'center',
 		justifyContent: 'center',
 	},
 	headerRight: {
 		flexDirection: 'row',
 		alignItems: 'center',
+		gap: 6,
 	},
 	viewTitleBlock: {
 		paddingHorizontal: 20,
@@ -1209,15 +1215,16 @@ const styles = StyleSheet.create({
 		alignSelf: 'center',
 	},
 	viewTitle: {
-		fontSize: 28,
-		lineHeight: 34,
+		fontSize: 26,
+		lineHeight: 32,
 		fontWeight: '800',
-		color: '#ffffff',
-		marginBottom: 6,
+		color: '#163354',
+		marginBottom: 4,
 	},
 	viewMeta: {
 		fontSize: 12,
-		color: 'rgba(255,255,255,0.55)',
+		color: '#8E9BAE',
+		fontWeight: '500',
 	},
 	viewBodyFull: {
 		flex: 1,
@@ -1244,16 +1251,16 @@ const styles = StyleSheet.create({
 	},
 	deleteBar: {
 		paddingHorizontal: 20,
-		paddingTop: 8,
-		paddingBottom: 24,
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: 'rgba(255,255,255,0.08)',
+		paddingTop: 12,
+		paddingBottom: 28,
+		borderTopWidth: 1,
+		borderTopColor: '#EFEAE2',
 		backgroundColor: BG,
 	},
 	titleInput: {
-		fontSize: 26,
+		fontSize: 24,
 		fontWeight: '800',
-		color: '#ffffff',
+		color: '#163354',
 		paddingHorizontal: 18,
 		paddingTop: 14,
 		paddingBottom: 8,
@@ -1262,9 +1269,9 @@ const styles = StyleSheet.create({
 		alignSelf: 'center',
 	},
 	floatingDock: {
-		backgroundColor: BG,
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: 'rgba(255,255,255,0.08)',
+		backgroundColor: PANEL,
+		borderTopWidth: 1,
+		borderTopColor: '#EADBCE',
 	},
 	swatchTray: {
 		flexDirection: 'row',
@@ -1273,20 +1280,20 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 14,
 		paddingVertical: 10,
 		backgroundColor: PANEL,
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: 'rgba(255,255,255,0.08)',
+		borderTopWidth: 1,
+		borderTopColor: '#EADBCE',
 	},
 	swatch: {
 		width: 28,
 		height: 28,
 		borderRadius: 14,
 		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.15)',
+		borderColor: '#EADBCE',
 	},
 	toolbarOuter: {
 		backgroundColor: PANEL,
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: 'rgba(255,255,255,0.08)',
+		borderTopWidth: 1,
+		borderTopColor: '#EADBCE',
 		maxHeight: 52,
 	},
 	toolbar: {
@@ -1297,22 +1304,22 @@ const styles = StyleSheet.create({
 		gap: 2,
 	},
 	toolBtn: {
-		minWidth: 40,
-		height: 40,
-		paddingHorizontal: 8,
+		minWidth: 38,
+		height: 38,
+		paddingHorizontal: 6,
 		alignItems: 'center',
 		justifyContent: 'center',
 		borderRadius: 8,
 	},
 	toolBtnLabel: {
-		color: BRAND,
+		color: '#163354',
 		fontWeight: '800',
-		fontSize: 14,
+		fontSize: 13.5,
 	},
 	toolDivider: {
 		width: 1,
-		height: 22,
-		backgroundColor: 'rgba(255,255,255,0.1)',
+		height: 20,
+		backgroundColor: '#EADBCE',
 		marginHorizontal: 4,
 	},
 	deleteButton: {
@@ -1320,33 +1327,35 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'center',
 		gap: 8,
-		paddingVertical: 14,
-		borderRadius: 12,
-		backgroundColor: 'rgba(239,68,68,0.08)',
-		borderWidth: 1,
-		borderColor: 'rgba(239,68,68,0.3)',
+		paddingVertical: 13,
+		borderRadius: 14,
+		backgroundColor: '#FDE8E8',
+		borderWidth: 1.5,
+		borderColor: '#FECACA',
 	},
 	deleteButtonText: {
 		fontSize: 14,
 		fontWeight: '700',
-		color: '#ef4444',
+		color: '#DC2626',
 	},
 	modalOverlay: {
 		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.6)',
+		backgroundColor: 'rgba(0,0,0,0.5)',
 		justifyContent: 'flex-end',
 	},
 	pickerSheet: {
-		backgroundColor: PANEL,
+		backgroundColor: '#FAF7F2',
 		borderTopLeftRadius: 24,
 		borderTopRightRadius: 24,
 		padding: 20,
 		paddingBottom: 32,
+		borderWidth: 1,
+		borderColor: '#EADBCE',
 	},
 	pickerTitle: {
 		fontSize: 16,
 		fontWeight: '800',
-		color: '#ffffff',
+		color: '#163354',
 		marginBottom: 16,
 	},
 	pickerOption: {
@@ -1355,11 +1364,11 @@ const styles = StyleSheet.create({
 		gap: 12,
 		paddingVertical: 14,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: 'rgba(255,255,255,0.06)',
+		borderBottomColor: '#EADBCE',
 	},
 	pickerOptionText: {
 		fontSize: 14,
-		color: '#ffffff',
+		color: '#163354',
 		fontWeight: '600',
 	},
 	pickerDot: {

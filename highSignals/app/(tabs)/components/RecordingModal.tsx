@@ -19,9 +19,10 @@ import Animated, {
 } from 'react-native-reanimated'
 import { useVoiceTranscription, type VoiceStatus } from './useVoiceTranscription'
 
-const BRAND = '#d4af37'
-const PANEL = '#0f0f0f'
-const RECORDING_RED = '#ef4444'
+const BRAND = '#1D4A79'
+const BRAND_GOLD = '#D4AF37'
+const PANEL = '#FAF7F2'
+const RECORDING_RED = '#DC2626'
 // Diameter of the speaker icon puck that rides the progress bar's leading edge.
 const ICON_TIP_SIZE = 22
 
@@ -370,7 +371,7 @@ function WaveBar({ level, active }: { level: number; active: boolean }) {
 const styles = StyleSheet.create({
 	overlay: {
 		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.55)',
+		backgroundColor: 'rgba(0,0,0,0.5)',
 		justifyContent: 'flex-end',
 	},
 	sheet: {
@@ -378,11 +379,11 @@ const styles = StyleSheet.create({
 		borderTopLeftRadius: 24,
 		borderTopRightRadius: 24,
 		paddingHorizontal: 24,
-		paddingBottom: 32,
-		paddingTop: 10,
+		paddingBottom: 36,
+		paddingTop: 12,
 		alignItems: 'center',
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: 'rgba(255,255,255,0.1)',
+		borderTopWidth: 1.5,
+		borderTopColor: '#EADBCE',
 	},
 	sheetHeader: {
 		width: '100%',
@@ -394,7 +395,7 @@ const styles = StyleSheet.create({
 		width: 40,
 		height: 4,
 		borderRadius: 2,
-		backgroundColor: 'rgba(255,255,255,0.2)',
+		backgroundColor: '#EADBCE',
 	},
 	closeBtn: {
 		position: 'absolute',
@@ -405,12 +406,12 @@ const styles = StyleSheet.create({
 	title: {
 		fontSize: 18,
 		fontWeight: '800',
-		color: '#ffffff',
+		color: '#163354',
 		marginBottom: 6,
 	},
 	subtitle: {
 		fontSize: 13,
-		color: 'rgba(255,255,255,0.55)',
+		color: '#64748B',
 		textAlign: 'center',
 		marginBottom: 20,
 		paddingHorizontal: 8,
@@ -430,11 +431,12 @@ const styles = StyleSheet.create({
 	},
 	status: {
 		fontSize: 14,
-		color: 'rgba(255,255,255,0.7)',
+		color: '#163354',
 		textAlign: 'center',
 		minHeight: 38,
 		marginBottom: 6,
 		paddingHorizontal: 8,
+		fontWeight: '600',
 	},
 	statusError: {
 		color: RECORDING_RED,
@@ -451,7 +453,9 @@ const styles = StyleSheet.create({
 		flex: 1,
 		height: ICON_TIP_SIZE,
 		borderRadius: ICON_TIP_SIZE / 2,
-		backgroundColor: 'rgba(255,255,255,0.08)',
+		backgroundColor: '#F5EFE6',
+		borderWidth: 1,
+		borderColor: '#EADBCE',
 		justifyContent: 'center',
 		overflow: 'hidden',
 	},
@@ -476,15 +480,15 @@ const styles = StyleSheet.create({
 	progressLabel: {
 		width: 40,
 		textAlign: 'right',
-		color: 'rgba(255,255,255,0.7)',
+		color: '#64748B',
 		fontSize: 12,
 		fontWeight: '700',
 		fontVariant: ['tabular-nums'],
 	},
 	micButton: {
-		width: 76,
-		height: 76,
-		borderRadius: 38,
+		width: 74,
+		height: 74,
+		borderRadius: 37,
 		backgroundColor: BRAND,
 		alignItems: 'center',
 		justifyContent: 'center',
@@ -498,8 +502,9 @@ const styles = StyleSheet.create({
 	},
 	micHint: {
 		fontSize: 12,
-		color: 'rgba(255,255,255,0.5)',
+		color: '#64748B',
 		marginTop: 10,
+		fontWeight: '500',
 	},
 	retryButton: {
 		flexDirection: 'row',
@@ -507,31 +512,31 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		gap: 8,
 		marginTop: 18,
-		paddingVertical: 12,
+		paddingVertical: 13,
 		paddingHorizontal: 24,
-		borderRadius: 12,
+		borderRadius: 14,
 		borderWidth: 1.5,
-		borderColor: BRAND,
-		backgroundColor: 'rgba(212,175,55,0.08)',
+		borderColor: '#EADBCE',
+		backgroundColor: '#F5EFE6',
 		width: '100%',
 	},
 	retryText: {
-		color: BRAND,
+		color: '#163354',
 		fontWeight: '700',
 		fontSize: 15,
 	},
 	doneButton: {
-		marginTop: 14,
-		paddingVertical: 12,
+		marginTop: 12,
+		paddingVertical: 14,
 		paddingHorizontal: 40,
-		borderRadius: 12,
-		backgroundColor: 'rgba(255,255,255,0.08)',
+		borderRadius: 14,
+		backgroundColor: BRAND,
 		width: '100%',
 		alignItems: 'center',
 	},
 	doneText: {
-		color: '#ffffff',
-		fontWeight: '700',
+		color: '#FFFFFF',
+		fontWeight: '800',
 		fontSize: 15,
 	},
 })

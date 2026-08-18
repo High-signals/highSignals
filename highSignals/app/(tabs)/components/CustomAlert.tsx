@@ -19,11 +19,11 @@ export default function CustomAlert({ visible, title, message, onClose, onConfir
 			animationType='fade'
 			onRequestClose={onClose}
 		>
-			<View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center' }]}>
-				<View style={[styles.modalContent, { alignItems: 'center', width: '75%', paddingVertical: 32, borderRadius: 24 }]}>
-					<Ionicons name="information-circle-outline" size={48} color="#d4af37" style={{ marginBottom: 16 }} />
+			<View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }]}>
+				<View style={[styles.modalContent, { alignItems: 'center', width: '80%', paddingVertical: 28, borderRadius: 24, borderWidth: 1.5, borderColor: '#EADBCE' }]}>
+					<Ionicons name="information-circle-outline" size={44} color="#1D4A79" style={{ marginBottom: 14 }} />
 					<Text style={[styles.modalTitle, { textAlign: 'center', marginBottom: 8 }]}>{title}</Text>
-					<Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, textAlign: 'center', marginBottom: 24, lineHeight: 20 }}>
+					<Text style={{ color: '#64748B', fontSize: 14, textAlign: 'center', marginBottom: 24, lineHeight: 20 }}>
 						{message}
 					</Text>
 					
@@ -54,36 +54,36 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	modalContent: {
-		backgroundColor: '#112240',
+		backgroundColor: '#FAF7F2',
 		paddingHorizontal: 24,
 	},
 	modalTitle: {
-		color: '#ffffff',
+		color: '#163354',
 		fontSize: 18,
-		fontWeight: '600',
+		fontWeight: '800',
 	},
 	confirmButton: {
-		backgroundColor: '#d4af37',
+		backgroundColor: '#1D4A79',
 		paddingVertical: 12,
 		borderRadius: 12,
 		alignItems: 'center',
 	},
 	confirmText: {
-		color: '#000000',
-		fontWeight: '600',
-		fontSize: 16,
+		color: '#FFFFFF',
+		fontWeight: '700',
+		fontSize: 15,
 	},
 	cancelButton: {
-		backgroundColor: 'transparent',
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.2)',
+		backgroundColor: '#F5EFE6',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 		paddingVertical: 12,
 		borderRadius: 12,
 		alignItems: 'center',
 	},
 	cancelText: {
-		color: '#ffffff',
-		fontWeight: '600',
-		fontSize: 16,
+		color: '#163354',
+		fontWeight: '700',
+		fontSize: 15,
 	}
 })

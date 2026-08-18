@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { useRouter } from 'expo-router'
 import { useAuth } from '@/context/AuthContext'
-import { ActivityIndicator, View } from 'react-native'
+import { ActivityIndicator, Image, StyleSheet, View } from 'react-native'
 
 export default function RootRedirect() {
 	const router = useRouter()
@@ -22,17 +22,27 @@ export default function RootRedirect() {
 		}
 	}, [isAuthenticated, loading, hasLoggedInBefore])
 
-	// Show loading while checking auth state
+	// Show logo/loading while checking auth state (Screen 1 of design)
 	return (
-		<View
-			style={{
-				flex: 1,
-				justifyContent: 'center',
-				alignItems: 'center',
-				backgroundColor: '#0a192f',
-			}}
-		>
-			<ActivityIndicator size='large' color='#d4af37' />
+		<View style={styles.container}>
+			<Image
+				source={require('@/assets/images/logo.png')}
+				style={styles.logo}
+				resizeMode='contain'
+			/>
 		</View>
 	)
 }
+
+const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+		justifyContent: 'center',
+		alignItems: 'center',
+		backgroundColor: '#FBF9F5',
+	},
+	logo: {
+		width: 100,
+		height: 100,
+	},
+})

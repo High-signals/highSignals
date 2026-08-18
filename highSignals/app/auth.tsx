@@ -65,7 +65,7 @@ export default function AuthScreen() {
 
 	return (
 		<View style={styles.container}>
-			<StatusBar barStyle='light-content' backgroundColor='#0a192f' />
+			<StatusBar barStyle='dark-content' backgroundColor='#FBF9F5' />
 
 			<Animated.View
 				style={[
@@ -126,7 +126,7 @@ export default function AuthScreen() {
 						disabled={loading}
 					>
 						{loading ? (
-							<ActivityIndicator color='#fff' size='small' />
+							<ActivityIndicator color='#163354' size='small' />
 						) : (
 							<>
 								<View style={styles.googleIcon}>
@@ -159,7 +159,7 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#0a192f', // Brand blue background
+		backgroundColor: '#FBF9F5',
 		justifyContent: 'center',
 		paddingHorizontal: 28,
 	},
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
 		borderTopLeftRadius: 100,
 		borderTopRightRadius: 100,
 		borderWidth: 14,
-		borderColor: '#152238', // Slightly lighter than brand blue for track
+		borderColor: '#EADBCE',
 		borderBottomWidth: 0,
 		top: 0,
 	},
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
 		transform: [{ rotate: '-45deg' }],
 	},
 	gaugeYellow: {
-		borderColor: '#d4af37', // Brand gold for yellow segment
+		borderColor: '#D4AF37',
 		opacity: 0.9,
 		width: 100,
 		right: 0,
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
 		transform: [{ rotate: '45deg' }],
 	},
 	gaugeGreen: {
-		borderColor: '#00C853',
+		borderColor: '#059669',
 		opacity: 0.9,
 		width: 100,
 		right: 0,
@@ -241,14 +241,14 @@ const styles = StyleSheet.create({
 		paddingBottom: 4,
 	},
 	gaugeLabel: {
-		color: 'rgba(255,255,255,0.45)',
+		color: '#8E9BAE',
 		fontSize: 9,
 		fontWeight: '700',
 		letterSpacing: 1.5,
 		marginBottom: 2,
 	},
 	gaugeScore: {
-		color: '#ffffff', // Brand white
+		color: '#163354',
 		fontSize: 48,
 		fontWeight: '800',
 		lineHeight: 52,
@@ -258,18 +258,18 @@ const styles = StyleSheet.create({
 	headline: {
 		fontSize: 32,
 		fontWeight: '800',
-		color: '#ffffff', // Brand white
+		color: '#163354',
 		textAlign: 'center',
 		lineHeight: 40,
 		marginBottom: 12,
 		letterSpacing: -0.5,
 	},
 	headlineAccent: {
-		color: '#d4af37', // Brand gold
+		color: '#1D4A79',
 	},
 	subtitle: {
 		fontSize: 14,
-		color: 'rgba(255,255,255,0.6)',
+		color: '#64748B',
 		textAlign: 'center',
 		lineHeight: 21,
 		marginBottom: 40,
@@ -283,53 +283,53 @@ const styles = StyleSheet.create({
 		marginBottom: 24,
 	},
 	googleButton: {
-		backgroundColor: '#ffffff', // Brand white
+		backgroundColor: '#FFFFFF',
 		paddingVertical: 15,
-		borderRadius: 12,
+		borderRadius: 14,
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'center',
 		width: '100%',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
 	googleIcon: {
 		width: 22,
 		height: 22,
 		borderRadius: 11,
-		backgroundColor: '#4285F4',
+		backgroundColor: '#FFFFFF',
 		justifyContent: 'center',
 		alignItems: 'center',
 		marginRight: 10,
 	},
 	googleIconText: {
-		color: '#ffffff',
+		color: '#163354',
 		fontSize: 13,
 		fontWeight: '800',
 	},
 	googleButtonText: {
-		color: '#0a192f', // Brand blue text
+		color: '#163354',
 		fontSize: 15,
-		fontWeight: '600',
+		fontWeight: '700',
 	},
 	emailButton: {
-		backgroundColor: 'transparent',
+		backgroundColor: '#1D4A79',
 		paddingVertical: 15,
-		borderRadius: 12,
-		borderWidth: 1.5,
-		borderColor: 'rgba(212, 175, 55, 0.4)', // Gold border
+		borderRadius: 14,
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'center',
 		width: '100%',
 	},
 	emailIcon: {
-		color: '#d4af37', // Brand gold
+		color: '#FFFFFF',
 		fontSize: 15,
 		marginRight: 10,
 	},
 	emailButtonText: {
-		color: '#ffffff', // Brand white
+		color: '#FFFFFF',
 		fontSize: 15,
-		fontWeight: '600',
+		fontWeight: '700',
 	},
 	disabledButton: {
 		opacity: 0.6,
@@ -340,11 +340,11 @@ const styles = StyleSheet.create({
 		paddingVertical: 8,
 	},
 	loginText: {
-		color: 'rgba(255,255,255,0.5)',
+		color: '#8E9BAE',
 		fontSize: 14,
 	},
 	loginAccent: {
-		color: '#d4af37', // Brand gold
-		fontWeight: '600',
+		color: '#1D4A79',
+		fontWeight: '700',
 	},
 })

@@ -101,7 +101,7 @@ export default function ForgotPasswordScreen() {
 			style={styles.container}
 			behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
 		>
-			<StatusBar barStyle='light-content' backgroundColor='#0a192f' />
+			<StatusBar barStyle='dark-content' backgroundColor='#FBF9F5' />
 
 			<ScrollView
 				contentContainerStyle={styles.scrollContent}
@@ -118,18 +118,19 @@ export default function ForgotPasswordScreen() {
 					</TouchableOpacity>
 
 					{/* Headline */}
-					<Text style={styles.headline}>Reset Your Password</Text>
+					<Text style={styles.headline}>
+						{step === 'email' ? 'Forgot Password' : 'Reset Password'}
+					</Text>
 					<Text style={styles.subtitle}>
 						{step === 'email'
-							? 'Enter your email address and we will send you a link to reset your password'
-							: 'Enter the reset code and your new password'}
+							? 'Enter your email address and we will send you instructions to reset your password.'
+							: 'Enter the reset code sent to your email and choose a new password.'}
 					</Text>
 				</View>
 
-				{/* White Card with Form */}
+				{/* Card */}
 				<View style={styles.card}>
-					{/* EMAIL STEP */}
-					{step === 'email' && (
+					{step === 'email' ? (
 						<View style={styles.form}>
 							{/* Email Input */}
 							<View style={styles.inputGroup}>
@@ -138,13 +139,12 @@ export default function ForgotPasswordScreen() {
 									<Text style={styles.inputIcon}>✉️</Text>
 									<TextInput
 										style={styles.input}
-										placeholder='your@email.com'
-										placeholderTextColor='#999'
+										placeholder='name@example.com'
+										placeholderTextColor='#8E9BAE'
 										value={email}
 										onChangeText={setEmail}
 										keyboardType='email-address'
 										autoCapitalize='none'
-										editable={!loading}
 									/>
 								</View>
 							</View>
@@ -157,9 +157,10 @@ export default function ForgotPasswordScreen() {
 								]}
 								onPress={handleRequestReset}
 								disabled={loading}
+								activeOpacity={0.85}
 							>
 								{loading ? (
-									<ActivityIndicator color='#fff' />
+									<ActivityIndicator color='#FFFFFF' />
 								) : (
 									<Text style={styles.primaryButtonText}>
 										Send Reset Link
@@ -167,33 +168,31 @@ export default function ForgotPasswordScreen() {
 								)}
 							</TouchableOpacity>
 
-							{/* Back to Login */}
+							{/* Back to Login Button */}
 							<TouchableOpacity
 								style={styles.secondaryButton}
-								onPress={() => router.back()}
+								onPress={() => router.replace('/signup-login')}
+								activeOpacity={0.85}
 							>
 								<Text style={styles.secondaryButtonText}>
 									Back to Login
 								</Text>
 							</TouchableOpacity>
 						</View>
-					)}
-
-					{/* RESET PASSWORD STEP */}
-					{step === 'reset' && (
+					) : (
 						<View style={styles.form}>
 							{/* Reset Token Input */}
 							<View style={styles.inputGroup}>
 								<Text style={styles.label}>Reset Code</Text>
 								<View style={styles.inputWrapper}>
-									<Text style={styles.inputIcon}>🔐</Text>
+									<Text style={styles.inputIcon}>🔑</Text>
 									<TextInput
 										style={styles.input}
-										placeholder='Enter the code from your email'
-										placeholderTextColor='#999'
+										placeholder='Enter the reset code'
+										placeholderTextColor='#8E9BAE'
 										value={resetToken}
 										onChangeText={setResetToken}
-										editable={!loading}
+										autoCapitalize='none'
 									/>
 								</View>
 							</View>
@@ -205,12 +204,11 @@ export default function ForgotPasswordScreen() {
 									<Text style={styles.inputIcon}>🔒</Text>
 									<TextInput
 										style={styles.input}
-										placeholder='Enter new password'
-										placeholderTextColor='#999'
+										placeholder='At least 8 characters'
+										placeholderTextColor='#8E9BAE'
 										value={newPassword}
 										onChangeText={setNewPassword}
 										secureTextEntry={!showPassword}
-										editable={!loading}
 									/>
 									<TouchableOpacity
 										onPress={() =>
@@ -227,32 +225,31 @@ export default function ForgotPasswordScreen() {
 							{/* Confirm Password Input */}
 							<View style={styles.inputGroup}>
 								<Text style={styles.label}>
-									Confirm Password
+									Confirm New Password
 								</Text>
 								<View style={styles.inputWrapper}>
 									<Text style={styles.inputIcon}>🔒</Text>
 									<TextInput
 										style={styles.input}
 										placeholder='Confirm your password'
-										placeholderTextColor='#999'
+										placeholderTextColor='#8E9BAE'
 										value={confirmPassword}
 										onChangeText={setConfirmPassword}
 										secureTextEntry={!showPassword}
-										editable={!loading}
 									/>
 								</View>
 							</View>
 
-							{/* Password Requirements */}
+							{/* Requirements */}
 							<View style={styles.requirements}>
 								<Text style={styles.requirementsTitle}>
 									Password Requirements:
 								</Text>
 								<Text style={styles.requirement}>
-									✓ Minimum 8 characters
+									• At least 8 characters long
 								</Text>
 								<Text style={styles.requirement}>
-									✓ Passwords must match
+									• Must match the confirmation password
 								</Text>
 							</View>
 
@@ -264,9 +261,10 @@ export default function ForgotPasswordScreen() {
 								]}
 								onPress={handleResetPassword}
 								disabled={loading}
+								activeOpacity={0.85}
 							>
 								{loading ? (
-									<ActivityIndicator color='#fff' />
+									<ActivityIndicator color='#FFFFFF' />
 								) : (
 									<Text style={styles.primaryButtonText}>
 										Reset Password
@@ -278,9 +276,10 @@ export default function ForgotPasswordScreen() {
 							<TouchableOpacity
 								style={styles.secondaryButton}
 								onPress={() => setStep('email')}
+								activeOpacity={0.85}
 							>
 								<Text style={styles.secondaryButtonText}>
-									Back to Email
+									Back
 								</Text>
 							</TouchableOpacity>
 						</View>
@@ -294,128 +293,137 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#0a192f',
+		backgroundColor: '#FBF9F5',
 	},
 	scrollContent: {
 		flexGrow: 1,
 		paddingBottom: 40,
 	},
 	header: {
-		backgroundColor: '#0a192f',
-		paddingHorizontal: 20,
-		paddingTop: 20,
-		paddingBottom: 30,
+		backgroundColor: '#FBF9F5',
+		paddingHorizontal: 24,
+		paddingTop: 56,
+		paddingBottom: 24,
 	},
 	backButton: {
 		width: 40,
 		height: 40,
-		borderRadius: 8,
-		backgroundColor: 'rgba(255, 255, 255, 0.1)',
+		borderRadius: 12,
+		backgroundColor: '#FAF7F2',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 		justifyContent: 'center',
 		alignItems: 'center',
 		marginBottom: 20,
 	},
 	backArrow: {
-		fontSize: 24,
-		color: '#fff',
+		fontSize: 22,
+		color: '#163354',
+		fontWeight: '700',
 	},
 	headline: {
 		fontSize: 28,
-		fontWeight: 'bold',
-		color: '#fff',
-		marginBottom: 12,
+		fontWeight: '800',
+		color: '#163354',
+		marginBottom: 8,
 	},
 	subtitle: {
 		fontSize: 14,
-		color: 'rgba(255, 255, 255, 0.7)',
+		color: '#64748B',
 		lineHeight: 20,
 	},
 	card: {
-		backgroundColor: '#fff',
+		backgroundColor: '#FAF7F2',
 		marginHorizontal: 20,
-		borderRadius: 16,
+		borderRadius: 20,
 		padding: 24,
 		marginBottom: 20,
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
 	form: {
-		gap: 20,
+		gap: 18,
 	},
 	inputGroup: {
 		gap: 8,
 	},
 	label: {
-		fontSize: 14,
-		fontWeight: '600',
-		color: '#0a192f',
+		fontSize: 13.5,
+		fontWeight: '700',
+		color: '#163354',
 	},
 	inputWrapper: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		borderWidth: 1,
-		borderColor: '#e0e0e0',
-		borderRadius: 8,
-		paddingHorizontal: 12,
-		backgroundColor: '#f9f9f9',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
+		borderRadius: 12,
+		paddingHorizontal: 14,
+		backgroundColor: '#FFFFFF',
+		height: 50,
 	},
 	inputIcon: {
-		fontSize: 18,
+		fontSize: 16,
 		marginRight: 8,
 	},
 	input: {
 		flex: 1,
-		paddingVertical: 12,
-		fontSize: 14,
-		color: '#0a192f',
+		fontSize: 14.5,
+		color: '#163354',
+		fontWeight: '500',
 	},
 	eyeIcon: {
 		fontSize: 18,
 		marginLeft: 8,
 	},
 	primaryButton: {
-		backgroundColor: '#0a192f',
-		paddingVertical: 14,
-		borderRadius: 8,
+		backgroundColor: '#1D4A79',
+		paddingVertical: 15,
+		borderRadius: 14,
 		justifyContent: 'center',
 		alignItems: 'center',
-		marginTop: 10,
+		marginTop: 8,
 	},
 	primaryButtonText: {
-		color: '#fff',
-		fontSize: 16,
-		fontWeight: '600',
+		color: '#FFFFFF',
+		fontSize: 15.5,
+		fontWeight: '800',
 	},
 	secondaryButton: {
-		paddingVertical: 12,
-		borderRadius: 8,
+		paddingVertical: 14,
+		borderRadius: 14,
 		justifyContent: 'center',
 		alignItems: 'center',
-		borderWidth: 1,
-		borderColor: '#0a192f',
-		marginTop: 10,
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
+		backgroundColor: '#F5EFE6',
+		marginTop: 4,
 	},
 	secondaryButtonText: {
-		color: '#0a192f',
-		fontSize: 16,
-		fontWeight: '600',
+		color: '#163354',
+		fontSize: 15,
+		fontWeight: '700',
 	},
 	disabledButton: {
 		opacity: 0.6,
 	},
 	requirements: {
-		backgroundColor: '#f0f4ff',
-		padding: 12,
-		borderRadius: 8,
-		marginTop: 8,
+		backgroundColor: '#F5EFE6',
+		padding: 14,
+		borderRadius: 12,
+		borderWidth: 1,
+		borderColor: '#EADBCE',
+		marginTop: 4,
 	},
 	requirementsTitle: {
-		fontSize: 12,
-		fontWeight: '600',
-		color: '#0a192f',
-		marginBottom: 8,
+		fontSize: 12.5,
+		fontWeight: '700',
+		color: '#163354',
+		marginBottom: 6,
 	},
 	requirement: {
 		fontSize: 12,
-		color: '#666',
+		color: '#64748B',
 		marginBottom: 4,
 	},
 })

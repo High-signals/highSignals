@@ -96,13 +96,13 @@ export default function SignupLoginScreen() {
 			style={styles.container}
 			behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
 		>
-			<StatusBar barStyle='light-content' backgroundColor='#0a192f' />
+			<StatusBar barStyle='dark-content' backgroundColor='#FBF9F5' />
 
 			<ScrollView
 				contentContainerStyle={styles.scrollContent}
 				showsVerticalScrollIndicator={false}
 			>
-				{/* Header Section - Brand Blue Background */}
+				{/* Header Section */}
 				<View style={styles.header}>
 					{/* Back Button */}
 					<TouchableOpacity
@@ -118,11 +118,11 @@ export default function SignupLoginScreen() {
 					</Text>
 					<Text style={styles.subtitle}>
 						Sign {activeTab === 'login' ? 'in' : 'up'} to enjoy the
-						best managing experience
+						full experience
 					</Text>
 				</View>
 
-				{/* White Card with Form */}
+				{/* Card */}
 				<View style={styles.card}>
 					{/* Tab Switcher */}
 					<View style={styles.tabContainer}>
@@ -157,23 +157,23 @@ export default function SignupLoginScreen() {
 										styles.activeTabText,
 								]}
 							>
-								Register
+								Sign Up
 							</Text>
 						</TouchableOpacity>
 					</View>
 
-					{/* LOGIN FORM */}
-					{activeTab === 'login' && (
+					{/* Login Form */}
+					{activeTab === 'login' ? (
 						<View style={styles.form}>
 							{/* Email Input */}
 							<View style={styles.inputGroup}>
-								<Text style={styles.label}>Email Address</Text>
+								<Text style={styles.label}>Email address</Text>
 								<View style={styles.inputWrapper}>
 									<Text style={styles.inputIcon}>✉️</Text>
 									<TextInput
 										style={styles.input}
-										placeholder='your@email.com'
-										placeholderTextColor='#999'
+										placeholder='name@example.com'
+										placeholderTextColor='#8E9BAE'
 										value={email}
 										onChangeText={setEmail}
 										keyboardType='email-address'
@@ -189,8 +189,8 @@ export default function SignupLoginScreen() {
 									<Text style={styles.inputIcon}>🔒</Text>
 									<TextInput
 										style={styles.input}
-										placeholder='Enter your password'
-										placeholderTextColor='#999'
+										placeholder='••••••••'
+										placeholderTextColor='#8E9BAE'
 										value={password}
 										onChangeText={setPassword}
 										secureTextEntry={!showPassword}
@@ -246,7 +246,7 @@ export default function SignupLoginScreen() {
 								disabled={loading}
 							>
 								{loading ? (
-									<ActivityIndicator color='#0a192f' />
+									<ActivityIndicator color='#FFFFFF' />
 								) : (
 									<Text style={styles.primaryButtonText}>
 										Login
@@ -254,10 +254,8 @@ export default function SignupLoginScreen() {
 								)}
 							</TouchableOpacity>
 						</View>
-					)}
-
-					{/* REGISTER FORM */}
-					{activeTab === 'register' && (
+					) : (
+						/* Register Form */
 						<View style={styles.form}>
 							{/* Full Name Input */}
 							<View style={styles.inputGroup}>
@@ -267,7 +265,7 @@ export default function SignupLoginScreen() {
 									<TextInput
 										style={styles.input}
 										placeholder='John Doe'
-										placeholderTextColor='#999'
+										placeholderTextColor='#8E9BAE'
 										value={fullName}
 										onChangeText={setFullName}
 									/>
@@ -276,13 +274,13 @@ export default function SignupLoginScreen() {
 
 							{/* Email Input */}
 							<View style={styles.inputGroup}>
-								<Text style={styles.label}>Email Address</Text>
+								<Text style={styles.label}>Email address</Text>
 								<View style={styles.inputWrapper}>
 									<Text style={styles.inputIcon}>✉️</Text>
 									<TextInput
 										style={styles.input}
-										placeholder='your@email.com'
-										placeholderTextColor='#999'
+										placeholder='name@example.com'
+										placeholderTextColor='#8E9BAE'
 										value={email}
 										onChangeText={setEmail}
 										keyboardType='email-address'
@@ -298,8 +296,8 @@ export default function SignupLoginScreen() {
 									<Text style={styles.inputIcon}>🔒</Text>
 									<TextInput
 										style={styles.input}
-										placeholder='Create a password'
-										placeholderTextColor='#999'
+										placeholder='••••••••'
+										placeholderTextColor='#8E9BAE'
 										value={password}
 										onChangeText={setPassword}
 										secureTextEntry={!showPassword}
@@ -325,8 +323,8 @@ export default function SignupLoginScreen() {
 									<Text style={styles.inputIcon}>🔒</Text>
 									<TextInput
 										style={styles.input}
-										placeholder='Confirm your password'
-										placeholderTextColor='#999'
+										placeholder='••••••••'
+										placeholderTextColor='#8E9BAE'
 										value={confirmPassword}
 										onChangeText={setConfirmPassword}
 										secureTextEntry={!showPassword}
@@ -344,7 +342,7 @@ export default function SignupLoginScreen() {
 								disabled={loading}
 							>
 								{loading ? (
-									<ActivityIndicator color='#0a192f' />
+									<ActivityIndicator color='#FFFFFF' />
 								) : (
 									<Text style={styles.primaryButtonText}>
 										Create Account
@@ -372,7 +370,7 @@ export default function SignupLoginScreen() {
 							disabled={googleLoading}
 						>
 							{googleLoading ? (
-								<ActivityIndicator color='#0a192f' />
+								<ActivityIndicator color='#163354' />
 							) : (
 								<>
 									<View style={styles.googleIconCircle}>
@@ -394,60 +392,60 @@ export default function SignupLoginScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#0a192f', // Scripnals brand blue
+		backgroundColor: '#FBF9F5',
 	},
 	scrollContent: {
 		flexGrow: 1,
 	},
-
-	// Header Section (brand blue background)
 	header: {
 		paddingTop: 60,
 		paddingHorizontal: 28,
-		paddingBottom: 30,
+		paddingBottom: 28,
 	},
 	backButton: {
 		width: 40,
 		height: 40,
 		justifyContent: 'center',
-		marginBottom: 20,
+		marginBottom: 16,
 	},
 	backArrow: {
-		color: '#ffffff', // Brand white
-		fontSize: 24,
-		fontWeight: '600',
+		color: '#163354',
+		fontSize: 26,
+		fontWeight: '700',
 	},
 	headline: {
 		fontSize: 28,
 		fontWeight: '800',
-		color: '#ffffff', // Brand white
+		color: '#163354',
 		lineHeight: 36,
 		marginBottom: 8,
 	},
 	subtitle: {
 		fontSize: 14,
-		color: 'rgba(255,255,255,0.6)',
+		color: '#64748B',
 		lineHeight: 20,
 	},
-
-	// White Card
 	card: {
 		flex: 1,
-		backgroundColor: '#ffffff', // Brand white
-		borderTopLeftRadius: 30,
-		borderTopRightRadius: 30,
-		paddingTop: 24,
+		backgroundColor: '#FAF7F2',
+		borderTopLeftRadius: 32,
+		borderTopRightRadius: 32,
+		paddingTop: 26,
 		paddingHorizontal: 24,
 		paddingBottom: 40,
+		borderTopWidth: 1.5,
+		borderLeftWidth: 1.5,
+		borderRightWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
-
-	// Tab Switcher
 	tabContainer: {
 		flexDirection: 'row',
-		backgroundColor: '#F5F5F5',
-		borderRadius: 12,
+		backgroundColor: '#F5EFE6',
+		borderRadius: 14,
 		padding: 4,
 		marginBottom: 24,
+		borderWidth: 1,
+		borderColor: '#EADBCE',
 	},
 	tab: {
 		flex: 1,
@@ -456,23 +454,22 @@ const styles = StyleSheet.create({
 		borderRadius: 10,
 	},
 	activeTab: {
-		backgroundColor: '#ffffff',
-		shadowColor: '#000',
+		backgroundColor: '#FFFFFF',
+		shadowColor: '#163354',
 		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.05,
+		shadowOpacity: 0.06,
 		shadowRadius: 4,
 		elevation: 2,
 	},
 	tabText: {
-		fontSize: 15,
+		fontSize: 14.5,
 		fontWeight: '600',
-		color: '#666',
+		color: '#8E9BAE',
 	},
 	activeTabText: {
-		color: '#0a192f', // Brand blue
+		color: '#163354',
+		fontWeight: '800',
 	},
-
-	// Form
 	form: {
 		marginBottom: 20,
 	},
@@ -481,34 +478,33 @@ const styles = StyleSheet.create({
 	},
 	label: {
 		fontSize: 13,
-		fontWeight: '600',
-		color: '#0a192f', // Brand blue
+		fontWeight: '700',
+		color: '#163354',
 		marginBottom: 8,
 	},
 	inputWrapper: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		backgroundColor: '#F8F8F8',
+		backgroundColor: '#FFFFFF',
 		borderRadius: 12,
 		paddingHorizontal: 14,
 		height: 52,
-		borderWidth: 1,
-		borderColor: '#E8E8E8',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
 	inputIcon: {
-		fontSize: 18,
+		fontSize: 16,
 		marginRight: 10,
 	},
 	input: {
 		flex: 1,
 		fontSize: 15,
-		color: '#333',
+		color: '#163354',
+		fontWeight: '500',
 	},
 	eyeIcon: {
 		fontSize: 18,
 	},
-
-	// Remember Me & Forgot Password
 	row: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
@@ -522,47 +518,45 @@ const styles = StyleSheet.create({
 	checkbox: {
 		width: 20,
 		height: 20,
-		borderWidth: 2,
-		borderColor: '#DDD',
-		borderRadius: 5,
+		borderWidth: 1.5,
+		borderColor: '#CBD5E1',
+		borderRadius: 6,
 		marginRight: 8,
 		justifyContent: 'center',
 		alignItems: 'center',
+		backgroundColor: '#FFFFFF',
 	},
 	checkboxChecked: {
 		width: 12,
 		height: 12,
-		backgroundColor: '#d4af37', // Brand gold
+		backgroundColor: '#1D4A79',
 		borderRadius: 3,
 	},
 	checkboxLabel: {
-		fontSize: 14,
-		color: '#666',
+		fontSize: 13.5,
+		color: '#64748B',
+		fontWeight: '500',
 	},
 	forgotPassword: {
-		fontSize: 14,
-		color: '#d4af37', // Brand gold
-		fontWeight: '600',
+		fontSize: 13.5,
+		color: '#1D4A79',
+		fontWeight: '700',
 	},
-
-	// Primary Button - BRAND GOLD
 	primaryButton: {
-		backgroundColor: '#d4af37', // Scripnals brand gold
+		backgroundColor: '#1D4A79',
 		paddingVertical: 16,
-		borderRadius: 12,
+		borderRadius: 14,
 		alignItems: 'center',
 		marginTop: 8,
 	},
 	primaryButtonText: {
-		color: '#0a192f', // Brand blue text on gold button
-		fontSize: 16,
-		fontWeight: '700',
+		color: '#FFFFFF',
+		fontSize: 15.5,
+		fontWeight: '800',
 	},
 	disabledButton: {
 		opacity: 0.6,
 	},
-
-	// Divider
 	dividerContainer: {
 		flexDirection: 'row',
 		alignItems: 'center',
@@ -571,15 +565,14 @@ const styles = StyleSheet.create({
 	dividerLine: {
 		flex: 1,
 		height: 1,
-		backgroundColor: '#E5E5E5',
+		backgroundColor: '#EADBCE',
 	},
 	dividerText: {
 		marginHorizontal: 12,
 		fontSize: 13,
-		color: '#999',
+		color: '#8E9BAE',
+		fontWeight: '500',
 	},
-
-	// Social Buttons
 	socialButtons: {
 		flexDirection: 'row',
 		gap: 12,
@@ -589,29 +582,29 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'center',
-		backgroundColor: '#F8F8F8',
+		backgroundColor: '#FFFFFF',
 		paddingVertical: 14,
-		borderRadius: 12,
-		borderWidth: 1,
-		borderColor: '#E5E5E5',
+		borderRadius: 14,
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
 	googleIconCircle: {
 		width: 24,
 		height: 24,
 		borderRadius: 12,
-		backgroundColor: '#4285F4',
+		backgroundColor: '#FFFFFF',
 		justifyContent: 'center',
 		alignItems: 'center',
 		marginRight: 8,
 	},
 	googleG: {
-		color: '#ffffff',
+		color: '#163354',
 		fontSize: 14,
 		fontWeight: '800',
 	},
 	socialButtonText: {
-		fontSize: 14,
-		color: '#333',
-		fontWeight: '600',
+		fontSize: 14.5,
+		color: '#163354',
+		fontWeight: '700',
 	},
 })

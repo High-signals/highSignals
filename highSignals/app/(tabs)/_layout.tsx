@@ -72,9 +72,9 @@ export default function TabsLayout() {
 								name={
 									(active ? tab.activeIcon : tab.icon) as any
 								}
-								size={28}
+								size={26}
 								color={
-									active ? '#d4af37' : 'rgba(255,255,255,0.5)'
+									active ? '#163354' : '#8E9BAE'
 								}
 							/>
 							<Text
@@ -97,46 +97,47 @@ export default function TabsLayout() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#0a192f',
+		backgroundColor: '#FBF9F5',
 	},
 
 	bottomNav: {
 		flexDirection: 'row',
-		backgroundColor: '#0a192f',
-		borderTopColor: 'rgba(212,175,55,0.3)',
+		backgroundColor: '#FFFFFF',
+		borderTopColor: '#EADBCE',
 		borderTopWidth: 1,
-		paddingVertical: 12,
+		paddingVertical: 10,
 		position: 'absolute',
 		bottom: 0,
 		left: 0,
 		right: 0,
-		shadowColor: '#000',
+		shadowColor: '#163354',
 		shadowOffset: {
 			width: 0,
-			height: -2,
+			height: -3,
 		},
-		shadowOpacity: 0.25,
-		shadowRadius: 4,
-		elevation: 5,
+		shadowOpacity: 0.06,
+		shadowRadius: 8,
+		elevation: 8,
 	},
 
 	tabButton: {
 		flex: 1,
 		alignItems: 'center',
 		justifyContent: 'center',
-		paddingTop: 8,
+		paddingTop: 4,
 	},
 
 	activeTab: {},
 
 	tabLabel: {
-		fontSize: 12,
+		fontSize: 11,
 		fontWeight: '600',
-		color: 'rgba(255,255,255,0.5)',
+		color: '#8E9BAE',
 		marginTop: 4,
 	},
 
 	activeLabel: {
-		color: '#d4af37',
+		color: '#163354',
+		fontWeight: '700',
 	},
 })

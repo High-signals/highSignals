@@ -113,7 +113,7 @@ export default function ProfileEditScreen() {
 	if (loading) {
 		return (
 			<View style={[styles.container, styles.center]}>
-				<ActivityIndicator size='large' color='#d4af37' />
+				<ActivityIndicator size='large' color='#1D4A79' />
 			</View>
 		)
 	}
@@ -169,7 +169,7 @@ export default function ProfileEditScreen() {
 								setForm((prev) => ({ ...prev, name: text }))
 							}
 							placeholder='Your name'
-							placeholderTextColor='rgba(255,255,255,0.3)'
+							placeholderTextColor='#8E9BAE'
 						/>
 					</View>
 
@@ -179,7 +179,7 @@ export default function ProfileEditScreen() {
 							style={[styles.input, styles.disabledInput]}
 							value={form.email}
 							editable={false}
-							placeholderTextColor='rgba(255,255,255,0.3)'
+							placeholderTextColor='#8E9BAE'
 						/>
 					</View>
 
@@ -192,7 +192,7 @@ export default function ProfileEditScreen() {
 								setForm((prev) => ({ ...prev, bio: text }))
 							}
 							placeholder='Tell people a bit about you'
-							placeholderTextColor='rgba(255,255,255,0.3)'
+							placeholderTextColor='#8E9BAE'
 							multiline
 							numberOfLines={4}
 						/>
@@ -206,9 +206,10 @@ export default function ProfileEditScreen() {
 					]}
 					onPress={handleSave}
 					disabled={saving}
+					activeOpacity={0.85}
 				>
 					{saving ? (
-						<ActivityIndicator color='#0a192f' />
+						<ActivityIndicator color='#FFFFFF' />
 					) : (
 						<Text style={styles.saveButtonText}>Save changes</Text>
 					)}
@@ -223,7 +224,7 @@ export default function ProfileEditScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#1a2b4a',
+		backgroundColor: '#FBF9F5',
 	},
 	center: {
 		justifyContent: 'center',
@@ -235,59 +236,59 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		paddingHorizontal: 24,
 		paddingTop: 60,
-		paddingBottom: 30,
+		paddingBottom: 24,
 	},
 	backButton: {
-		fontSize: 28,
-		color: '#ffffff',
-		fontWeight: '600',
+		fontSize: 26,
+		color: '#163354',
+		fontWeight: '700',
 	},
 	headerTitle: {
 		fontSize: 18,
-		fontWeight: '700',
-		color: '#ffffff',
+		fontWeight: '800',
+		color: '#163354',
 	},
 	imageSection: {
 		alignItems: 'center',
-		marginBottom: 40,
+		marginBottom: 32,
 	},
 	imageContainer: {
 		position: 'relative',
 	},
 	profileImage: {
-		width: 120,
-		height: 120,
-		borderRadius: 60,
-		borderWidth: 4,
-		borderColor: '#ffffff',
+		width: 110,
+		height: 110,
+		borderRadius: 55,
+		borderWidth: 3,
+		borderColor: '#1D4A79',
 	},
 	placeholderImage: {
-		width: 120,
-		height: 120,
-		borderRadius: 60,
-		backgroundColor: '#ffffff',
+		width: 110,
+		height: 110,
+		borderRadius: 55,
+		backgroundColor: '#1D4A79',
 		justifyContent: 'center',
 		alignItems: 'center',
-		borderWidth: 4,
-		borderColor: '#ffffff',
+		borderWidth: 3,
+		borderColor: '#1D4A79',
 	},
 	placeholderInitial: {
-		fontSize: 48,
+		fontSize: 44,
 		fontWeight: '800',
-		color: '#1a2b4a',
+		color: '#FFFFFF',
 	},
 	cameraIcon: {
 		position: 'absolute',
 		bottom: 0,
 		right: 0,
-		width: 36,
-		height: 36,
-		borderRadius: 18,
-		backgroundColor: '#ffffff',
+		width: 34,
+		height: 34,
+		borderRadius: 17,
+		backgroundColor: '#F5EFE6',
 		justifyContent: 'center',
 		alignItems: 'center',
-		borderWidth: 3,
-		borderColor: '#1a2b4a',
+		borderWidth: 2,
+		borderColor: '#EADBCE',
 	},
 	avatarOverlay: {
 		position: 'absolute',
@@ -295,56 +296,57 @@ const styles = StyleSheet.create({
 		left: 0,
 		right: 0,
 		bottom: 0,
-		borderRadius: 60,
-		backgroundColor: 'rgba(0,0,0,0.45)',
+		borderRadius: 55,
+		backgroundColor: 'rgba(22, 51, 84, 0.6)',
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
 	cameraEmoji: {
-		fontSize: 16,
+		fontSize: 14,
 	},
 	form: {
 		paddingHorizontal: 24,
-		gap: 20,
+		gap: 18,
 	},
 	inputGroup: {},
 	label: {
-		fontSize: 14,
-		fontWeight: '600',
-		color: '#ffffff',
-		marginBottom: 10,
+		fontSize: 13.5,
+		fontWeight: '700',
+		color: '#163354',
+		marginBottom: 8,
 	},
 	input: {
-		backgroundColor: 'rgba(255,255,255,0.05)',
+		backgroundColor: '#FFFFFF',
 		borderRadius: 12,
 		paddingHorizontal: 16,
-		paddingVertical: 14,
+		paddingVertical: 13,
 		fontSize: 15,
-		color: '#ffffff',
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.1)',
+		color: '#163354',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
 	disabledInput: {
-		opacity: 0.65,
+		backgroundColor: '#F5EFE6',
+		opacity: 0.8,
 	},
 	bioInput: {
-		minHeight: 120,
+		minHeight: 110,
 		textAlignVertical: 'top',
 	},
 	saveButton: {
 		marginHorizontal: 24,
-		marginTop: 40,
-		backgroundColor: '#d4af37',
-		borderRadius: 12,
-		paddingVertical: 16,
+		marginTop: 36,
+		backgroundColor: '#1D4A79',
+		borderRadius: 14,
+		paddingVertical: 15,
 		alignItems: 'center',
 	},
 	saveButtonDisabled: {
 		opacity: 0.7,
 	},
 	saveButtonText: {
-		fontSize: 16,
-		fontWeight: '700',
-		color: '#0a192f',
+		fontSize: 15,
+		fontWeight: '800',
+		color: '#FFFFFF',
 	},
 })

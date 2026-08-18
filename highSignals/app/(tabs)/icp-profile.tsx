@@ -556,7 +556,7 @@ export default function ICPProfileScreen() {
 			<View style={styles.header}>
 				<TouchableOpacity
 					onPress={() => {
-						if (isEditing) {
+						if (isEditing && icp) {
 							cancelEditing()
 							return
 						}
@@ -564,14 +564,14 @@ export default function ICPProfileScreen() {
 						router.back()
 					}}
 				>
-					<Ionicons name='arrow-back' size={24} color='#ffffff' />
+					<Ionicons name='arrow-back' size={24} color='#163354' />
 				</TouchableOpacity>
 				<Text style={styles.headerTitle}>
 					{isEditing ? 'Edit ICP' : 'ICP Profile'}
 				</Text>
 				{!isEditing && icp ? (
 					<TouchableOpacity onPress={startEditing}>
-						<Ionicons name='create-outline' size={24} color='#d4af37' />
+						<Ionicons name='create-outline' size={24} color='#1D4A79' />
 					</TouchableOpacity>
 				) : isEditing ? (
 					<TouchableOpacity onPress={handleSaveChanges} disabled={isSaving}>
@@ -592,7 +592,7 @@ export default function ICPProfileScreen() {
 				{!icp && !isEditing ? (
 					<View style={styles.emptyState}>
 						<View style={styles.emptyBadge}>
-							<Ionicons name='sparkles-outline' size={18} color='#d4af37' />
+							<Ionicons name='sparkles-outline' size={18} color='#1D4A79' />
 							<Text style={styles.emptyBadgeText}>ICP Setup</Text>
 						</View>
 						<Text style={styles.emptyTitle}>No ICP profile yet</Text>
@@ -606,7 +606,7 @@ export default function ICPProfileScreen() {
 								<Ionicons
 									name='checkmark-circle-outline'
 									size={18}
-									color='#d4af37'
+									color='#1D4A79'
 								/>
 								<Text style={styles.emptyListText}>
 									Audience clarity in one place
@@ -616,7 +616,7 @@ export default function ICPProfileScreen() {
 								<Ionicons
 									name='checkmark-circle-outline'
 									size={18}
-									color='#d4af37'
+									color='#1D4A79'
 								/>
 								<Text style={styles.emptyListText}>
 									Better post ideas and angles
@@ -626,7 +626,7 @@ export default function ICPProfileScreen() {
 								<Ionicons
 									name='checkmark-circle-outline'
 									size={18}
-									color='#d4af37'
+									color='#1D4A79'
 								/>
 								<Text style={styles.emptyListText}>
 									Faster editing when your audience changes
@@ -786,7 +786,7 @@ export default function ICPProfileScreen() {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#0f172a',
+		backgroundColor: '#FBF9F5',
 	},
 	header: {
 		flexDirection: 'row',
@@ -795,19 +795,19 @@ const styles = StyleSheet.create({
 		paddingTop: 60,
 		paddingHorizontal: 20,
 		paddingBottom: 16,
-		backgroundColor: '#111827',
-		borderBottomWidth: 1,
-		borderBottomColor: 'rgba(212,175,55,0.15)',
+		backgroundColor: '#FAF7F2',
+		borderBottomWidth: 1.5,
+		borderBottomColor: '#EADBCE',
 	},
 	headerTitle: {
-		color: '#ffffff',
+		color: '#163354',
 		fontSize: 18,
 		fontWeight: '800',
 	},
 	saveButton: {
-		color: '#d4af37',
+		color: '#1D4A79',
 		fontSize: 16,
-		fontWeight: '700',
+		fontWeight: '800',
 	},
 	content: {
 		flex: 1,
@@ -835,13 +835,13 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 14,
 		paddingVertical: 8,
 		borderRadius: 999,
-		backgroundColor: 'rgba(212,175,55,0.1)',
+		backgroundColor: '#E0F2FE',
 		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.2)',
+		borderColor: '#BAE6FD',
 		marginBottom: 18,
 	},
 	emptyBadgeText: {
-		color: '#d4af37',
+		color: '#0284C7',
 		fontSize: 12,
 		fontWeight: '700',
 		textTransform: 'uppercase',
@@ -850,14 +850,14 @@ const styles = StyleSheet.create({
 	emptyTitle: {
 		fontSize: 22,
 		fontWeight: '800',
-		color: '#ffffff',
+		color: '#163354',
 		marginBottom: 10,
 		textAlign: 'center',
 	},
 	emptySubtext: {
 		fontSize: 14,
 		lineHeight: 22,
-		color: 'rgba(255,255,255,0.65)',
+		color: '#64748B',
 		textAlign: 'center',
 		maxWidth: 340,
 		marginBottom: 24,
@@ -871,16 +871,16 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		gap: 10,
-		paddingVertical: 10,
+		paddingVertical: 12,
 		paddingHorizontal: 14,
-		borderRadius: 12,
-		backgroundColor: 'rgba(255,255,255,0.04)',
-		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.12)',
+		borderRadius: 14,
+		backgroundColor: '#FAF7F2',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
 	emptyListText: {
-		color: '#ffffff',
-		fontSize: 13,
+		color: '#163354',
+		fontSize: 13.5,
 		fontWeight: '600',
 	},
 	createButton: {
@@ -888,21 +888,21 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		gap: 8,
 		paddingHorizontal: 24,
-		paddingVertical: 12,
-		backgroundColor: '#d4af37',
-		borderRadius: 12,
+		paddingVertical: 14,
+		backgroundColor: '#1D4A79',
+		borderRadius: 14,
 	},
 	createButtonText: {
-		fontSize: 16,
-		fontWeight: '700',
-		color: '#0a192f',
+		fontSize: 15,
+		fontWeight: '800',
+		color: '#FFFFFF',
 	},
 	heroCard: {
 		padding: 20,
 		borderRadius: 20,
-		backgroundColor: 'rgba(212,175,55,0.06)',
-		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.18)',
+		backgroundColor: '#FAF7F2',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 		marginBottom: 18,
 	},
 	heroTopRow: {
@@ -920,12 +920,12 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		paddingVertical: 8,
 		borderRadius: 999,
-		backgroundColor: 'rgba(212,175,55,0.1)',
+		backgroundColor: '#E0F2FE',
 		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.2)',
+		borderColor: '#BAE6FD',
 	},
 	heroBadgeText: {
-		color: '#d4af37',
+		color: '#0284C7',
 		fontSize: 12,
 		fontWeight: '700',
 	},
@@ -936,24 +936,26 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		paddingVertical: 8,
 		borderRadius: 999,
-		backgroundColor: 'rgba(255,255,255,0.05)',
+		backgroundColor: '#F5EFE6',
+		borderWidth: 1,
+		borderColor: '#EADBCE',
 	},
 	heroMetaText: {
-		color: 'rgba(255,255,255,0.7)',
+		color: '#64748B',
 		fontSize: 12,
 		fontWeight: '600',
 	},
 	heroTitle: {
-		fontSize: 28,
-		lineHeight: 34,
+		fontSize: 26,
+		lineHeight: 32,
 		fontWeight: '800',
-		color: '#ffffff',
-		marginBottom: 10,
+		color: '#163354',
+		marginBottom: 8,
 	},
 	heroSubtitle: {
 		fontSize: 14,
 		lineHeight: 22,
-		color: 'rgba(255,255,255,0.7)',
+		color: '#475569',
 		marginBottom: 18,
 	},
 	heroStats: {
@@ -965,19 +967,19 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 		paddingHorizontal: 10,
 		borderRadius: 14,
-		backgroundColor: 'rgba(255,255,255,0.04)',
+		backgroundColor: '#F5EFE6',
 		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.08)',
+		borderColor: '#EADBCE',
 	},
 	heroStatValue: {
-		fontSize: 18,
+		fontSize: 17,
 		fontWeight: '800',
-		color: '#d4af37',
+		color: '#1D4A79',
 		marginBottom: 4,
 	},
 	heroStatLabel: {
 		fontSize: 12,
-		color: 'rgba(255,255,255,0.65)',
+		color: '#64748B',
 	},
 	section: {
 		marginBottom: 18,
@@ -985,10 +987,10 @@ const styles = StyleSheet.create({
 	sectionTitle: {
 		fontSize: 13,
 		fontWeight: '800',
-		color: '#d4af37',
+		color: '#163354',
 		marginBottom: 12,
 		textTransform: 'uppercase',
-		letterSpacing: 0.9,
+		letterSpacing: 0.8,
 	},
 	sectionGrid: {
 		flexDirection: 'row',
@@ -1001,27 +1003,27 @@ const styles = StyleSheet.create({
 		minWidth: 0,
 		padding: 16,
 		borderRadius: 16,
-		backgroundColor: 'rgba(255,255,255,0.04)',
-		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.14)',
+		backgroundColor: '#FAF7F2',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 		marginBottom: 10,
 	},
 	detailCardWide: {
 		width: '100%',
 	},
 	detailLabel: {
-		fontSize: 12,
+		fontSize: 11.5,
 		fontWeight: '700',
-		color: 'rgba(255,255,255,0.6)',
-		marginBottom: 8,
+		color: '#64748B',
+		marginBottom: 6,
 		textTransform: 'uppercase',
 		letterSpacing: 0.5,
 	},
 	detailValue: {
-		fontSize: 15,
-		lineHeight: 24,
-		color: '#ffffff',
-		fontWeight: '500',
+		fontSize: 14.5,
+		lineHeight: 22,
+		color: '#163354',
+		fontWeight: '600',
 		flexShrink: 1,
 	},
 	editNoticeCard: {
@@ -1031,13 +1033,13 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 14,
 		paddingVertical: 10,
 		borderRadius: 14,
-		backgroundColor: 'rgba(212,175,55,0.08)',
+		backgroundColor: '#FEF3C7',
 		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.18)',
+		borderColor: '#FDE68A',
 		marginBottom: 18,
 	},
 	editNoticeText: {
-		color: '#d4af37',
+		color: '#D97706',
 		fontSize: 13,
 		fontWeight: '700',
 	},
@@ -1045,19 +1047,19 @@ const styles = StyleSheet.create({
 		marginBottom: 18,
 	},
 	label: {
-		fontSize: 13,
+		fontSize: 13.5,
 		fontWeight: '700',
-		color: 'rgba(255,255,255,0.8)',
+		color: '#163354',
 		marginBottom: 8,
 	},
 	input: {
-		backgroundColor: 'rgba(255,255,255,0.05)',
-		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.3)',
+		backgroundColor: '#FFFFFF',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 		borderRadius: 12,
 		paddingHorizontal: 14,
 		paddingVertical: 12,
-		color: '#ffffff',
+		color: '#163354',
 		fontSize: 14,
 	},
 	textarea: {
@@ -1074,20 +1076,21 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 14,
 		paddingVertical: 10,
 		borderRadius: 999,
-		backgroundColor: 'rgba(255,255,255,0.05)',
-		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.2)',
+		backgroundColor: '#F5EFE6',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
 	optionChipSelected: {
-		backgroundColor: 'rgba(212,175,55,0.18)',
-		borderColor: 'rgba(212,175,55,0.5)',
+		backgroundColor: '#1D4A79',
+		borderColor: '#1D4A79',
 	},
 	optionChipText: {
-		color: 'rgba(255,255,255,0.8)',
+		color: '#163354',
 		fontSize: 13,
 		fontWeight: '600',
 	},
 	optionChipTextSelected: {
-		color: '#ffffff',
+		color: '#FFFFFF',
+		fontWeight: '700',
 	},
 })

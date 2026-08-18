@@ -19,7 +19,8 @@ import { api, postsEvents } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
 import { VOICE_DRAFT_KEY } from './create-post'
 
-const BRAND = '#d4af37'
+const BRAND = '#1D4A79'
+const BRAND_GOLD = '#D4AF37'
 
 // Static decorative waveform bar heights for the "Record your idea" card.
 const RECORD_WAVE_BARS = [8, 16, 24, 14, 28, 18, 10, 22, 12, 20, 8, 14]
@@ -33,6 +34,26 @@ type Post = {
 	createdAt: string
 	scheduledAt?: string | null
 	publishedAt?: string | null
+}
+
+const getDashboardBadgeStyle = (status: string) => {
+	switch (status) {
+		case 'IDEA':
+			return { bg: '#E0F2FE', text: '#0284C7', dot: '#0284C7' }
+		case 'SCRIPTING':
+		case 'DRAFT':
+			return { bg: '#F3E8FF', text: '#7C3AED', dot: '#7C3AED' }
+		case 'RECORDING':
+			return { bg: '#FFE4E6', text: '#E11D48', dot: '#E11D48' }
+		case 'EDITING':
+		case 'SCHEDULED':
+			return { bg: '#FEF3C7', text: '#D97706', dot: '#D97706' }
+		case 'POSTED':
+		case 'PUBLISHED':
+			return { bg: '#D1FAE5', text: '#059669', dot: '#059669' }
+		default:
+			return { bg: '#F1F5F9', text: '#64748B', dot: '#94A3B8' }
+	}
 }
 
 export default function DashboardScreen() {
@@ -62,7 +83,6 @@ export default function DashboardScreen() {
 	}, [fadeAnim, slideAnim])
 
 	// If the app was closed mid-idea, offer to finish the unfinished voice draft.
-	// Prompt at most once per mount.
 	const draftPromptShown = useRef(false)
 	useEffect(() => {
 		if (draftPromptShown.current) return
@@ -93,7 +113,7 @@ export default function DashboardScreen() {
 					],
 				)
 			} catch {
-				// ignore — a missing/corrupt draft simply means no prompt
+				// ignore
 			}
 		})()
 		return () => {
@@ -210,10 +230,13 @@ export default function DashboardScreen() {
 					bounces={false}
 					contentContainerStyle={styles.scrollContent}
 				>
+					{/* Top Header */}
 					<Animated.View
 						style={[styles.header, { opacity: fadeAnim }]}
 					>
-						<View style={styles.headerLeft}>
+						<Text style={styles.pageTitle}>Dashboard</Text>
+
+						<View style={styles.headerRight}>
 							<TouchableOpacity
 								style={styles.profileIcon}
 								onPress={() => router.push('/profile')}
@@ -230,77 +253,9 @@ export default function DashboardScreen() {
 								)}
 							</TouchableOpacity>
 						</View>
-
-						<View style={styles.headerRight}>
-							<TouchableOpacity style={styles.iconButton}>
-								<Ionicons
-									name='notifications'
-									size={20}
-									color={BRAND}
-								/>
-							</TouchableOpacity>
-						</View>
 					</Animated.View>
 
-					<View style={styles.titleSection}>
-						<Text style={styles.title}>
-							Welcome back, {firstName}
-						</Text>
-						<Text style={styles.date}>{todayLabel}</Text>
-					</View>
-
-					{/* {nextScheduledPost ? (
-						<TouchableOpacity
-							style={styles.nextCard}
-							activeOpacity={0.85}
-							onPress={() =>
-								router.push(
-									`/(tabs)/post-detail?postId=${nextScheduledPost.id}` as any,
-								)
-							}
-						>
-							<View style={styles.nextCardTop}>
-								<Text style={styles.nextCardLabel}>
-									Next scheduled post
-								</Text>
-								<View style={styles.nextCardPill}>
-									<Text style={styles.nextCardPillText}>
-										{nextScheduledPost.status}
-									</Text>
-								</View>
-							</View>
-							<Text style={styles.nextCardTitle}>
-								{nextScheduledPost.title || 'Untitled Post'}
-							</Text>
-							<Text style={styles.nextCardMeta}>
-								{nextScheduledPost.platforms.join(', ')} on{' '}
-								{new Date(
-									nextScheduledPost.scheduledAt || '',
-								).toLocaleString()}
-							</Text>
-						</TouchableOpacity>
-					) : (
-						<View style={styles.nextCard}>
-							<View style={styles.nextCardTop}>
-								<Text style={styles.nextCardLabel}>
-									Next scheduled post
-								</Text>
-								<View style={styles.nextCardPillAlt}>
-									<Text style={styles.nextCardPillTextAlt}>
-										No schedule yet
-									</Text>
-								</View>
-							</View>
-							<Text style={styles.nextCardTitle}>
-								No upcoming post is scheduled
-							</Text>
-							<Text style={styles.nextCardMeta}>
-								Use Create to queue your next post and keep the
-								calendar full.
-							</Text>
-						</View>
-					)} */}
-
+					{/* 2 Main Action Cards */}
 					<Animated.View
 						style={[
 							styles.mainCards,
@@ -310,20 +265,21 @@ export default function DashboardScreen() {
 							},
 						]}
 					>
+						{/* Write Script Card */}
 						<TouchableOpacity
 							style={[styles.actionCard, styles.balancedCard]}
 							onPress={() => router.push('/(tabs)/create-post' as any)}
-							activeOpacity={0.8}
+							activeOpacity={0.85}
 						>
 							<View style={styles.cardTopRow}>
-								<View style={[styles.badgePill, styles.badgePillGold]}>
-									<Text style={styles.badgePillTextGold}>TEXT EDITOR</Text>
+								<View style={styles.badgePillSand}>
+									<Text style={styles.badgePillTextSand}>FAST DRAFT</Text>
 								</View>
-								<View style={styles.iconCircleGold}>
+								<View style={styles.iconCircleSand}>
 									<Ionicons
 										name='create-outline'
-										size={18}
-										color={BRAND}
+										size={16}
+										color={BRAND_GOLD}
 									/>
 								</View>
 							</View>
@@ -338,35 +294,23 @@ export default function DashboardScreen() {
 							</View>
 
 							<View style={styles.cardFooter}>
-								<View style={styles.draftItemUnified}>
-									<Ionicons
-										name='document-text-outline'
-										size={16}
-										color='rgba(212,175,55,0.7)'
-									/>
-									<View style={styles.draftLinesUnified}>
-										<View style={styles.draftLineUnified} />
-										<View
-											style={[
-												styles.draftLineUnified,
-												{ width: '60%' },
-											]}
-										/>
-									</View>
+								<View style={styles.pillButton}>
+									<Text style={styles.pillButtonText}>Start Writing</Text>
 								</View>
 								<View style={styles.actionArrowRow}>
 									<Text style={styles.actionArrowText}>
 										Start Writing
 									</Text>
 									<Ionicons
-										name='arrow-forward'
-										size={14}
+										name='chevron-forward'
+										size={12}
 										color={BRAND}
 									/>
 								</View>
 							</View>
 						</TouchableOpacity>
 
+						{/* Record Idea Card */}
 						<TouchableOpacity
 							style={[styles.actionCard, styles.balancedCard]}
 							onPress={() =>
@@ -374,14 +318,14 @@ export default function DashboardScreen() {
 									'/(tabs)/create-post?record=1' as any,
 								)
 							}
-							activeOpacity={0.8}
+							activeOpacity={0.85}
 						>
 							<View style={styles.cardTopRow}>
-								<View style={[styles.badgePill, styles.badgePillGold]}>
-									<Text style={styles.badgePillTextGold}>VOICE TO TEXT</Text>
+								<View style={styles.badgePillSand}>
+									<Text style={styles.badgePillTextSand}>VOICE TO TEXT</Text>
 								</View>
-								<View style={styles.iconCircleGold}>
-									<Ionicons name='mic' size={18} color={BRAND} />
+								<View style={styles.iconCircleSand}>
+									<Ionicons name='mic' size={16} color={BRAND_GOLD} />
 								</View>
 							</View>
 
@@ -390,29 +334,21 @@ export default function DashboardScreen() {
 									Record Idea
 								</Text>
 								<Text style={styles.cardSubtitleUnified}>
-									Speak naturally & auto-transcribe text
+									Spontaneously record raw ideas
 								</Text>
 							</View>
 
 							<View style={styles.cardFooter}>
-								<View style={styles.recordWaveformUnified}>
-									{RECORD_WAVE_BARS.map((h, i) => (
-										<View
-											key={i}
-											style={[
-												styles.recordWaveBarUnified,
-												{ height: Math.max(h * 0.65, 5) },
-											]}
-										/>
-									))}
+								<View style={styles.pillButton}>
+									<Text style={styles.pillButtonText}>Record Idea</Text>
 								</View>
 								<View style={styles.actionArrowRow}>
 									<Text style={styles.actionArrowText}>
 										Start Recording
 									</Text>
 									<Ionicons
-										name='arrow-forward'
-										size={14}
+										name='chevron-forward'
+										size={12}
 										color={BRAND}
 									/>
 								</View>
@@ -420,41 +356,39 @@ export default function DashboardScreen() {
 						</TouchableOpacity>
 					</Animated.View>
 
-					<ScrollView
-						horizontal
-						showsHorizontalScrollIndicator={false}
-						contentContainerStyle={styles.statusStrip}
-					>
+					{/* 3 Count / Status Buttons */}
+					<View style={styles.statusStrip}>
 						<TouchableOpacity
-							style={styles.statusCard}
+							style={[styles.statusCard, styles.statusCardActive]}
 							onPress={() => router.push('/(tabs)/GetContent?tab=all' as any)}
 						>
-							<Text style={styles.statusValue}>{posts.length}</Text>
-							<Text style={styles.statusLabel}>All</Text>
+							<Text style={styles.statusValueActive}>{posts.length}</Text>
+							<Text style={styles.statusLabelActive}>ALL</Text>
 						</TouchableOpacity>
 						<TouchableOpacity
 							style={styles.statusCard}
 							onPress={() => router.push('/(tabs)/GetContent?tab=SCRIPTING' as any)}
 						>
 							<Text style={styles.statusValue}>{counts.SCRIPTING}</Text>
-							<Text style={styles.statusLabel}>Scripting</Text>
+							<Text style={styles.statusLabel}>SCRIPTS</Text>
 						</TouchableOpacity>
 						<TouchableOpacity
 							style={styles.statusCard}
 							onPress={() => router.push('/(tabs)/GetContent?tab=EDITING' as any)}
 						>
 							<Text style={styles.statusValue}>{counts.EDITING}</Text>
-							<Text style={styles.statusLabel}>Editing</Text>
+							<Text style={styles.statusLabel}>DRAFTING</Text>
 						</TouchableOpacity>
-					</ScrollView>
+					</View>
 
+					{/* Dashboard Insight Card */}
 					<View style={styles.insightCard}>
 						<View style={styles.insightHeader}>
 							<View style={styles.insightIcon}>
 								<Ionicons
-									name='sparkles'
-									size={16}
-									color={BRAND}
+									name='bulb-outline'
+									size={18}
+									color={BRAND_GOLD}
 								/>
 							</View>
 							<Text style={styles.insightTitle}>
@@ -490,59 +424,60 @@ export default function DashboardScreen() {
 						{loadingData ? (
 							<ActivityIndicator color={BRAND} />
 						) : recentPosts.length > 0 ? (
-							recentPosts.map((post, idx) => (
-								<TouchableOpacity
-									key={post.id}
-									style={[
-										styles.activityRow,
-										idx === recentPosts.length - 1 &&
-											styles.activityRowLast,
-									]}
-									onPress={() =>
-										router.push(
-											`/(tabs)/post-detail?postId=${post.id}` as any,
-										)
-									}
-									activeOpacity={0.8}
-								>
-									<View
+							recentPosts.map((post, idx) => {
+								const badge = getDashboardBadgeStyle(post.status)
+								return (
+									<TouchableOpacity
+										key={post.id}
 										style={[
-											styles.activityDot,
-											{
-												backgroundColor:
-													post.status === 'PUBLISHED'
-														? BRAND
-														: post.status ===
-															  'SCHEDULED'
-															? BRAND
-															: post.status ===
-																  'FAILED'
-																? '#FF6B6B'
-																: 'rgba(212,175,55,0.4)',
-											},
+											styles.activityRow,
+											idx === recentPosts.length - 1 &&
+												styles.activityRowLast,
 										]}
-									/>
-									<View style={styles.activityContent}>
-										<Text
-											style={styles.activityTitle}
-											numberOfLines={1}
-										>
-											{post.title || 'Untitled Post'}
+										onPress={() =>
+											router.push(
+												`/(tabs)/post-detail?postId=${post.id}` as any,
+											)
+										}
+										activeOpacity={0.7}
+									>
+										<View style={styles.activityContent}>
+											<Text
+												style={styles.activityTitle}
+												numberOfLines={1}
+											>
+												{post.title || 'Untitled Post'}
+											</Text>
+											<View
+												style={[
+													styles.statusPillBadge,
+													{ backgroundColor: badge.bg },
+												]}
+											>
+												<View
+													style={[
+														styles.statusPillDot,
+														{ backgroundColor: badge.dot },
+													]}
+												/>
+												<Text
+													style={[
+														styles.statusPillText,
+														{ color: badge.text },
+													]}
+												>
+													{post.status}
+												</Text>
+											</View>
+										</View>
+										<Text style={styles.activityTime}>
+											{new Date(
+												post.createdAt,
+											).toLocaleDateString()}
 										</Text>
-										<Text
-											style={styles.activitySubtitle}
-											numberOfLines={1}
-										>
-											{post.status}
-										</Text>
-									</View>
-									<Text style={styles.activityTime}>
-										{new Date(
-											post.createdAt,
-										).toLocaleDateString()}
-									</Text>
-								</TouchableOpacity>
-							))
+									</TouchableOpacity>
+								)
+							})
 						) : (
 							<Text style={styles.emptyActivityText}>
 								No posts yet. Create your first post to start
@@ -559,33 +494,37 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
-		backgroundColor: '#0a192f',
+		backgroundColor: '#FBF9F5',
 	},
 	container: {
 		flex: 1,
-		backgroundColor: '#0a192f',
+		backgroundColor: '#FBF9F5',
 	},
 	scrollContent: {
-		paddingBottom: 100,
+		paddingBottom: 110,
 	},
 	header: {
 		flexDirection: 'row',
 		justifyContent: 'space-between',
 		alignItems: 'center',
-		paddingHorizontal: 24,
-		paddingTop: 20,
-		paddingBottom: 20,
+		paddingHorizontal: 20,
+		paddingTop: 16,
+		paddingBottom: 16,
 	},
-	headerLeft: {
+	pageTitle: {
+		fontSize: 26,
+		fontWeight: '800',
+		color: '#163354',
+	},
+	headerRight: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		gap: 12,
 	},
 	profileIcon: {
-		width: 50,
-		height: 50,
-		borderRadius: 25,
-		backgroundColor: BRAND,
+		width: 38,
+		height: 38,
+		borderRadius: 19,
+		backgroundColor: '#1D4A79',
 		justifyContent: 'center',
 		alignItems: 'center',
 		overflow: 'hidden',
@@ -595,384 +534,250 @@ const styles = StyleSheet.create({
 		height: '100%',
 	},
 	profileInitial: {
-		fontSize: 24,
-		fontWeight: '800',
-		color: '#000000',
-	},
-	userBadge: {
-		backgroundColor: 'rgba(255,255,255,0.06)',
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		borderRadius: 18,
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.08)',
-	},
-	userBadgeLabel: {
-		fontSize: 10,
-		textTransform: 'uppercase',
-		letterSpacing: 0.8,
-		color: 'rgba(255,255,255,0.5)',
-		marginBottom: 2,
-		fontWeight: '700',
-	},
-	userBadgeText: {
-		fontSize: 12,
-		fontWeight: '700',
-		color: '#ffffff',
-	},
-	headerRight: {
-		flexDirection: 'row',
-		gap: 12,
-	},
-	iconButton: {
-		width: 40,
-		height: 40,
-		borderRadius: 20,
-		backgroundColor: 'rgba(255,255,255,0.1)',
-		justifyContent: 'center',
-		alignItems: 'center',
-	},
-	icon: {
-		fontSize: 20,
-	},
-	titleSection: {
-		paddingHorizontal: 24,
-		marginBottom: 20,
-	},
-	title: {
-		fontSize: 34,
-		fontWeight: '800',
-		color: '#ffffff',
-		marginBottom: 8,
-	},
-	date: {
 		fontSize: 16,
-		color: 'rgba(255,255,255,0.5)',
-	},
-	statusStrip: {
-		flexDirection: 'row',
-		justifyContent: 'center',
-		paddingHorizontal: 24,
-		gap: 10,
-		marginBottom: 18,
-		marginTop: 23,
-	},
-	statusCard: {
-		minWidth: 85,
-		paddingVertical: 14,
-		paddingHorizontal: 12,
-		borderRadius: 16,
-		backgroundColor: 'rgba(255,255,255,0.05)',
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.08)',
-		alignItems: 'center',
-	},
-	statusValue: {
-		fontSize: 18,
-		fontWeight: '800',
-		color: '#ffffff',
-		marginBottom: 4,
-	},
-	statusLabel: {
-		fontSize: 9,
-		color: 'rgba(255,255,255,0.55)',
 		fontWeight: '700',
-		textAlign: 'center',
-		textTransform: 'uppercase',
-		letterSpacing: 0.6,
-	},
-	insightCard: {
-		marginHorizontal: 24,
-		marginBottom: 18,
-		padding: 16,
-		borderRadius: 18,
-		backgroundColor: 'rgba(212,175,55,0.08)',
-		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.18)',
-	},
-	insightHeader: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 10,
-		marginBottom: 10,
-	},
-	insightIcon: {
-		width: 32,
-		height: 32,
-		borderRadius: 10,
-		backgroundColor: 'rgba(212,175,55,0.14)',
-		justifyContent: 'center',
-		alignItems: 'center',
-	},
-	insightEmoji: {
-		fontSize: 16,
-	},
-	insightTitle: {
-		fontSize: 14,
-		fontWeight: '800',
-		color: '#d4af37',
-		textTransform: 'uppercase',
-		letterSpacing: 0.6,
-	},
-	insightText: {
-		fontSize: 14,
-		lineHeight: 20,
-		color: 'rgba(255,255,255,0.85)',
-	},
-	insightDivider: {
-		height: 1,
-		backgroundColor: 'rgba(212,175,55,0.18)',
-		marginVertical: 14,
-	},
-	insightRecentHeader: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
-		marginBottom: 6,
-	},
-	insightRecentTitle: {
-		fontSize: 13,
-		fontWeight: '800',
-		color: '#ffffff',
-		textTransform: 'uppercase',
-		letterSpacing: 0.6,
-	},
-	nextCard: {
-		marginHorizontal: 24,
-		marginBottom: 18,
-		padding: 18,
-		borderRadius: 20,
-		backgroundColor: 'rgba(255,255,255,0.05)',
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.08)',
-	},
-	nextCardTop: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
-		gap: 10,
-		marginBottom: 10,
-	},
-	nextCardLabel: {
-		fontSize: 12,
-		fontWeight: '800',
-		color: 'rgba(255,255,255,0.55)',
-		textTransform: 'uppercase',
-		letterSpacing: 0.7,
-	},
-	nextCardPill: {
-		paddingHorizontal: 10,
-		paddingVertical: 6,
-		borderRadius: 999,
-		backgroundColor: 'rgba(255,184,0,0.12)',
-	},
-	nextCardPillAlt: {
-		paddingHorizontal: 10,
-		paddingVertical: 6,
-		borderRadius: 999,
-		backgroundColor: 'rgba(255,255,255,0.06)',
-	},
-	nextCardPillText: {
-		fontSize: 11,
-		fontWeight: '800',
-		color: '#FFB800',
-		textTransform: 'uppercase',
-	},
-	nextCardPillTextAlt: {
-		fontSize: 11,
-		fontWeight: '800',
-		color: 'rgba(255,255,255,0.65)',
-		textTransform: 'uppercase',
-	},
-	nextCardTitle: {
-		fontSize: 18,
-		fontWeight: '800',
-		color: '#ffffff',
-		marginBottom: 6,
-	},
-	nextCardMeta: {
-		fontSize: 13,
-		lineHeight: 19,
-		color: 'rgba(255,255,255,0.68)',
-	},
-	sectionHeader: {
-		paddingHorizontal: 24,
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
-		marginBottom: 12,
-	},
-	sectionTitle: {
-		fontSize: 16,
-		fontWeight: '800',
-		color: '#ffffff',
-	},
-	sectionLink: {
-		fontSize: 13,
-		fontWeight: '700',
-		color: '#d4af37',
-	},
-	activityCard: {
-		marginHorizontal: 24,
-		marginBottom: 18,
-		padding: 4,
-		borderRadius: 18,
-		backgroundColor: 'rgba(255,255,255,0.04)',
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.08)',
-	},
-	activityRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 12,
-		paddingVertical: 12,
-		paddingHorizontal: 4,
-		borderBottomWidth: 1,
-		borderBottomColor: 'rgba(212,175,55,0.12)',
-	},
-	activityRowLast: {
-		borderBottomWidth: 0,
-	},
-	activityDot: {
-		width: 10,
-		height: 10,
-		borderRadius: 5,
-	},
-	activityContent: {
-		flex: 1,
-	},
-	activityTitle: {
-		fontSize: 14,
-		fontWeight: '700',
-		color: '#ffffff',
-		marginBottom: 2,
-	},
-	activitySubtitle: {
-		fontSize: 12,
-		color: 'rgba(255,255,255,0.55)',
-	},
-	activityTime: {
-		fontSize: 11,
-		fontWeight: '700',
-		color: 'rgba(255,255,255,0.45)',
-	},
-	emptyActivityText: {
-		paddingVertical: 18,
-		paddingHorizontal: 14,
-		fontSize: 13,
-		lineHeight: 19,
-		color: 'rgba(255,255,255,0.6)',
+		color: '#FFFFFF',
 	},
 	mainCards: {
 		flexDirection: 'row',
-		paddingHorizontal: 24,
-		gap: 16,
-		marginBottom: 30,
+		paddingHorizontal: 20,
+		gap: 14,
+		marginBottom: 18,
 	},
 	actionCard: {
 		flex: 1,
-		borderRadius: 22,
-		padding: 16,
-		minHeight: 195,
+		borderRadius: 18,
+		padding: 14,
+		minHeight: 185,
 		justifyContent: 'space-between',
 	},
 	balancedCard: {
-		backgroundColor: 'rgba(255,255,255,0.045)',
-		borderWidth: 1,
-		borderColor: 'rgba(212,175,55,0.22)',
+		backgroundColor: '#F5EFE6',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
 	},
 	cardTopRow: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',
-		marginBottom: 10,
+		marginBottom: 8,
 	},
-	badgePill: {
+	badgePillSand: {
 		paddingHorizontal: 8,
-		paddingVertical: 4,
+		paddingVertical: 3,
 		borderRadius: 6,
+		backgroundColor: '#EBE2D5',
 	},
-	badgePillGold: {
-		backgroundColor: 'rgba(212,175,55,0.12)',
-	},
-	badgePillTextGold: {
-		color: BRAND,
+	badgePillTextSand: {
+		color: '#163354',
 		fontSize: 9,
 		fontWeight: '800',
-		letterSpacing: 0.6,
+		letterSpacing: 0.5,
 	},
-	iconCircleGold: {
-		width: 32,
-		height: 32,
-		borderRadius: 16,
-		backgroundColor: 'rgba(212,175,55,0.15)',
+	iconCircleSand: {
+		width: 28,
+		height: 28,
+		borderRadius: 14,
+		backgroundColor: '#EBE2D5',
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
 	cardBody: {
-		marginVertical: 6,
+		marginVertical: 4,
 	},
 	cardTitleUnified: {
-		fontSize: 16,
+		fontSize: 15,
 		fontWeight: '800',
-		color: '#ffffff',
-		marginBottom: 4,
+		color: '#163354',
+		marginBottom: 3,
 	},
 	cardSubtitleUnified: {
-		fontSize: 11.5,
-		lineHeight: 16,
-		color: 'rgba(255,255,255,0.65)',
+		fontSize: 11,
+		lineHeight: 15,
+		color: '#64748B',
 		fontWeight: '500',
 	},
 	cardFooter: {
-		gap: 10,
+		gap: 6,
 		marginTop: 6,
 	},
-	draftItemUnified: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 8,
-		padding: 8,
+	pillButton: {
+		backgroundColor: '#1D4A79',
 		borderRadius: 8,
-		backgroundColor: 'rgba(255,255,255,0.03)',
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.06)',
-		height: 34,
-	},
-	draftLinesUnified: {
-		flex: 1,
-		gap: 4,
-	},
-	draftLineUnified: {
-		height: 3,
-		backgroundColor: 'rgba(212,175,55,0.5)',
-		borderRadius: 2,
-		width: '100%',
-	},
-	recordWaveformUnified: {
-		flexDirection: 'row',
+		paddingVertical: 7,
 		alignItems: 'center',
-		gap: 3.5,
-		height: 34,
-		paddingHorizontal: 10,
-		borderRadius: 8,
-		backgroundColor: 'rgba(255,255,255,0.03)',
-		borderWidth: 1,
-		borderColor: 'rgba(255,255,255,0.06)',
+		justifyContent: 'center',
 	},
-	recordWaveBarUnified: {
-		width: 3,
-		borderRadius: 1.5,
-		backgroundColor: BRAND,
+	pillButtonText: {
+		color: '#FFFFFF',
+		fontSize: 12,
+		fontWeight: '700',
 	},
 	actionArrowRow: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		gap: 4,
+		justifyContent: 'center',
+		gap: 2,
+		marginTop: 2,
 	},
 	actionArrowText: {
-		fontSize: 11.5,
+		fontSize: 10.5,
+		fontWeight: '600',
+		color: '#1D4A79',
+	},
+	statusStrip: {
+		flexDirection: 'row',
+		paddingHorizontal: 20,
+		gap: 10,
+		marginBottom: 18,
+	},
+	statusCard: {
+		flex: 1,
+		paddingVertical: 10,
+		paddingHorizontal: 8,
+		borderRadius: 12,
+		backgroundColor: '#F5EFE6',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
+		alignItems: 'center',
+	},
+	statusCardActive: {
+		backgroundColor: '#1D4A79',
+		borderColor: '#1D4A79',
+	},
+	statusValue: {
+		fontSize: 18,
+		fontWeight: '800',
+		color: '#163354',
+		marginBottom: 2,
+	},
+	statusValueActive: {
+		fontSize: 18,
+		fontWeight: '800',
+		color: '#FFFFFF',
+		marginBottom: 2,
+	},
+	statusLabel: {
+		fontSize: 10,
+		color: '#64748B',
 		fontWeight: '700',
-		color: BRAND,
+		textAlign: 'center',
+		letterSpacing: 0.5,
+	},
+	statusLabelActive: {
+		fontSize: 10,
+		color: '#FFFFFF',
+		fontWeight: '700',
+		textAlign: 'center',
+		letterSpacing: 0.5,
+	},
+	insightCard: {
+		marginHorizontal: 20,
+		marginBottom: 18,
+		padding: 16,
+		borderRadius: 18,
+		backgroundColor: '#FAF7F2',
+		borderWidth: 1.5,
+		borderColor: '#EADBCE',
+	},
+	insightHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+		marginBottom: 8,
+	},
+	insightIcon: {
+		width: 28,
+		height: 28,
+		borderRadius: 8,
+		backgroundColor: '#F5EFE6',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	insightTitle: {
+		fontSize: 12,
+		fontWeight: '800',
+		color: '#163354',
+		textTransform: 'uppercase',
+		letterSpacing: 0.6,
+	},
+	insightText: {
+		fontSize: 13,
+		lineHeight: 19,
+		color: '#475569',
+	},
+	insightDivider: {
+		height: 1,
+		backgroundColor: '#EADBCE',
+		marginVertical: 12,
+	},
+	insightRecentHeader: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		marginBottom: 8,
+	},
+	insightRecentTitle: {
+		fontSize: 12,
+		fontWeight: '800',
+		color: '#163354',
+		textTransform: 'uppercase',
+		letterSpacing: 0.6,
+	},
+	sectionLink: {
+		fontSize: 12,
+		fontWeight: '700',
+		color: '#1D4A79',
+	},
+	activityRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		paddingVertical: 10,
+		borderBottomWidth: 1,
+		borderBottomColor: '#EFEAE2',
+	},
+	activityRowLast: {
+		borderBottomWidth: 0,
+	},
+	activityContent: {
+		flex: 1,
+		marginRight: 10,
+	},
+	activityTitle: {
+		fontSize: 13.5,
+		fontWeight: '700',
+		color: '#163354',
+		marginBottom: 4,
+	},
+	statusPillBadge: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		alignSelf: 'flex-start',
+		paddingHorizontal: 7,
+		paddingVertical: 2,
+		borderRadius: 6,
+		gap: 4,
+	},
+	statusPillDot: {
+		width: 5,
+		height: 5,
+		borderRadius: 2.5,
+	},
+	statusPillText: {
+		fontSize: 9.5,
+		fontWeight: '800',
+		letterSpacing: 0.4,
+	},
+	activityTime: {
+		fontSize: 11,
+		fontWeight: '600',
+		color: '#94A3B8',
+	},
+	emptyActivityText: {
+		paddingVertical: 14,
+		fontSize: 13,
+		lineHeight: 18,
+		color: '#64748B',
 	},
 })
