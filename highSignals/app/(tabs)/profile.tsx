@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
 	View,
 	Text,
@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
+import { useTheme } from '@/context/ThemeContext'
 
 interface UserProfile {
 	id: string
@@ -27,6 +28,8 @@ interface UserProfile {
 export default function ProfileScreen() {
 	const router = useRouter()
 	const { isAuthenticated, logout } = useAuth()
+	const { theme, toggleTheme, colors } = useTheme()
+	const styles = useMemo(() => getStyles(colors), [colors])
 	const [user, setUser] = useState<UserProfile | null>(null)
 	const [loading, setLoading] = useState(true)
 	
@@ -56,6 +59,12 @@ export default function ProfileScreen() {
 	}
 
 	const menuItems = [
+		{
+			icon: theme === 'light' ? 'moon-outline' : 'sunny-outline',
+			title: theme === 'light' ? 'Dark Mode' : 'Light Mode',
+			description: 'Toggle app theme',
+			onPress: toggleTheme,
+		},
 		{
 			icon: 'person-outline',
 			title: 'Edit Profile',
@@ -122,7 +131,7 @@ export default function ProfileScreen() {
 					{ justifyContent: 'center', alignItems: 'center' },
 				]}
 			>
-				<ActivityIndicator size='large' color='#d4af37' />
+				<ActivityIndicator size='large' color={colors.gold} />
 			</View>
 		)
 	}
@@ -173,7 +182,7 @@ export default function ProfileScreen() {
 									<Ionicons
 										name={item.icon as any}
 										size={22}
-										color='#1D4A79'
+										color={theme === 'dark' ? colors.gold : colors.navyLight}
 									/>
 								</View>
 								<View style={styles.menuItemText}>
@@ -188,7 +197,7 @@ export default function ProfileScreen() {
 							<Ionicons
 								name='chevron-forward'
 								size={18}
-								color='#8E9BAE'
+								color={colors.textSubtle}
 							/>
 						</TouchableOpacity>
 					))}
@@ -207,7 +216,7 @@ export default function ProfileScreen() {
 						<Ionicons
 							name='log-out-outline'
 							size={20}
-							color='#DC2626'
+							color={colors.dangerText}
 						/>
 						<Text style={styles.logoutText}>Log Out</Text>
 					</TouchableOpacity>
@@ -236,7 +245,7 @@ export default function ProfileScreen() {
 							value={feedbackData.name}
 							onChangeText={(t) => setFeedbackData(prev => ({ ...prev, name: t }))}
 							placeholder="Your Name"
-							placeholderTextColor="#8E9BAE"
+							placeholderTextColor={colors.textSubtle}
 						/>
 						
 						<Text style={styles.inputLabel}>Email</Text>
@@ -246,7 +255,7 @@ export default function ProfileScreen() {
 							onChangeText={(t) => setFeedbackData(prev => ({ ...prev, email: t }))}
 							placeholder="Your Email"
 							keyboardType="email-address"
-							placeholderTextColor="#8E9BAE"
+							placeholderTextColor={colors.textSubtle}
 						/>
 
 						<Text style={styles.inputLabel}>Feedback</Text>
@@ -256,25 +265,25 @@ export default function ProfileScreen() {
 							onChangeText={(t) => setFeedbackData(prev => ({ ...prev, feedback: t }))}
 							placeholder="What's on your mind?"
 							multiline
-							placeholderTextColor="#8E9BAE"
+							placeholderTextColor={colors.textSubtle}
 						/>
 
 						<View style={styles.modalActions}>
 							<TouchableOpacity 
-								style={[styles.modalBtn, { backgroundColor: '#F5EFE6', borderWidth: 1, borderColor: '#EADBCE' }]}
+								style={[styles.modalBtn, { backgroundColor: colors.surfaceCard, borderWidth: 1, borderColor: colors.border }]}
 								onPress={() => setShowFeedbackModal(false)}
 							>
-								<Text style={[styles.modalBtnText, { color: '#163354' }]}>Cancel</Text>
+								<Text style={[styles.modalBtnText, { color: colors.text }]}>Cancel</Text>
 							</TouchableOpacity>
 							<TouchableOpacity 
-								style={[styles.modalBtn, { backgroundColor: '#1D4A79' }]}
+								style={[styles.modalBtn, { backgroundColor: colors.navyLight }]}
 								onPress={submitFeedback}
 								disabled={isSubmittingFeedback}
 							>
 								{isSubmittingFeedback ? (
-									<ActivityIndicator size="small" color="#FFFFFF" />
+									<ActivityIndicator size="small" color={colors.white} />
 								) : (
-									<Text style={[styles.modalBtnText, { color: '#FFFFFF' }]}>Submit</Text>
+									<Text style={[styles.modalBtnText, { color: colors.white }]}>Submit</Text>
 								)}
 							</TouchableOpacity>
 						</View>
@@ -285,21 +294,21 @@ export default function ProfileScreen() {
 	)
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#FBF9F5',
+		backgroundColor: colors.background,
 	},
 	profileCard: {
 		alignItems: 'center',
 		padding: 24,
 		marginTop: 16,
 		marginBottom: 20,
-		backgroundColor: '#FAF7F2',
+		backgroundColor: colors.surfaceLight,
 		borderRadius: 20,
 		marginHorizontal: 20,
 		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		borderColor: colors.border,
 	},
 	profileImageContainer: {
 		marginBottom: 14,
@@ -309,36 +318,36 @@ const styles = StyleSheet.create({
 		height: 80,
 		borderRadius: 40,
 		borderWidth: 2,
-		borderColor: '#1D4A79',
+		borderColor: colors.navyLight,
 	},
 	profilePlaceholder: {
 		width: 80,
 		height: 80,
 		borderRadius: 40,
-		backgroundColor: '#1D4A79',
+		backgroundColor: colors.navyLight,
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
 	initials: {
 		fontSize: 28,
 		fontWeight: '800',
-		color: '#FFFFFF',
+		color: colors.white,
 	},
 	userName: {
 		fontSize: 20,
 		fontWeight: '800',
-		color: '#163354',
+		color: colors.text,
 		marginBottom: 4,
 	},
 	userEmail: {
 		fontSize: 13.5,
-		color: '#64748B',
+		color: colors.textSecondary,
 		marginBottom: 6,
 		fontWeight: '500',
 	},
 	userBio: {
 		fontSize: 13,
-		color: '#475569',
+		color: colors.textMuted,
 		textAlign: 'center',
 		marginTop: 6,
 		lineHeight: 18,
@@ -350,7 +359,7 @@ const styles = StyleSheet.create({
 	sectionTitle: {
 		fontSize: 13,
 		fontWeight: '800',
-		color: '#163354',
+		color: colors.text,
 		marginBottom: 12,
 		textTransform: 'uppercase',
 		letterSpacing: 0.7,
@@ -362,10 +371,10 @@ const styles = StyleSheet.create({
 		paddingVertical: 14,
 		paddingHorizontal: 14,
 		marginBottom: 10,
-		backgroundColor: '#FAF7F2',
+		backgroundColor: colors.surfaceLight,
 		borderRadius: 16,
 		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		borderColor: colors.border,
 	},
 	menuItemLeft: {
 		flexDirection: 'row',
@@ -377,11 +386,11 @@ const styles = StyleSheet.create({
 		width: 42,
 		height: 42,
 		borderRadius: 12,
-		backgroundColor: '#F5EFE6',
+		backgroundColor: colors.surfaceCard,
 		justifyContent: 'center',
 		alignItems: 'center',
 		borderWidth: 1,
-		borderColor: '#EADBCE',
+		borderColor: colors.border,
 	},
 	menuItemText: {
 		flex: 1,
@@ -389,12 +398,12 @@ const styles = StyleSheet.create({
 	menuItemTitle: {
 		fontSize: 15,
 		fontWeight: '700',
-		color: '#163354',
+		color: colors.text,
 		marginBottom: 2,
 	},
 	menuItemDescription: {
 		fontSize: 12,
-		color: '#64748B',
+		color: colors.textSecondary,
 	},
 	accountSection: {
 		paddingHorizontal: 20,
@@ -407,14 +416,14 @@ const styles = StyleSheet.create({
 		gap: 8,
 		paddingVertical: 14,
 		borderRadius: 14,
-		backgroundColor: '#FDE8E8',
+		backgroundColor: colors.dangerBg,
 		borderWidth: 1.5,
-		borderColor: '#FECACA',
+		borderColor: colors.dangerBorder,
 	},
 	logoutText: {
 		fontSize: 15,
 		fontWeight: '700',
-		color: '#DC2626',
+		color: colors.dangerText,
 	},
 	modalOverlay: {
 		flex: 1,
@@ -424,33 +433,33 @@ const styles = StyleSheet.create({
 		padding: 24,
 	},
 	modalContent: {
-		backgroundColor: '#FAF7F2',
+		backgroundColor: colors.surfaceLight,
 		borderRadius: 20,
 		padding: 24,
 		width: '100%',
 		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		borderColor: colors.border,
 	},
 	modalTitle: {
 		fontSize: 18,
 		fontWeight: '800',
-		color: '#163354',
+		color: colors.text,
 		marginBottom: 18,
 	},
 	inputLabel: {
 		fontSize: 13,
 		fontWeight: '700',
-		color: '#163354',
+		color: colors.text,
 		marginBottom: 6,
 	},
 	inputField: {
-		backgroundColor: '#FFFFFF',
+		backgroundColor: colors.surface,
 		borderRadius: 10,
 		paddingHorizontal: 12,
 		paddingVertical: 10,
-		color: '#163354',
+		color: colors.text,
 		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		borderColor: colors.border,
 		marginBottom: 14,
 		fontSize: 14,
 	},

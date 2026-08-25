@@ -17,10 +17,11 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { api, postsEvents } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
+import { useTheme } from '@/context/ThemeContext'
 import { VOICE_DRAFT_KEY } from './create-post'
 
-const BRAND = '#1D4A79'
-const BRAND_GOLD = '#D4AF37'
+
+
 
 // Static decorative waveform bar heights for the "Record your idea" card.
 const RECORD_WAVE_BARS = [8, 16, 24, 14, 28, 18, 10, 22, 12, 20, 8, 14]
@@ -36,27 +37,29 @@ type Post = {
 	publishedAt?: string | null
 }
 
-const getDashboardBadgeStyle = (status: string) => {
+const getDashboardBadgeStyle = (status: string, colors: any) => {
 	switch (status) {
 		case 'IDEA':
-			return { bg: '#E0F2FE', text: '#0284C7', dot: '#0284C7' }
+			return { bg: colors.ideaBg, text: colors.ideaText, dot: colors.ideaText }
 		case 'SCRIPTING':
 		case 'DRAFT':
-			return { bg: '#F3E8FF', text: '#7C3AED', dot: '#7C3AED' }
+			return { bg: colors.scriptingBg, text: colors.scriptingText, dot: colors.scriptingText }
 		case 'RECORDING':
-			return { bg: '#FFE4E6', text: '#E11D48', dot: '#E11D48' }
+			return { bg: colors.recordingBg, text: colors.recordingText, dot: colors.recordingText }
 		case 'EDITING':
 		case 'SCHEDULED':
-			return { bg: '#FEF3C7', text: '#D97706', dot: '#D97706' }
+			return { bg: colors.editingBg, text: colors.editingText, dot: colors.editingText }
 		case 'POSTED':
 		case 'PUBLISHED':
 			return { bg: '#D1FAE5', text: '#059669', dot: '#059669' }
 		default:
-			return { bg: '#F1F5F9', text: '#64748B', dot: '#94A3B8' }
+			return { bg: '#F1F5F9', text: colors.textSecondary, dot: '#94A3B8' }
 	}
 }
 
 export default function DashboardScreen() {
+	const { colors, theme } = useTheme();
+	const styles = React.useMemo(() => getStyles(colors), [colors]);
 	const router = useRouter()
 	const { user } = useAuth()
 	const fadeAnim = useMemo(() => new Animated.Value(0), [])
@@ -231,28 +234,35 @@ export default function DashboardScreen() {
 					contentContainerStyle={styles.scrollContent}
 				>
 					{/* Top Header */}
-					<Animated.View
+															<Animated.View
 						style={[styles.header, { opacity: fadeAnim }]}
 					>
-						<Text style={styles.pageTitle}>Dashboard</Text>
+						<TouchableOpacity
+							style={styles.headerLeftIcon}
+							onPress={() => router.push('/profile')}
+						>
+							{avatarUrl ? (
+								<Image
+									source={{ uri: avatarUrl }}
+									style={styles.headerAvatar}
+								/>
+							) : (
+								<View style={styles.headerAvatarPlaceholder}>
+									<Text style={styles.headerAvatarText}>{userInitial}</Text>
+								</View>
+							)}
+						</TouchableOpacity>
 
-						<View style={styles.headerRight}>
-							<TouchableOpacity
-								style={styles.profileIcon}
-								onPress={() => router.push('/profile')}
-							>
-								{avatarUrl ? (
-									<Image
-										source={{ uri: avatarUrl }}
-										style={styles.profileAvatar}
-									/>
-								) : (
-									<Text style={styles.profileInitial}>
-										{userInitial}
-									</Text>
-								)}
-							</TouchableOpacity>
-						</View>
+						<TouchableOpacity style={styles.headerRightBell}>
+							<Ionicons name="notifications" size={20} color={colors.gold} />
+						</TouchableOpacity>
+					</Animated.View>
+
+					<Animated.View style={[{ paddingHorizontal: 20, marginBottom: 24, opacity: fadeAnim }]}>
+						<Text style={styles.welcomeTitle}>
+							Welcome back,{"\n"}{firstName}
+						</Text>
+						<Text style={styles.dateSubtitle}>{todayLabel}</Text>
 					</Animated.View>
 
 					{/* 2 Main Action Cards */}
@@ -273,39 +283,27 @@ export default function DashboardScreen() {
 						>
 							<View style={styles.cardTopRow}>
 								<View style={styles.badgePillSand}>
-									<Text style={styles.badgePillTextSand}>FAST DRAFT</Text>
+									<Text style={styles.badgePillTextSand}>TEXT EDITOR</Text>
 								</View>
 								<View style={styles.iconCircleSand}>
-									<Ionicons
-										name='create-outline'
-										size={16}
-										color={BRAND_GOLD}
-									/>
+									<Ionicons name='create-outline' size={16} color={colors.gold} />
 								</View>
 							</View>
-
 							<View style={styles.cardBody}>
-								<Text style={styles.cardTitleUnified}>
-									Write Script
-								</Text>
-								<Text style={styles.cardSubtitleUnified}>
-									Draft & format line by line in rich text
-								</Text>
+								<Text style={styles.cardTitleUnified}>Write Script</Text>
+								<Text style={styles.cardSubtitleUnified}>Draft & format line by line in rich text</Text>
 							</View>
-
-							<View style={styles.cardFooter}>
-								<View style={styles.pillButton}>
-									<Text style={styles.pillButtonText}>Start Writing</Text>
+							<View style={styles.cardGraphic}>
+								<Ionicons name="document-text-outline" size={16} color={colors.gold} style={{marginRight: 12}} />
+								<View style={styles.graphicLines}>
+									<View style={[styles.graphicLine, { width: '80%' }]} />
+									<View style={[styles.graphicLine, { width: '50%' }]} />
 								</View>
+							</View>
+							<View style={styles.cardFooter}>
 								<View style={styles.actionArrowRow}>
-									<Text style={styles.actionArrowText}>
-										Start Writing
-									</Text>
-									<Ionicons
-										name='chevron-forward'
-										size={12}
-										color={BRAND}
-									/>
+									<Text style={styles.actionArrowText}>Start Writing</Text>
+									<Ionicons name='arrow-forward' size={14} color={colors.black} />
 								</View>
 							</View>
 						</TouchableOpacity>
@@ -313,11 +311,7 @@ export default function DashboardScreen() {
 						{/* Record Idea Card */}
 						<TouchableOpacity
 							style={[styles.actionCard, styles.balancedCard]}
-							onPress={() =>
-								router.push(
-									'/(tabs)/create-post?record=1' as any,
-								)
-							}
+							onPress={() => router.push('/(tabs)/create-post?record=1' as any)}
 							activeOpacity={0.85}
 						>
 							<View style={styles.cardTopRow}>
@@ -325,75 +319,40 @@ export default function DashboardScreen() {
 									<Text style={styles.badgePillTextSand}>VOICE TO TEXT</Text>
 								</View>
 								<View style={styles.iconCircleSand}>
-									<Ionicons name='mic' size={16} color={BRAND_GOLD} />
+									<Ionicons name='mic' size={16} color={colors.gold} />
 								</View>
 							</View>
-
 							<View style={styles.cardBody}>
-								<Text style={styles.cardTitleUnified}>
-									Record Idea
-								</Text>
-								<Text style={styles.cardSubtitleUnified}>
-									Spontaneously record raw ideas
-								</Text>
+								<Text style={styles.cardTitleUnified}>Record Idea</Text>
+								<Text style={styles.cardSubtitleUnified}>Speak naturally & auto-transcribe text</Text>
 							</View>
-
+							<View style={styles.cardGraphic}>
+								{RECORD_WAVE_BARS.map((h, i) => (
+									<View key={i} style={[styles.waveBar, { height: h }]} />
+								))}
+							</View>
 							<View style={styles.cardFooter}>
-								<View style={styles.pillButton}>
-									<Text style={styles.pillButtonText}>Record Idea</Text>
-								</View>
 								<View style={styles.actionArrowRow}>
-									<Text style={styles.actionArrowText}>
-										Start Recording
-									</Text>
-									<Ionicons
-										name='chevron-forward'
-										size={12}
-										color={BRAND}
-									/>
+									<Text style={styles.actionArrowText}>Start Recording</Text>
+									<Ionicons name='arrow-forward' size={14} color={colors.black} />
 								</View>
 							</View>
 						</TouchableOpacity>
 					</Animated.View>
-
-					{/* 3 Count / Status Buttons */}
-					<View style={styles.statusStrip}>
-						<TouchableOpacity
-							style={[styles.statusCard, styles.statusCardActive]}
-							onPress={() => router.push('/(tabs)/GetContent?tab=all' as any)}
-						>
-							<Text style={styles.statusValueActive}>{posts.length}</Text>
-							<Text style={styles.statusLabelActive}>ALL</Text>
-						</TouchableOpacity>
-						<TouchableOpacity
-							style={styles.statusCard}
-							onPress={() => router.push('/(tabs)/GetContent?tab=SCRIPTING' as any)}
-						>
-							<Text style={styles.statusValue}>{counts.SCRIPTING}</Text>
-							<Text style={styles.statusLabel}>SCRIPTS</Text>
-						</TouchableOpacity>
-						<TouchableOpacity
-							style={styles.statusCard}
-							onPress={() => router.push('/(tabs)/GetContent?tab=EDITING' as any)}
-						>
-							<Text style={styles.statusValue}>{counts.EDITING}</Text>
-							<Text style={styles.statusLabel}>DRAFTING</Text>
-						</TouchableOpacity>
-					</View>
+					
 
 					{/* Dashboard Insight Card */}
 					<View style={styles.insightCard}>
-						<View style={styles.insightHeader}>
-							<View style={styles.insightIcon}>
-								<Ionicons
-									name='bulb-outline'
-									size={18}
-									color={BRAND_GOLD}
-								/>
+						<View style={[styles.insightHeader, { justifyContent: 'space-between' }]}>
+							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+								<View style={styles.insightIcon}>
+									<Ionicons name='bulb-outline' size={18} color={colors.gold} />
+								</View>
+								<Text style={styles.insightTitle}>
+									Dashboard Insight
+								</Text>
 							</View>
-							<Text style={styles.insightTitle}>
-								Dashboard Insight
-							</Text>
+							<Text style={{ fontSize: 13, fontWeight: '700', color: colors.textSecondary }}>Scripts</Text>
 						</View>
 						<Text style={styles.insightText}>
 							{!icp
@@ -408,7 +367,7 @@ export default function DashboardScreen() {
 										: 'Your content pipeline is active. Schedule the next post to stay consistent.'}
 						</Text>
 
-						<View style={styles.insightDivider} />
+						
 
 						<View style={styles.insightRecentHeader}>
 							<Text style={styles.insightRecentTitle}>
@@ -422,10 +381,10 @@ export default function DashboardScreen() {
 						</View>
 
 						{loadingData ? (
-							<ActivityIndicator color={BRAND} />
+							<ActivityIndicator color={colors.navyLight} />
 						) : recentPosts.length > 0 ? (
 							recentPosts.map((post, idx) => {
-								const badge = getDashboardBadgeStyle(post.status)
+								const badge = getDashboardBadgeStyle(post.status, colors)
 								return (
 									<TouchableOpacity
 										key={post.id}
@@ -491,30 +450,105 @@ export default function DashboardScreen() {
 	)
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
 	safeArea: {
 		flex: 1,
-		backgroundColor: '#FBF9F5',
+		backgroundColor: colors.background,
 	},
 	container: {
 		flex: 1,
-		backgroundColor: '#FBF9F5',
+		backgroundColor: colors.background,
 	},
 	scrollContent: {
 		paddingBottom: 110,
 	},
-	header: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		alignItems: 'center',
-		paddingHorizontal: 20,
-		paddingTop: 16,
-		paddingBottom: 16,
+	header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20 },
+	
+	headerLeftIcon: {
+		width: 48,
+		height: 48,
+		borderRadius: 24,
+		overflow: 'hidden',
 	},
+	headerAvatar: {
+		width: '100%',
+		height: '100%',
+	},
+	headerAvatarPlaceholder: {
+		width: '100%',
+		height: '100%',
+		backgroundColor: colors.gold,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	headerAvatarText: {
+		color: colors.black,
+		fontSize: 18,
+		fontWeight: 'bold',
+	},
+	headerRightBell: {
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+		backgroundColor: colors.surfaceLight,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	welcomeTitle: {
+		fontSize: 28,
+		fontWeight: '800',
+		color: colors.text,
+		lineHeight: 34,
+	},
+	dateSubtitle: {
+		fontSize: 14,
+		color: colors.textMuted,
+		marginTop: 6,
+	},
+	cardGraphic: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		backgroundColor: colors.surfaceLight,
+		padding: 12,
+		borderRadius: 8,
+		marginTop: 16,
+		marginBottom: 16,
+		height: 44,
+	},
+	graphicLines: {
+		flex: 1,
+		justifyContent: 'center',
+	},
+	graphicLine: {
+		height: 4,
+		backgroundColor: colors.gold,
+		borderRadius: 2,
+		marginBottom: 4,
+	},
+	waveBar: {
+		width: 3,
+		backgroundColor: colors.gold,
+		borderRadius: 2,
+		marginHorizontal: 3,
+	},
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
 	pageTitle: {
 		fontSize: 26,
 		fontWeight: '800',
-		color: '#163354',
+		color: colors.text,
 	},
 	headerRight: {
 		flexDirection: 'row',
@@ -524,7 +558,7 @@ const styles = StyleSheet.create({
 		width: 38,
 		height: 38,
 		borderRadius: 19,
-		backgroundColor: '#1D4A79',
+		backgroundColor: colors.navyLight,
 		justifyContent: 'center',
 		alignItems: 'center',
 		overflow: 'hidden',
@@ -536,7 +570,7 @@ const styles = StyleSheet.create({
 	profileInitial: {
 		fontSize: 16,
 		fontWeight: '700',
-		color: '#FFFFFF',
+		color: colors.surface,
 	},
 	mainCards: {
 		flexDirection: 'row',
@@ -552,9 +586,9 @@ const styles = StyleSheet.create({
 		justifyContent: 'space-between',
 	},
 	balancedCard: {
-		backgroundColor: '#F5EFE6',
+		backgroundColor: colors.surfaceCard,
 		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		borderColor: colors.border,
 	},
 	cardTopRow: {
 		flexDirection: 'row',
@@ -562,39 +596,17 @@ const styles = StyleSheet.create({
 		justifyContent: 'space-between',
 		marginBottom: 8,
 	},
-	badgePillSand: {
-		paddingHorizontal: 8,
-		paddingVertical: 3,
-		borderRadius: 6,
-		backgroundColor: '#EBE2D5',
-	},
-	badgePillTextSand: {
-		color: '#163354',
-		fontSize: 9,
-		fontWeight: '800',
-		letterSpacing: 0.5,
-	},
-	iconCircleSand: {
-		width: 28,
-		height: 28,
-		borderRadius: 14,
-		backgroundColor: '#EBE2D5',
-		justifyContent: 'center',
-		alignItems: 'center',
-	},
+	badgePillSand: { backgroundColor: colors.gold, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
+	badgePillTextSand: { color: colors.black, fontSize: 10, fontWeight: '800' },
+	iconCircleSand: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.surfaceLight, alignItems: 'center', justifyContent: 'center' },
 	cardBody: {
 		marginVertical: 4,
 	},
-	cardTitleUnified: {
-		fontSize: 15,
-		fontWeight: '800',
-		color: '#163354',
-		marginBottom: 3,
-	},
+	cardTitleUnified: { fontSize: 18, fontWeight: '700', color: colors.text, marginTop: 16 },
 	cardSubtitleUnified: {
 		fontSize: 11,
 		lineHeight: 15,
-		color: '#64748B',
+		color: colors.textSecondary,
 		fontWeight: '500',
 	},
 	cardFooter: {
@@ -602,29 +614,19 @@ const styles = StyleSheet.create({
 		marginTop: 6,
 	},
 	pillButton: {
-		backgroundColor: '#1D4A79',
+		backgroundColor: colors.navyLight,
 		borderRadius: 8,
 		paddingVertical: 7,
 		alignItems: 'center',
 		justifyContent: 'center',
 	},
 	pillButtonText: {
-		color: '#FFFFFF',
+		color: colors.surface,
 		fontSize: 12,
 		fontWeight: '700',
 	},
-	actionArrowRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'center',
-		gap: 2,
-		marginTop: 2,
-	},
-	actionArrowText: {
-		fontSize: 10.5,
-		fontWeight: '600',
-		color: '#1D4A79',
-	},
+	actionArrowRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.gold, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 24, justifyContent: 'center', marginTop: 4, width: '100%' },
+	actionArrowText: { fontSize: 13, fontWeight: '800', color: colors.black, marginRight: 6 },
 	statusStrip: {
 		flexDirection: 'row',
 		paddingHorizontal: 20,
@@ -636,37 +638,37 @@ const styles = StyleSheet.create({
 		paddingVertical: 10,
 		paddingHorizontal: 8,
 		borderRadius: 12,
-		backgroundColor: '#F5EFE6',
+		backgroundColor: colors.surfaceCard,
 		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		borderColor: colors.border,
 		alignItems: 'center',
 	},
 	statusCardActive: {
-		backgroundColor: '#1D4A79',
-		borderColor: '#1D4A79',
+		backgroundColor: colors.navyLight,
+		borderColor: colors.navyLight,
 	},
 	statusValue: {
 		fontSize: 18,
 		fontWeight: '800',
-		color: '#163354',
+		color: colors.text,
 		marginBottom: 2,
 	},
 	statusValueActive: {
 		fontSize: 18,
 		fontWeight: '800',
-		color: '#FFFFFF',
+		color: colors.surface,
 		marginBottom: 2,
 	},
 	statusLabel: {
 		fontSize: 10,
-		color: '#64748B',
+		color: colors.textSecondary,
 		fontWeight: '700',
 		textAlign: 'center',
 		letterSpacing: 0.5,
 	},
 	statusLabelActive: {
 		fontSize: 10,
-		color: '#FFFFFF',
+		color: colors.surface,
 		fontWeight: '700',
 		textAlign: 'center',
 		letterSpacing: 0.5,
@@ -676,9 +678,9 @@ const styles = StyleSheet.create({
 		marginBottom: 18,
 		padding: 16,
 		borderRadius: 18,
-		backgroundColor: '#FAF7F2',
+		backgroundColor: colors.surfaceLight,
 		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		borderColor: colors.border,
 	},
 	insightHeader: {
 		flexDirection: 'row',
@@ -690,25 +692,25 @@ const styles = StyleSheet.create({
 		width: 28,
 		height: 28,
 		borderRadius: 8,
-		backgroundColor: '#F5EFE6',
+		backgroundColor: colors.surfaceCard,
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
 	insightTitle: {
 		fontSize: 12,
 		fontWeight: '800',
-		color: '#163354',
+		color: colors.text,
 		textTransform: 'uppercase',
 		letterSpacing: 0.6,
 	},
 	insightText: {
 		fontSize: 13,
 		lineHeight: 19,
-		color: '#475569',
+		color: colors.textMuted,
 	},
 	insightDivider: {
 		height: 1,
-		backgroundColor: '#EADBCE',
+		backgroundColor: colors.border,
 		marginVertical: 12,
 	},
 	insightRecentHeader: {
@@ -720,26 +722,13 @@ const styles = StyleSheet.create({
 	insightRecentTitle: {
 		fontSize: 12,
 		fontWeight: '800',
-		color: '#163354',
+		color: colors.text,
 		textTransform: 'uppercase',
 		letterSpacing: 0.6,
 	},
-	sectionLink: {
-		fontSize: 12,
-		fontWeight: '700',
-		color: '#1D4A79',
-	},
-	activityRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-between',
-		paddingVertical: 10,
-		borderBottomWidth: 1,
-		borderBottomColor: '#EFEAE2',
-	},
-	activityRowLast: {
-		borderBottomWidth: 0,
-	},
+	sectionLink: { fontSize: 12, fontWeight: '700', color: colors.gold },
+	activityRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16, backgroundColor: colors.surfaceCard, borderRadius: 16, marginBottom: 10 },
+	activityRowLast: { marginBottom: 0 },
 	activityContent: {
 		flex: 1,
 		marginRight: 10,
@@ -747,7 +736,7 @@ const styles = StyleSheet.create({
 	activityTitle: {
 		fontSize: 13.5,
 		fontWeight: '700',
-		color: '#163354',
+		color: colors.text,
 		marginBottom: 4,
 	},
 	statusPillBadge: {
@@ -778,6 +767,6 @@ const styles = StyleSheet.create({
 		paddingVertical: 14,
 		fontSize: 13,
 		lineHeight: 18,
-		color: '#64748B',
+		color: colors.textSecondary,
 	},
 })

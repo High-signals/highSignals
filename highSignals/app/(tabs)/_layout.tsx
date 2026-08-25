@@ -3,12 +3,15 @@ import { Ionicons } from '@expo/vector-icons'
 import { Stack, usePathname, useRouter } from 'expo-router'
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useTheme } from '@/context/ThemeContext'
 
 export default function TabsLayout() {
+	const { colors, theme } = useTheme();
+	const styles = React.useMemo(() => getStyles(colors), [colors]);
 	const pathname = usePathname()
 	const router = useRouter()
 
-	const NAV_HEIGHT = 100 // 👈 controls spacing for navbar
+	const NAV_HEIGHT = 85 // 👈 controls spacing for navbar
 	const hideNavOnPaths = [
 		'/create-post',
 		'/(tabs)/create-post',
@@ -69,12 +72,10 @@ export default function TabsLayout() {
 							onPress={() => router.push(tab.href as any)}
 						>
 							<Ionicons
-								name={
-									(active ? tab.activeIcon : tab.icon) as any
-								}
-								size={26}
+								name={(active ? tab.activeIcon : tab.icon) as any}
+								size={24}
 								color={
-									active ? '#163354' : '#8E9BAE'
+									active ? colors.text : colors.textSubtle
 								}
 							/>
 							<Text
@@ -94,23 +95,23 @@ export default function TabsLayout() {
 	)
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#FBF9F5',
+		backgroundColor: colors.background,
 	},
 
 	bottomNav: {
 		flexDirection: 'row',
-		backgroundColor: '#FFFFFF',
-		borderTopColor: '#EADBCE',
+		backgroundColor: colors.surface,
+		borderTopColor: colors.border,
 		borderTopWidth: 1,
 		paddingVertical: 10,
 		position: 'absolute',
 		bottom: 0,
 		left: 0,
 		right: 0,
-		shadowColor: '#163354',
+		shadowColor: colors.text,
 		shadowOffset: {
 			width: 0,
 			height: -3,
@@ -132,12 +133,12 @@ const styles = StyleSheet.create({
 	tabLabel: {
 		fontSize: 11,
 		fontWeight: '600',
-		color: '#8E9BAE',
+		color: colors.textSubtle,
 		marginTop: 4,
 	},
 
 	activeLabel: {
-		color: '#163354',
+		color: colors.text,
 		fontWeight: '700',
 	},
 })
