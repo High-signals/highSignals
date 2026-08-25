@@ -26,12 +26,13 @@ import { RichEditor, actions } from 'react-native-pell-rich-editor'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
+import { useTheme } from '@/context/ThemeContext'
 import RecordingModal from './components/RecordingModal'
 
-const BRAND = '#1D4A79'
-const BRAND_GOLD = '#D4AF37'
-const BG = '#FBF9F5'
-const PANEL = '#FAF7F2'
+
+
+
+
 const TOOLBAR_HEIGHT = 52
 // Padding inside the editor body so the cursor never sits flush against
 // the bottom — scrollToEnd then reliably parks the cursor above the toolbar.
@@ -80,6 +81,8 @@ const normalizeHtmlContent = (value?: string | null) => {
 }
 
 export default function PostDetailScreen() {
+	const { colors, theme } = useTheme();
+	const styles = React.useMemo(() => getStyles(colors), [colors]);
 	const router = useRouter()
 	const { postId } = useLocalSearchParams()
 	const { isAuthenticated } = useAuth()
@@ -295,17 +298,17 @@ export default function PostDetailScreen() {
 		)
 	}
 	const getStatusColor = (status: string) => {
-		const colors: { [key: string]: string } = {
-			IDEA: '#0284C7',
-			SCRIPTING: '#7C3AED',
-			DRAFT: '#7C3AED',
-			RECORDING: '#E11D48',
-			EDITING: '#D97706',
-			SCHEDULED: '#D97706',
-			POSTED: '#059669',
-			PUBLISHED: '#059669',
+		const statusColorsMap: { [key: string]: string } = {
+			IDEA: colors.ideaText,
+			SCRIPTING: colors.scriptingText,
+			DRAFT: colors.scriptingText,
+			RECORDING: colors.recordingText,
+			EDITING: colors.editingText,
+			SCHEDULED: colors.editingText,
+			POSTED: colors.postedText,
+			PUBLISHED: colors.postedText,
 		}
-		return colors[status] || '#163354'
+		return statusColorsMap[status] || colors.text
 	}
 
 	const getStatusLabel = (status: string) => {
@@ -503,7 +506,7 @@ export default function PostDetailScreen() {
 		      .floating-btn {
 		        background: transparent;
 		        border: none;
-		        color: #163354;
+		        color: ${colors.text};
 		        padding: 6px 10px;
 		        font-size: 13px;
 		        font-weight: bold;
@@ -518,7 +521,7 @@ export default function PostDetailScreen() {
 		      }
 		      .floating-btn:active, .floating-btn.active {
 		        background: #EBDCB9;
-		        color: #163354;
+		        color: ${colors.text};
 		      }
 		      .floating-divider {
 		        width: 1px;
@@ -669,7 +672,7 @@ export default function PostDetailScreen() {
 		return (
 			<View style={styles.container}>
 				<View style={styles.loadingWrap}>
-					<ActivityIndicator size='large' color={BRAND} />
+					<ActivityIndicator size='large' color={colors.gold} />
 				</View>
 			</View>
 		)
@@ -682,7 +685,7 @@ export default function PostDetailScreen() {
 					<Ionicons
 						name='alert-circle-outline'
 						size={54}
-						color='#94A3B8'
+						color={colors.textSubtle}
 					/>
 					<Text style={styles.errorText}>Post not found</Text>
 				</View>
@@ -702,7 +705,7 @@ export default function PostDetailScreen() {
 						}}
 						style={styles.headerIconBtn}
 					>
-						<Ionicons name='close' size={24} color='#163354' />
+						<Ionicons name='close' size={24} color={colors.primaryIcon} />
 					</TouchableOpacity>
 
 					<View style={styles.headerCenter}>
@@ -745,10 +748,7 @@ export default function PostDetailScreen() {
 							onPress={() => setShowRecordingModal(true)}
 							style={styles.headerIconBtn}
 						>
-							<Ionicons
-								name='mic-outline'
-								size={22}
-								color={BRAND}
+							<Ionicons name='mic-outline' size={22} color={colors.primaryIcon}
 							/>
 						</TouchableOpacity>
 						<TouchableOpacity
@@ -757,12 +757,12 @@ export default function PostDetailScreen() {
 							style={styles.headerIconBtn}
 						>
 							{isSaving ? (
-								<ActivityIndicator color={BRAND} />
+								<ActivityIndicator color={colors.gold} />
 							) : (
 								<Ionicons
 									name='checkmark'
 									size={24}
-									color={BRAND}
+									color={colors.gold}
 								/>
 							)}
 						</TouchableOpacity>
@@ -776,7 +776,7 @@ export default function PostDetailScreen() {
 							setEditedPost({ ...editedPost, title: text })
 						}
 						placeholder='Title'
-						placeholderTextColor='#8E9BAE'
+						placeholderTextColor={colors.textSubtle}
 					/>
 
 					<ScrollView
@@ -810,11 +810,11 @@ export default function PostDetailScreen() {
 								}
 							}}
 							editorStyle={{
-								backgroundColor: BG,
-								color: '#163354',
-								caretColor: BRAND,
-								placeholderColor: '#8E9BAE',
-								contentCSSText: `font-size: 17px; line-height: 28px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #163354; padding: 8px 18px ${EDITOR_BOTTOM_PADDING}px 18px; margin: 0; } input[type="checkbox"] { accent-color: #1D4A79; margin-right: 8px; transform: scale(1.15); vertical-align: middle; } .dummy-todo {`,
+								backgroundColor: colors.background,
+								color: colors.text,
+								caretColor: colors.navyLight,
+								placeholderColor: colors.textSubtle,
+								contentCSSText: `font-size: 17px; line-height: 28px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: ${colors.text}; padding: 8px 18px ${EDITOR_BOTTOM_PADDING}px 18px; margin: 0; } input[type="checkbox"] { accent-color: ${colors.navyLight}; margin-right: 8px; transform: scale(1.15); vertical-align: middle; } .dummy-todo {`,
 							}}
 							placeholder='Start writing…'
 							useContainer={false}
@@ -1000,7 +1000,7 @@ export default function PostDetailScreen() {
 					onPress={() => router.back()}
 					style={styles.headerIconBtn}
 				>
-					<Ionicons name='arrow-back' size={22} color='#163354' />
+					<Ionicons name='arrow-back' size={22} color={colors.primaryIcon} />
 				</TouchableOpacity>
 
 				<View style={styles.headerCenter}>
@@ -1018,7 +1018,7 @@ export default function PostDetailScreen() {
 					}}
 					style={styles.headerIconBtn}
 				>
-					<Ionicons name='create-outline' size={22} color='#1D4A79' />
+					<Ionicons name='create-outline' size={22} color={colors.primaryIcon} />
 				</TouchableOpacity>
 			</View>
 
@@ -1050,10 +1050,9 @@ export default function PostDetailScreen() {
 						if (h && h > 0) setViewHeight(Math.max(h, 200))
 					}}
 					editorStyle={{
-						backgroundColor: BG,
-						color: '#163354',
-						contentCSSText:
-							"font-size: 16px; line-height: 26px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1E293B; padding: 0 20px 24px 20px; margin: 0; } input[type=\"checkbox\"] { accent-color: #1D4A79; margin-right: 8px; transform: scale(1.15); vertical-align: middle; } .dummy-todo {",
+						backgroundColor: colors.background,
+						color: colors.text,
+						contentCSSText: `font-size: 16px; line-height: 26px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: ${colors.text}; padding: 0 20px 24px 20px; margin: 0; } input[type="checkbox"] { accent-color: ${colors.navyLight}; margin-right: 8px; transform: scale(1.15); vertical-align: middle; } .dummy-todo {`,
 					}}
 					useContainer={false}
 					initialHeight={500}
@@ -1067,7 +1066,7 @@ export default function PostDetailScreen() {
 					onPress={handleDeletePost}
 					disabled={isSaving}
 				>
-					<Ionicons name='trash-outline' size={18} color='#DC2626' />
+					<Ionicons name='trash-outline' size={18} color={colors.error} />
 					<Text style={styles.deleteButtonText}>Delete post</Text>
 				</TouchableOpacity>
 			</View>
@@ -1075,27 +1074,19 @@ export default function PostDetailScreen() {
 	)
 }
 
-function ToolbarIcon({
-	name,
-	onPress,
-}: {
-	name: keyof typeof Ionicons.glyphMap
-	onPress: () => void
-}) {
+function ToolbarIcon({ name, onPress }: { name: keyof typeof Ionicons.glyphMap, onPress: () => void }) {
+	const { colors } = useTheme();
+	const styles = React.useMemo(() => getStyles(colors), [colors]);
 	return (
 		<TouchableOpacity onPress={onPress} style={styles.toolBtn}>
-			<Ionicons name={name} size={20} color='#163354' />
+			<Ionicons name={name} size={20} color={colors.primaryIcon} />
 		</TouchableOpacity>
 	)
 }
 
-function ToolbarText({
-	label,
-	onPress,
-}: {
-	label: string
-	onPress: () => void
-}) {
+function ToolbarText({ label, onPress }: { label: string, onPress: () => void }) {
+	const { colors } = useTheme();
+	const styles = React.useMemo(() => getStyles(colors), [colors]);
 	return (
 		<TouchableOpacity onPress={onPress} style={styles.toolBtn}>
 			<Text style={styles.toolBtnLabel}>{label}</Text>
@@ -1103,15 +1094,9 @@ function ToolbarText({
 	)
 }
 
-function ToolbarStyled({
-	label,
-	textStyle,
-	onPress,
-}: {
-	label: string
-	textStyle: any
-	onPress: () => void
-}) {
+function ToolbarStyled({ label, textStyle, onPress }: { label: string, textStyle: any, onPress: () => void }) {
+	const { colors } = useTheme();
+	const styles = React.useMemo(() => getStyles(colors), [colors]);
 	return (
 		<TouchableOpacity onPress={onPress} style={styles.toolBtn}>
 			<Text style={[styles.toolBtnLabel, textStyle]}>{label}</Text>
@@ -1120,13 +1105,15 @@ function ToolbarStyled({
 }
 
 function Divider() {
+	const { colors } = useTheme();
+	const styles = React.useMemo(() => getStyles(colors), [colors]);
 	return <View style={styles.toolDivider} />
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: BG,
+		backgroundColor: colors.background,
 	},
 	loadingWrap: {
 		flex: 1,
@@ -1140,7 +1127,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 32,
 	},
 	errorText: {
-		color: '#EF4444',
+		color: colors.error,
 		fontSize: 16,
 		textAlign: 'center',
 		marginTop: 16,
@@ -1154,7 +1141,7 @@ const styles = StyleSheet.create({
 		paddingTop: 16,
 		paddingBottom: 10,
 		borderBottomWidth: 1,
-		borderBottomColor: '#EFEAE2',
+		borderBottomColor: colors.borderLight,
 	},
 	editHeader: {
 		flexDirection: 'row',
@@ -1164,7 +1151,7 @@ const styles = StyleSheet.create({
 		paddingTop: 16,
 		paddingBottom: 10,
 		borderBottomWidth: 1,
-		borderBottomColor: '#EFEAE2',
+		borderBottomColor: colors.borderLight,
 	},
 	headerCenter: {
 		flex: 1,
@@ -1173,27 +1160,27 @@ const styles = StyleSheet.create({
 	headerTitle: {
 		fontSize: 16,
 		fontWeight: '700',
-		color: '#163354',
+		color: colors.text,
 	},
 	statusBadgePill: {
 		paddingHorizontal: 10,
 		paddingVertical: 3,
 		borderRadius: 8,
-		backgroundColor: '#F5EFE6',
+		backgroundColor: colors.surfaceCard,
 	},
 	statusInline: {
 		fontSize: 11,
-		fontWeight: '800',
+		fontWeight: '700',
 		textTransform: 'uppercase',
 		letterSpacing: 0.7,
 	},
 	saveLabel: {
 		fontSize: 11,
-		color: '#8E9BAE',
+		color: colors.textSubtle,
 		marginTop: 2,
 	},
 	saveLabelError: {
-		color: '#EF4444',
+		color: colors.error,
 	},
 	headerIconBtn: {
 		width: 40,
@@ -1217,13 +1204,13 @@ const styles = StyleSheet.create({
 	viewTitle: {
 		fontSize: 26,
 		lineHeight: 32,
-		fontWeight: '800',
-		color: '#163354',
+		fontWeight: '700',
+		color: colors.text,
 		marginBottom: 4,
 	},
 	viewMeta: {
 		fontSize: 12,
-		color: '#8E9BAE',
+		color: colors.textSubtle,
 		fontWeight: '500',
 	},
 	viewBodyFull: {
@@ -1237,7 +1224,7 @@ const styles = StyleSheet.create({
 		paddingBottom: 24,
 	},
 	readOnlyEditorFull: {
-		backgroundColor: BG,
+		backgroundColor: colors.background,
 	},
 	editorScroll: {
 		flex: 1,
@@ -1247,20 +1234,20 @@ const styles = StyleSheet.create({
 		alignSelf: 'center',
 	},
 	richEditor: {
-		backgroundColor: BG,
+		backgroundColor: colors.background,
 	},
 	deleteBar: {
 		paddingHorizontal: 20,
 		paddingTop: 12,
 		paddingBottom: 28,
 		borderTopWidth: 1,
-		borderTopColor: '#EFEAE2',
-		backgroundColor: BG,
+		borderTopColor: colors.borderLight,
+		backgroundColor: colors.background,
 	},
 	titleInput: {
 		fontSize: 24,
-		fontWeight: '800',
-		color: '#163354',
+		fontWeight: '700',
+		color: colors.text,
 		paddingHorizontal: 18,
 		paddingTop: 14,
 		paddingBottom: 8,
@@ -1269,9 +1256,9 @@ const styles = StyleSheet.create({
 		alignSelf: 'center',
 	},
 	floatingDock: {
-		backgroundColor: PANEL,
+		backgroundColor: colors.surfaceLight,
 		borderTopWidth: 1,
-		borderTopColor: '#EADBCE',
+		borderTopColor: colors.border,
 	},
 	swatchTray: {
 		flexDirection: 'row',
@@ -1279,21 +1266,21 @@ const styles = StyleSheet.create({
 		gap: 10,
 		paddingHorizontal: 14,
 		paddingVertical: 10,
-		backgroundColor: PANEL,
+		backgroundColor: colors.surfaceLight,
 		borderTopWidth: 1,
-		borderTopColor: '#EADBCE',
+		borderTopColor: colors.border,
 	},
 	swatch: {
 		width: 28,
 		height: 28,
 		borderRadius: 14,
 		borderWidth: 1,
-		borderColor: '#EADBCE',
+		borderColor: colors.border,
 	},
 	toolbarOuter: {
-		backgroundColor: PANEL,
+		backgroundColor: colors.surfaceLight,
 		borderTopWidth: 1,
-		borderTopColor: '#EADBCE',
+		borderTopColor: colors.border,
 		maxHeight: 52,
 	},
 	toolbar: {
@@ -1312,14 +1299,14 @@ const styles = StyleSheet.create({
 		borderRadius: 8,
 	},
 	toolBtnLabel: {
-		color: '#163354',
-		fontWeight: '800',
+		color: colors.text,
+		fontWeight: '700',
 		fontSize: 13.5,
 	},
 	toolDivider: {
 		width: 1,
 		height: 20,
-		backgroundColor: '#EADBCE',
+		backgroundColor: colors.border,
 		marginHorizontal: 4,
 	},
 	deleteButton: {
@@ -1329,33 +1316,33 @@ const styles = StyleSheet.create({
 		gap: 8,
 		paddingVertical: 13,
 		borderRadius: 14,
-		backgroundColor: '#FDE8E8',
-		borderWidth: 1.5,
-		borderColor: '#FECACA',
+		backgroundColor: 'rgba(239, 68, 68, 0.15)',
+		borderWidth: 1,
+		borderColor: colors.error,
 	},
 	deleteButtonText: {
 		fontSize: 14,
 		fontWeight: '700',
-		color: '#DC2626',
+		color: colors.error,
 	},
 	modalOverlay: {
 		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.5)',
+		backgroundColor: colors.navyMuted,
 		justifyContent: 'flex-end',
 	},
 	pickerSheet: {
-		backgroundColor: '#FAF7F2',
+		backgroundColor: colors.surfaceLight,
 		borderTopLeftRadius: 24,
 		borderTopRightRadius: 24,
 		padding: 20,
 		paddingBottom: 32,
 		borderWidth: 1,
-		borderColor: '#EADBCE',
+		borderColor: colors.border,
 	},
 	pickerTitle: {
 		fontSize: 16,
-		fontWeight: '800',
-		color: '#163354',
+		fontWeight: '700',
+		color: colors.text,
 		marginBottom: 16,
 	},
 	pickerOption: {
@@ -1364,11 +1351,11 @@ const styles = StyleSheet.create({
 		gap: 12,
 		paddingVertical: 14,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: '#EADBCE',
+		borderBottomColor: colors.border,
 	},
 	pickerOptionText: {
 		fontSize: 14,
-		color: '#163354',
+		color: colors.text,
 		fontWeight: '600',
 	},
 	pickerDot: {

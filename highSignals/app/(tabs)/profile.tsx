@@ -10,6 +10,7 @@ import {
 	Modal,
 	TextInput,
 } from 'react-native'
+import Skeleton from '@/components/Skeleton'
 import Toast from 'react-native-toast-message'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -123,15 +124,20 @@ export default function ProfileScreen() {
 		}
 	}
 
-	if (loading) {
+		if (loading) {
 		return (
-			<View
-				style={[
-					styles.container,
-					{ justifyContent: 'center', alignItems: 'center' },
-				]}
-			>
-				<ActivityIndicator size='large' color={colors.gold} />
+			<View style={styles.container}>
+				<View style={[styles.profileCard, { alignItems: 'center' }]}>
+					<Skeleton style={{ width: 80, height: 80, borderRadius: 40, marginBottom: 16 }} />
+					<Skeleton style={{ width: 150, height: 24, marginBottom: 8 }} />
+					<Skeleton style={{ width: 200, height: 16 }} />
+				</View>
+				<View style={{ paddingHorizontal: 20, marginTop: 24, gap: 16 }}>
+					<Skeleton style={{ width: 120, height: 14 }} />
+					{[1, 2, 3, 4].map(i => (
+						<Skeleton key={i} style={{ width: '100%', height: 60, borderRadius: 12 }} />
+					))}
+				</View>
 			</View>
 		)
 	}
@@ -182,7 +188,7 @@ export default function ProfileScreen() {
 									<Ionicons
 										name={item.icon as any}
 										size={22}
-										color={theme === 'dark' ? colors.gold : colors.navyLight}
+										color={theme === 'dark' ? colors.gold : colors.textSecondary}
 									/>
 								</View>
 								<View style={styles.menuItemText}>
@@ -324,14 +330,14 @@ const getStyles = (colors: any) => StyleSheet.create({
 		width: 80,
 		height: 80,
 		borderRadius: 40,
-		backgroundColor: colors.navyLight,
+		backgroundColor: colors.primaryAction,
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
 	initials: {
 		fontSize: 28,
 		fontWeight: '800',
-		color: colors.white,
+		color: colors.primaryActionText,
 	},
 	userName: {
 		fontSize: 20,

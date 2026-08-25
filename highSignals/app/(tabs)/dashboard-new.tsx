@@ -12,6 +12,7 @@ import {
 	TouchableOpacity,
 	View,
 } from 'react-native'
+import Skeleton from '@/components/Skeleton'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -51,9 +52,9 @@ const getDashboardBadgeStyle = (status: string, colors: any) => {
 			return { bg: colors.editingBg, text: colors.editingText, dot: colors.editingText }
 		case 'POSTED':
 		case 'PUBLISHED':
-			return { bg: '#D1FAE5', text: '#059669', dot: '#059669' }
+			return { bg: colors.postedBg, text: colors.postedText, dot: colors.postedText }
 		default:
-			return { bg: '#F1F5F9', text: colors.textSecondary, dot: '#94A3B8' }
+			return { bg: colors.surfaceHover, text: colors.textSecondary, dot: colors.textSubtle }
 	}
 }
 
@@ -254,7 +255,7 @@ export default function DashboardScreen() {
 						</TouchableOpacity>
 
 						<TouchableOpacity style={styles.headerRightBell}>
-							<Ionicons name="notifications" size={20} color={colors.gold} />
+							<Ionicons name="notifications" size={20} color={colors.primaryIcon} />
 						</TouchableOpacity>
 					</Animated.View>
 
@@ -286,7 +287,7 @@ export default function DashboardScreen() {
 									<Text style={styles.badgePillTextSand}>TEXT EDITOR</Text>
 								</View>
 								<View style={styles.iconCircleSand}>
-									<Ionicons name='create-outline' size={16} color={colors.gold} />
+									<Ionicons name='create-outline' size={16} color={colors.primaryIcon} />
 								</View>
 							</View>
 							<View style={styles.cardBody}>
@@ -294,7 +295,7 @@ export default function DashboardScreen() {
 								<Text style={styles.cardSubtitleUnified}>Draft & format line by line in rich text</Text>
 							</View>
 							<View style={styles.cardGraphic}>
-								<Ionicons name="document-text-outline" size={16} color={colors.gold} style={{marginRight: 12}} />
+								<Ionicons name="document-text-outline" size={16} color={colors.primaryIcon} style={{marginRight: 12}} />
 								<View style={styles.graphicLines}>
 									<View style={[styles.graphicLine, { width: '80%' }]} />
 									<View style={[styles.graphicLine, { width: '50%' }]} />
@@ -303,7 +304,7 @@ export default function DashboardScreen() {
 							<View style={styles.cardFooter}>
 								<View style={styles.actionArrowRow}>
 									<Text style={styles.actionArrowText}>Start Writing</Text>
-									<Ionicons name='arrow-forward' size={14} color={colors.black} />
+									<Ionicons name='arrow-forward' size={14} color={colors.primaryActionText} />
 								</View>
 							</View>
 						</TouchableOpacity>
@@ -319,7 +320,7 @@ export default function DashboardScreen() {
 									<Text style={styles.badgePillTextSand}>VOICE TO TEXT</Text>
 								</View>
 								<View style={styles.iconCircleSand}>
-									<Ionicons name='mic' size={16} color={colors.gold} />
+									<Ionicons name='mic' size={16} color={colors.primaryIcon} />
 								</View>
 							</View>
 							<View style={styles.cardBody}>
@@ -334,7 +335,7 @@ export default function DashboardScreen() {
 							<View style={styles.cardFooter}>
 								<View style={styles.actionArrowRow}>
 									<Text style={styles.actionArrowText}>Start Recording</Text>
-									<Ionicons name='arrow-forward' size={14} color={colors.black} />
+									<Ionicons name='arrow-forward' size={14} color={colors.primaryActionText} />
 								</View>
 							</View>
 						</TouchableOpacity>
@@ -346,7 +347,7 @@ export default function DashboardScreen() {
 						<View style={[styles.insightHeader, { justifyContent: 'space-between' }]}>
 							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
 								<View style={styles.insightIcon}>
-									<Ionicons name='bulb-outline' size={18} color={colors.gold} />
+									<Ionicons name='bulb-outline' size={18} color={colors.primaryIcon} />
 								</View>
 								<Text style={styles.insightTitle}>
 									Dashboard Insight
@@ -380,9 +381,15 @@ export default function DashboardScreen() {
 							</TouchableOpacity>
 						</View>
 
+						
 						{loadingData ? (
-							<ActivityIndicator color={colors.navyLight} />
+							<View style={{ gap: 12 }}>
+								<Skeleton style={{ width: '100%', height: 70 }} />
+								<Skeleton style={{ width: '100%', height: 70 }} />
+								<Skeleton style={{ width: '100%', height: 70 }} />
+							</View>
 						) : recentPosts.length > 0 ? (
+
 							recentPosts.map((post, idx) => {
 								const badge = getDashboardBadgeStyle(post.status, colors)
 								return (
@@ -477,12 +484,12 @@ const getStyles = (colors: any) => StyleSheet.create({
 	headerAvatarPlaceholder: {
 		width: '100%',
 		height: '100%',
-		backgroundColor: colors.gold,
+		backgroundColor: colors.primaryAction,
 		alignItems: 'center',
 		justifyContent: 'center',
 	},
 	headerAvatarText: {
-		color: colors.black,
+		color: colors.primaryActionText,
 		fontSize: 18,
 		fontWeight: 'bold',
 	},
@@ -496,7 +503,7 @@ const getStyles = (colors: any) => StyleSheet.create({
 	},
 	welcomeTitle: {
 		fontSize: 28,
-		fontWeight: '800',
+		fontWeight: '700',
 		color: colors.text,
 		lineHeight: 34,
 	},
@@ -547,7 +554,7 @@ const getStyles = (colors: any) => StyleSheet.create({
 
 	pageTitle: {
 		fontSize: 26,
-		fontWeight: '800',
+		fontWeight: '700',
 		color: colors.text,
 	},
 	headerRight: {
@@ -587,7 +594,7 @@ const getStyles = (colors: any) => StyleSheet.create({
 	},
 	balancedCard: {
 		backgroundColor: colors.surfaceCard,
-		borderWidth: 1.5,
+		borderWidth: 1,
 		borderColor: colors.border,
 	},
 	cardTopRow: {
@@ -596,8 +603,8 @@ const getStyles = (colors: any) => StyleSheet.create({
 		justifyContent: 'space-between',
 		marginBottom: 8,
 	},
-	badgePillSand: { backgroundColor: colors.gold, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
-	badgePillTextSand: { color: colors.black, fontSize: 10, fontWeight: '800' },
+	badgePillSand: { backgroundColor: colors.primaryAction, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
+	badgePillTextSand: { color: colors.primaryActionText, fontSize: 10, fontWeight: '700' },
 	iconCircleSand: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.surfaceLight, alignItems: 'center', justifyContent: 'center' },
 	cardBody: {
 		marginVertical: 4,
@@ -625,8 +632,8 @@ const getStyles = (colors: any) => StyleSheet.create({
 		fontSize: 12,
 		fontWeight: '700',
 	},
-	actionArrowRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.gold, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 24, justifyContent: 'center', marginTop: 4, width: '100%' },
-	actionArrowText: { fontSize: 13, fontWeight: '800', color: colors.black, marginRight: 6 },
+	actionArrowRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.primaryAction, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 24, justifyContent: 'center', marginTop: 4, width: '100%' },
+	actionArrowText: { fontSize: 13, fontWeight: '700', color: colors.primaryActionText, marginRight: 6 },
 	statusStrip: {
 		flexDirection: 'row',
 		paddingHorizontal: 20,
@@ -639,7 +646,7 @@ const getStyles = (colors: any) => StyleSheet.create({
 		paddingHorizontal: 8,
 		borderRadius: 12,
 		backgroundColor: colors.surfaceCard,
-		borderWidth: 1.5,
+		borderWidth: 1,
 		borderColor: colors.border,
 		alignItems: 'center',
 	},
@@ -649,13 +656,13 @@ const getStyles = (colors: any) => StyleSheet.create({
 	},
 	statusValue: {
 		fontSize: 18,
-		fontWeight: '800',
+		fontWeight: '700',
 		color: colors.text,
 		marginBottom: 2,
 	},
 	statusValueActive: {
 		fontSize: 18,
-		fontWeight: '800',
+		fontWeight: '700',
 		color: colors.surface,
 		marginBottom: 2,
 	},
@@ -679,7 +686,7 @@ const getStyles = (colors: any) => StyleSheet.create({
 		padding: 16,
 		borderRadius: 18,
 		backgroundColor: colors.surfaceLight,
-		borderWidth: 1.5,
+		borderWidth: 1,
 		borderColor: colors.border,
 	},
 	insightHeader: {
@@ -698,7 +705,7 @@ const getStyles = (colors: any) => StyleSheet.create({
 	},
 	insightTitle: {
 		fontSize: 12,
-		fontWeight: '800',
+		fontWeight: '700',
 		color: colors.text,
 		textTransform: 'uppercase',
 		letterSpacing: 0.6,
@@ -721,7 +728,7 @@ const getStyles = (colors: any) => StyleSheet.create({
 	},
 	insightRecentTitle: {
 		fontSize: 12,
-		fontWeight: '800',
+		fontWeight: '700',
 		color: colors.text,
 		textTransform: 'uppercase',
 		letterSpacing: 0.6,
@@ -755,13 +762,13 @@ const getStyles = (colors: any) => StyleSheet.create({
 	},
 	statusPillText: {
 		fontSize: 9.5,
-		fontWeight: '800',
+		fontWeight: '700',
 		letterSpacing: 0.4,
 	},
 	activityTime: {
 		fontSize: 11,
 		fontWeight: '600',
-		color: '#94A3B8',
+		color: colors.textSubtle,
 	},
 	emptyActivityText: {
 		paddingVertical: 14,

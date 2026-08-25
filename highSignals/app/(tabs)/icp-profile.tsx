@@ -9,10 +9,12 @@ import {
 	TouchableOpacity,
 	View,
 } from 'react-native'
+import Skeleton from '@/components/Skeleton'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 
 import { useAuth } from '@/context/AuthContext'
+import { useTheme } from '@/context/ThemeContext'
 import { api } from '@/services/api'
 
 type ICPType = 'BUSINESS' | 'CREATOR'
@@ -153,6 +155,8 @@ function DetailCard({
 	value?: string
 	wide?: boolean
 }) {
+	const { colors } = useTheme();
+	const styles = React.useMemo(() => getStyles(colors), [colors]);
 	return (
 		<View style={[styles.detailCard, wide && styles.detailCardWide]}>
 			<Text style={styles.detailLabel}>{label}</Text>
@@ -174,6 +178,8 @@ function FormField({
 	placeholder?: string
 	multiline?: boolean
 }) {
+	const { colors } = useTheme();
+	const styles = React.useMemo(() => getStyles(colors), [colors]);
 	return (
 		<View style={styles.fieldGroup}>
 			<Text style={styles.label}>{label}</Text>
@@ -201,6 +207,8 @@ function OptionGroup({
 	value: string
 	onChange: (value: string) => void
 }) {
+	const { colors } = useTheme();
+	const styles = React.useMemo(() => getStyles(colors), [colors]);
 	return (
 		<View style={styles.fieldGroup}>
 			<Text style={styles.label}>{label}</Text>
@@ -234,6 +242,8 @@ function OptionGroup({
 }
 
 export default function ICPProfileScreen() {
+	const { colors, theme } = useTheme();
+	const styles = React.useMemo(() => getStyles(colors), [colors]);
 	const router = useRouter()
 	const { isAuthenticated } = useAuth()
 	const [icp, setIcp] = useState<ICPRecord | null>(null)
@@ -539,13 +549,16 @@ export default function ICPProfileScreen() {
 			<View style={styles.container}>
 				<View style={styles.header}>
 					<TouchableOpacity onPress={() => router.back()}>
-						<Ionicons name='arrow-back' size={24} color='#ffffff' />
+						<Ionicons name='arrow-back' size={24} color={colors.text} />
 					</TouchableOpacity>
 					<Text style={styles.headerTitle}>ICP Profile</Text>
 					<View style={{ width: 24 }} />
 				</View>
-				<View style={styles.loadingWrap}>
-					<ActivityIndicator size='large' color='#d4af37' />
+				<View style={{ padding: 20, gap: 24 }}>
+					<Skeleton style={{ width: 150, height: 24 }} />
+					<Skeleton style={{ width: '100%', height: 100, borderRadius: 16 }} />
+					<Skeleton style={{ width: '100%', height: 100, borderRadius: 16 }} />
+					<Skeleton style={{ width: '100%', height: 100, borderRadius: 16 }} />
 				</View>
 			</View>
 		)
@@ -564,14 +577,14 @@ export default function ICPProfileScreen() {
 						router.back()
 					}}
 				>
-					<Ionicons name='arrow-back' size={24} color='#163354' />
+					<Ionicons name='arrow-back' size={24} color={colors.text} />
 				</TouchableOpacity>
 				<Text style={styles.headerTitle}>
 					{isEditing ? 'Edit ICP' : 'ICP Profile'}
 				</Text>
 				{!isEditing && icp ? (
 					<TouchableOpacity onPress={startEditing}>
-						<Ionicons name='create-outline' size={24} color='#1D4A79' />
+						<Ionicons name='create-outline' size={24} color={colors.gold} />
 					</TouchableOpacity>
 				) : isEditing ? (
 					<TouchableOpacity onPress={handleSaveChanges} disabled={isSaving}>
@@ -592,7 +605,7 @@ export default function ICPProfileScreen() {
 				{!icp && !isEditing ? (
 					<View style={styles.emptyState}>
 						<View style={styles.emptyBadge}>
-							<Ionicons name='sparkles-outline' size={18} color='#1D4A79' />
+							<Ionicons name='sparkles-outline' size={18} color={colors.gold} />
 							<Text style={styles.emptyBadgeText}>ICP Setup</Text>
 						</View>
 						<Text style={styles.emptyTitle}>No ICP profile yet</Text>
@@ -606,7 +619,7 @@ export default function ICPProfileScreen() {
 								<Ionicons
 									name='checkmark-circle-outline'
 									size={18}
-									color='#1D4A79'
+									color={colors.gold}
 								/>
 								<Text style={styles.emptyListText}>
 									Audience clarity in one place
@@ -616,7 +629,7 @@ export default function ICPProfileScreen() {
 								<Ionicons
 									name='checkmark-circle-outline'
 									size={18}
-									color='#1D4A79'
+									color={colors.gold}
 								/>
 								<Text style={styles.emptyListText}>
 									Better post ideas and angles
@@ -626,7 +639,7 @@ export default function ICPProfileScreen() {
 								<Ionicons
 									name='checkmark-circle-outline'
 									size={18}
-									color='#1D4A79'
+									color={colors.gold}
 								/>
 								<Text style={styles.emptyListText}>
 									Faster editing when your audience changes
@@ -638,11 +651,7 @@ export default function ICPProfileScreen() {
 							style={styles.createButton}
 							onPress={handleCreateNew}
 						>
-							<Ionicons
-								name='add-circle-outline'
-								size={20}
-								color='#ffffff'
-							/>
+							<Ionicons name='add-circle-outline' size={20} color={colors.primaryActionText} />
 							<Text style={styles.createButtonText}>
 								Create ICP Profile
 							</Text>
@@ -660,7 +669,7 @@ export default function ICPProfileScreen() {
 												: 'briefcase-outline'
 										}
 										size={16}
-										color='#d4af37'
+										color={colors.gold}
 									/>
 									<Text style={styles.heroBadgeText}>
 										{profileTypeLabel}
@@ -670,7 +679,7 @@ export default function ICPProfileScreen() {
 									<Ionicons
 										name='time-outline'
 										size={14}
-										color='rgba(255,255,255,0.6)'
+										color={colors.textSubtle}
 									/>
 									<Text style={styles.heroMetaText}>
 										Updated {formatDate(icp?.updatedAt)}
@@ -732,7 +741,7 @@ export default function ICPProfileScreen() {
 				) : (
 					<>
 						<View style={styles.editNoticeCard}>
-							<Ionicons name='create-outline' size={18} color='#d4af37' />
+							<Ionicons name='create-outline' size={18} color={colors.gold} />
 							<Text style={styles.editNoticeText}>
 								Editing your {profileTypeLabel} ICP
 							</Text>
@@ -748,7 +757,7 @@ export default function ICPProfileScreen() {
 												: 'briefcase-outline'
 										}
 										size={16}
-										color='#d4af37'
+										color={colors.gold}
 									/>
 									<Text style={styles.heroBadgeText}>
 										{profileTypeLabel}
@@ -758,7 +767,7 @@ export default function ICPProfileScreen() {
 									<Ionicons
 										name='lock-closed-outline'
 										size={14}
-										color='rgba(255,255,255,0.6)'
+										color={colors.textSubtle}
 									/>
 									<Text style={styles.heroMetaText}>Changes save on submit</Text>
 								</View>
@@ -783,10 +792,10 @@ export default function ICPProfileScreen() {
 	)
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#FBF9F5',
+		backgroundColor: colors.background,
 	},
 	header: {
 		flexDirection: 'row',
@@ -795,19 +804,19 @@ const styles = StyleSheet.create({
 		paddingTop: 60,
 		paddingHorizontal: 20,
 		paddingBottom: 16,
-		backgroundColor: '#FAF7F2',
+		backgroundColor: colors.surfaceCard,
 		borderBottomWidth: 1.5,
-		borderBottomColor: '#EADBCE',
+		borderBottomColor: colors.border,
 	},
 	headerTitle: {
-		color: '#163354',
+		color: colors.text,
 		fontSize: 18,
-		fontWeight: '800',
+		fontWeight: '700',
 	},
 	saveButton: {
-		color: '#1D4A79',
+		color: colors.navyLight,
 		fontSize: 16,
-		fontWeight: '800',
+		fontWeight: '700',
 	},
 	content: {
 		flex: 1,
@@ -835,13 +844,13 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 14,
 		paddingVertical: 8,
 		borderRadius: 999,
-		backgroundColor: '#E0F2FE',
+		backgroundColor: colors.navyMuted,
 		borderWidth: 1,
-		borderColor: '#BAE6FD',
+		borderColor: colors.border,
 		marginBottom: 18,
 	},
 	emptyBadgeText: {
-		color: '#0284C7',
+		color: colors.text,
 		fontSize: 12,
 		fontWeight: '700',
 		textTransform: 'uppercase',
@@ -849,15 +858,15 @@ const styles = StyleSheet.create({
 	},
 	emptyTitle: {
 		fontSize: 22,
-		fontWeight: '800',
-		color: '#163354',
+		fontWeight: '700',
+		color: colors.text,
 		marginBottom: 10,
 		textAlign: 'center',
 	},
 	emptySubtext: {
 		fontSize: 14,
 		lineHeight: 22,
-		color: '#64748B',
+		color: colors.textMuted,
 		textAlign: 'center',
 		maxWidth: 340,
 		marginBottom: 24,
@@ -874,12 +883,12 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 		paddingHorizontal: 14,
 		borderRadius: 14,
-		backgroundColor: '#FAF7F2',
-		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		backgroundColor: colors.surfaceCard,
+		borderWidth: 1,
+		borderColor: colors.border,
 	},
 	emptyListText: {
-		color: '#163354',
+		color: colors.text,
 		fontSize: 13.5,
 		fontWeight: '600',
 	},
@@ -889,20 +898,20 @@ const styles = StyleSheet.create({
 		gap: 8,
 		paddingHorizontal: 24,
 		paddingVertical: 14,
-		backgroundColor: '#1D4A79',
+		backgroundColor: colors.primaryAction,
 		borderRadius: 14,
 	},
 	createButtonText: {
 		fontSize: 15,
-		fontWeight: '800',
-		color: '#FFFFFF',
+		fontWeight: '700',
+		color: colors.primaryActionText,
 	},
 	heroCard: {
 		padding: 20,
 		borderRadius: 20,
-		backgroundColor: '#FAF7F2',
-		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		backgroundColor: colors.surfaceCard,
+		borderWidth: 1,
+		borderColor: colors.border,
 		marginBottom: 18,
 	},
 	heroTopRow: {
@@ -920,12 +929,12 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		paddingVertical: 8,
 		borderRadius: 999,
-		backgroundColor: '#E0F2FE',
+		backgroundColor: colors.navyMuted,
 		borderWidth: 1,
-		borderColor: '#BAE6FD',
+		borderColor: colors.border,
 	},
 	heroBadgeText: {
-		color: '#0284C7',
+		color: colors.text,
 		fontSize: 12,
 		fontWeight: '700',
 	},
@@ -936,26 +945,26 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		paddingVertical: 8,
 		borderRadius: 999,
-		backgroundColor: '#F5EFE6',
+		backgroundColor: colors.surfaceHover,
 		borderWidth: 1,
-		borderColor: '#EADBCE',
+		borderColor: colors.border,
 	},
 	heroMetaText: {
-		color: '#64748B',
+		color: colors.textMuted,
 		fontSize: 12,
 		fontWeight: '600',
 	},
 	heroTitle: {
 		fontSize: 26,
 		lineHeight: 32,
-		fontWeight: '800',
-		color: '#163354',
+		fontWeight: '700',
+		color: colors.text,
 		marginBottom: 8,
 	},
 	heroSubtitle: {
 		fontSize: 14,
 		lineHeight: 22,
-		color: '#475569',
+		color: colors.textSecondary,
 		marginBottom: 18,
 	},
 	heroStats: {
@@ -967,27 +976,27 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 		paddingHorizontal: 10,
 		borderRadius: 14,
-		backgroundColor: '#F5EFE6',
+		backgroundColor: colors.surfaceHover,
 		borderWidth: 1,
-		borderColor: '#EADBCE',
+		borderColor: colors.border,
 	},
 	heroStatValue: {
 		fontSize: 17,
-		fontWeight: '800',
-		color: '#1D4A79',
+		fontWeight: '700',
+		color: colors.navyLight,
 		marginBottom: 4,
 	},
 	heroStatLabel: {
 		fontSize: 12,
-		color: '#64748B',
+		color: colors.textMuted,
 	},
 	section: {
 		marginBottom: 18,
 	},
 	sectionTitle: {
 		fontSize: 13,
-		fontWeight: '800',
-		color: '#163354',
+		fontWeight: '700',
+		color: colors.text,
 		marginBottom: 12,
 		textTransform: 'uppercase',
 		letterSpacing: 0.8,
@@ -1003,9 +1012,9 @@ const styles = StyleSheet.create({
 		minWidth: 0,
 		padding: 16,
 		borderRadius: 16,
-		backgroundColor: '#FAF7F2',
-		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		backgroundColor: colors.surfaceCard,
+		borderWidth: 1,
+		borderColor: colors.border,
 		marginBottom: 10,
 	},
 	detailCardWide: {
@@ -1014,7 +1023,7 @@ const styles = StyleSheet.create({
 	detailLabel: {
 		fontSize: 11.5,
 		fontWeight: '700',
-		color: '#64748B',
+		color: colors.textMuted,
 		marginBottom: 6,
 		textTransform: 'uppercase',
 		letterSpacing: 0.5,
@@ -1022,7 +1031,7 @@ const styles = StyleSheet.create({
 	detailValue: {
 		fontSize: 14.5,
 		lineHeight: 22,
-		color: '#163354',
+		color: colors.text,
 		fontWeight: '600',
 		flexShrink: 1,
 	},
@@ -1033,13 +1042,13 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 14,
 		paddingVertical: 10,
 		borderRadius: 14,
-		backgroundColor: '#FEF3C7',
+		backgroundColor: colors.navyMuted,
 		borderWidth: 1,
-		borderColor: '#FDE68A',
+		borderColor: colors.gold,
 		marginBottom: 18,
 	},
 	editNoticeText: {
-		color: '#D97706',
+		color: colors.gold,
 		fontSize: 13,
 		fontWeight: '700',
 	},
@@ -1049,17 +1058,17 @@ const styles = StyleSheet.create({
 	label: {
 		fontSize: 13.5,
 		fontWeight: '700',
-		color: '#163354',
+		color: colors.text,
 		marginBottom: 8,
 	},
 	input: {
-		backgroundColor: '#FFFFFF',
-		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		backgroundColor: colors.surfaceCard,
+		borderWidth: 1,
+		borderColor: colors.border,
 		borderRadius: 12,
 		paddingHorizontal: 14,
 		paddingVertical: 12,
-		color: '#163354',
+		color: colors.text,
 		fontSize: 14,
 	},
 	textarea: {
@@ -1076,21 +1085,21 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 14,
 		paddingVertical: 10,
 		borderRadius: 999,
-		backgroundColor: '#F5EFE6',
-		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		backgroundColor: colors.surfaceHover,
+		borderWidth: 1,
+		borderColor: colors.border,
 	},
 	optionChipSelected: {
-		backgroundColor: '#1D4A79',
-		borderColor: '#1D4A79',
+		backgroundColor: colors.navyLight,
+		borderColor: colors.navyLight,
 	},
 	optionChipText: {
-		color: '#163354',
+		color: colors.text,
 		fontSize: 13,
 		fontWeight: '600',
 	},
 	optionChipTextSelected: {
-		color: '#FFFFFF',
+		color: colors.surfaceCard,
 		fontWeight: '700',
 	},
 })

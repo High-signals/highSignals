@@ -47,7 +47,7 @@ export default function TabsLayout() {
 		},
 	]
 
-	const isActive = (href: string) => pathname === href
+	const isActive = (href: string) => pathname === href || pathname === href.replace('/(tabs)', '')
 
 	return (
 		<SafeAreaView style={styles.container} edges={['top']}>
@@ -75,7 +75,7 @@ export default function TabsLayout() {
 								name={(active ? tab.activeIcon : tab.icon) as any}
 								size={24}
 								color={
-									active ? colors.text : colors.textSubtle
+									colors.primaryIcon
 								}
 							/>
 							<Text
@@ -133,12 +133,12 @@ const getStyles = (colors: any) => StyleSheet.create({
 	tabLabel: {
 		fontSize: 11,
 		fontWeight: '600',
-		color: colors.textSubtle,
+		color: colors.textMuted,
 		marginTop: 4,
 	},
 
 	activeLabel: {
-		color: colors.text,
+		color: colors.primaryIcon,
 		fontWeight: '700',
 	},
 })

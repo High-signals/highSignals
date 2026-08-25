@@ -13,12 +13,14 @@ import {
 	Alert,
 	Animated,
 } from 'react-native'
-import { SwipeListView } from 'react-native-swipe-list-view'
+import Skeleton from '@/components/Skeleton'
+
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as Haptics from 'expo-haptics'
 import { api, postsEvents } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
+import { useTheme } from '@/context/ThemeContext'
 
 type FilterType = 'all' | 'IDEA' | 'SCRIPTING' | 'RECORDING' | 'EDITING' | 'POSTED'
 
@@ -77,6 +79,8 @@ const buildPreviewText = (value?: string | null) => {
 }
 
 export default function GetContentScreen() {
+	const { colors } = useTheme();
+	const styles = React.useMemo(() => getStyles(colors), [colors]);
 	const router = useRouter()
 	const params = useLocalSearchParams()
 	const { isAuthenticated } = useAuth()
@@ -95,11 +99,11 @@ export default function GetContentScreen() {
 	const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null)
 
 	const STAGES = [
-		{ key: 'IDEA', label: 'Idea', icon: 'bulb-outline', color: '#0284C7', bg: '#E0F2FE' },
-		{ key: 'SCRIPTING', label: 'Scripting', icon: 'create-outline', color: '#7C3AED', bg: '#F3E8FF' },
-		{ key: 'RECORDING', label: 'Recording', icon: 'mic-outline', color: '#E11D48', bg: '#FFE4E6' },
-		{ key: 'EDITING', label: 'Editing', icon: 'cut-outline', color: '#D97706', bg: '#FEF3C7' },
-		{ key: 'POSTED', label: 'Posted', icon: 'checkmark-done-outline', color: '#059669', bg: '#D1FAE5' },
+		{ key: 'IDEA', label: 'Idea', icon: 'bulb-outline', color: colors.ideaText, bg: colors.ideaBg },
+		{ key: 'SCRIPTING', label: 'Scripting', icon: 'create-outline', color: colors.scriptingText, bg: colors.scriptingBg },
+		{ key: 'RECORDING', label: 'Recording', icon: 'mic-outline', color: colors.recordingText, bg: colors.recordingBg },
+		{ key: 'EDITING', label: 'Editing', icon: 'cut-outline', color: colors.editingText, bg: colors.editingBg },
+		{ key: 'POSTED', label: 'Posted', icon: 'checkmark-done-outline', color: colors.postedText, bg: colors.postedBg },
 	]
 
 	const handleUpdateStatus = async (post: Post, newStatus: string) => {
@@ -298,20 +302,20 @@ export default function GetContentScreen() {
 	const getStatusBadgeStyle = (status: string) => {
 		switch (status) {
 			case 'IDEA':
-				return { bg: '#E0F2FE', text: '#0284C7', dot: '#0284C7', border: '#BAE6FD' }
+				return { bg: colors.ideaBg, text: colors.ideaText, dot: colors.ideaText, border: colors.ideaText }
 			case 'SCRIPTING':
 			case 'DRAFT':
-				return { bg: '#F3E8FF', text: '#7C3AED', dot: '#7C3AED', border: '#DDD6FE' }
+				return { bg: colors.scriptingBg, text: colors.scriptingText, dot: colors.scriptingText, border: colors.scriptingText }
 			case 'RECORDING':
-				return { bg: '#FFE4E6', text: '#E11D48', dot: '#E11D48', border: '#FECDD3' }
+				return { bg: colors.recordingBg, text: colors.recordingText, dot: colors.recordingText, border: colors.recordingText }
 			case 'EDITING':
 			case 'SCHEDULED':
-				return { bg: '#FEF3C7', text: '#D97706', dot: '#D97706', border: '#FDE68A' }
+				return { bg: colors.editingBg, text: colors.editingText, dot: colors.editingText, border: colors.editingText }
 			case 'POSTED':
 			case 'PUBLISHED':
-				return { bg: '#D1FAE5', text: '#059669', dot: '#059669', border: '#A7F3D0' }
+				return { bg: colors.postedBg, text: colors.postedText, dot: colors.postedText, border: colors.postedText }
 			default:
-				return { bg: '#F1F5F9', text: '#64748B', dot: '#94A3B8', border: '#E2E8F0' }
+				return { bg: colors.surfaceHover, text: colors.textMuted, dot: colors.textSubtle, border: colors.borderLight }
 		}
 	}
 
@@ -319,7 +323,7 @@ export default function GetContentScreen() {
 		const badge = getStatusBadgeStyle(item.status)
 		return (
 			<View style={{ backgroundColor: 'transparent' }}>
-				<View style={{ backgroundColor: '#FAF7F2', borderRadius: 18, borderWidth: 1.5, borderColor: '#EADBCE' }}>
+				<View style={{ backgroundColor: colors.surfaceLight, borderRadius: 18, borderWidth: 1, borderColor: colors.border }}>
 					<TouchableOpacity
 						style={[styles.postCard, { marginBottom: 0 }]}
 						activeOpacity={0.9}
@@ -381,7 +385,7 @@ export default function GetContentScreen() {
 								<Ionicons
 									name={item.isFavourite ? 'star' : 'star-outline'}
 									size={18}
-									color={item.isFavourite ? '#D4AF37' : '#94A3B8'}
+									color={item.isFavourite ? colors.gold : colors.textSubtle}
 								/>
 							</TouchableOpacity>
 						</View>
@@ -397,7 +401,7 @@ export default function GetContentScreen() {
 		if (!pagination.isLoadingMore) return null
 		return (
 			<View style={styles.footerLoader}>
-				<ActivityIndicator size='small' color='#1D4A79' />
+				<ActivityIndicator size='small' color={colors.gold} />
 				<Text style={styles.footerText}>Loading more posts...</Text>
 			</View>
 		)
@@ -436,7 +440,7 @@ export default function GetContentScreen() {
 					<Ionicons
 						name='add'
 						size={22}
-						color='#163354'
+						color={colors.text}
 					/>
 				</TouchableOpacity>
 			</View>
@@ -444,7 +448,7 @@ export default function GetContentScreen() {
 			{loading && posts.length === 0 ? (
 				<View style={styles.listContent}>
 					{[1, 2, 3, 4].map((i) => (
-						<View key={i} style={styles.skeletonCard} />
+						<Skeleton key={i} style={styles.skeletonCard} />
 					))}
 				</View>
 			) : (
@@ -454,12 +458,12 @@ export default function GetContentScreen() {
 					<Ionicons
 						name='search-outline'
 						size={18}
-						color='#8E9BAE'
+						color={colors.textSubtle}
 					/>
 					<TextInput
 						style={styles.searchInput}
 						placeholder='Search content...'
-						placeholderTextColor='#8E9BAE'
+						placeholderTextColor={colors.textSubtle}
 						value={searchQuery}
 						onChangeText={setSearchQuery}
 					/>
@@ -468,7 +472,7 @@ export default function GetContentScreen() {
 					<Ionicons 
 						name={sortOption ? "options" : "options-outline"} 
 						size={18} 
-						color={sortOption ? "#1D4A79" : "#163354"} 
+						color={sortOption ? colors.gold : colors.text} 
 					/>
 				</TouchableOpacity>
 			</View>
@@ -506,7 +510,7 @@ export default function GetContentScreen() {
 			{filteredPosts.length === 0 ? (
 				emptyComponent
 			) : (
-				<SwipeListView
+				<FlatList
 					style={{ marginTop: 16, flex: 1 }}
 					data={filteredPosts}
 					renderItem={({ item }) => renderPost({ item })}
@@ -516,56 +520,10 @@ export default function GetContentScreen() {
 					onEndReached={onEndReached}
 					onEndReachedThreshold={0.5}
 					ListFooterComponent={renderFooter}
-					onRowOpen={(rowKey, rowMap, toValue) => {
-						const post = posts.find(p => p.id === rowKey)
-						
-						// Instantly close the row visually first
-						rowMap[rowKey]?.closeRow()
-
-						// Delay the state update and API call so the close animation completes smoothly
-						setTimeout(() => {
-							if (toValue > 0 && post) {
-								// Swiped Right -> Favourite
-								handleToggleFavourite(post)
-							} else if (toValue < 0) {
-								// Swiped Left -> Delete
-								handleDeletePost(rowKey)
-							}
-						}, 250)
-					}}
-					renderHiddenItem={(data, rowMap) => (
-						<View style={styles.rowBack}>
-							<TouchableOpacity
-								style={styles.backLeftBtn}
-								onPress={() => {
-									handleToggleFavourite(data.item)
-									rowMap[data.item.id]?.closeRow()
-								}}
-								activeOpacity={0.8}
-							>
-								<Ionicons name="star" size={24} color="#ffffff" />
-							</TouchableOpacity>
-							<TouchableOpacity
-								style={styles.backRightBtn}
-								onPress={() => {
-									handleDeletePost(data.item.id)
-									rowMap[data.item.id]?.closeRow()
-								}}
-								activeOpacity={0.8}
-							>
-								<Ionicons name="trash" size={24} color="#ffffff" />
-							</TouchableOpacity>
-						</View>
-					)}
-					leftOpenValue={75}
-					rightOpenValue={-75}
-					previewRowKey={filteredPosts.length > 0 ? filteredPosts[0].id : undefined}
-					previewOpenValue={-40}
-					previewOpenDelay={3000}
 					ListEmptyComponent={
 						!loading ? (
 							<View style={styles.emptyStateContainer}>
-								<Ionicons name="document-text-outline" size={64} color="rgba(255,255,255,0.2)" />
+								<Ionicons name="document-text-outline" size={64} color={colors.textSubtle} />
 								<Text style={styles.emptyStateTitle}>No scripts found</Text>
 								<Text style={styles.emptyStateSubtitle}>
 									{searchQuery || filter !== 'all' 
@@ -593,7 +551,7 @@ export default function GetContentScreen() {
 								Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
 								onRefresh()
 							}}
-							tintColor='#d4af37'
+							tintColor={colors.gold}
 						/>
 					}
 				/>
@@ -620,7 +578,7 @@ export default function GetContentScreen() {
 							<TouchableOpacity
 								onPress={() => setSelectedPostForStatus(null)}
 							>
-								<Ionicons name='close-circle' size={24} color='#8E9BAE' />
+								<Ionicons name='close-circle' size={24} color={colors.textSubtle} />
 							</TouchableOpacity>
 						</View>
 
@@ -668,7 +626,7 @@ export default function GetContentScreen() {
 													styles.stageLabel,
 													isCurrent && {
 														color: stage.color,
-														fontWeight: '800',
+														fontWeight: '700',
 													},
 												]}
 											>
@@ -727,11 +685,11 @@ export default function GetContentScreen() {
 											: 'radio-button-off'
 									}
 									size={22}
-									color={sortOption === option.id ? '#1D4A79' : '#8E9BAE'}
+									color={sortOption === option.id ? colors.gold : colors.textSubtle}
 								/>
 								<Text style={[
 									styles.pickerOptionText,
-									sortOption === option.id && { color: '#163354', fontWeight: '700' },
+									sortOption === option.id && { color: colors.text, fontWeight: '700' },
 								]}>{option.label}</Text>
 							</TouchableOpacity>
 						))}
@@ -742,10 +700,10 @@ export default function GetContentScreen() {
 	)
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#FBF9F5',
+		backgroundColor: colors.background,
 	},
 	header: {
 		flexDirection: 'row',
@@ -757,22 +715,22 @@ const styles = StyleSheet.create({
 	},
 	headerTitle: {
 		fontSize: 24,
-		fontWeight: '800',
-		color: '#163354',
+		fontWeight: '700',
+		color: colors.text,
 	},
 	addIconButton: {
 		width: 38,
 		height: 38,
 		borderRadius: 19,
-		backgroundColor: '#F5EFE6',
-		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		backgroundColor: colors.surfaceCard,
+		borderWidth: 1,
+		borderColor: colors.border,
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
 	skeletonCard: {
 		height: 120,
-		backgroundColor: '#F5EFE6',
+		backgroundColor: colors.surfaceCard,
 		borderRadius: 16,
 		marginBottom: 14,
 	},
@@ -783,13 +741,13 @@ const styles = StyleSheet.create({
 		marginTop: 60,
 	},
 	emptyStateTitle: {
-		color: '#163354',
+		color: colors.text,
 		fontSize: 18,
 		fontWeight: '700',
 		marginTop: 16,
 	},
 	emptyStateSubtitle: {
-		color: '#64748B',
+		color: colors.textMuted,
 		fontSize: 14,
 		marginTop: 8,
 		textAlign: 'center',
@@ -797,13 +755,13 @@ const styles = StyleSheet.create({
 	},
 	emptyStateBtn: {
 		marginTop: 20,
-		backgroundColor: '#1D4A79',
+		backgroundColor: colors.gold,
 		paddingHorizontal: 20,
 		paddingVertical: 10,
 		borderRadius: 10,
 	},
 	emptyStateBtnText: {
-		color: '#FFFFFF',
+		color: colors.black,
 		fontWeight: '700',
 		fontSize: 14,
 	},
@@ -821,7 +779,7 @@ const styles = StyleSheet.create({
 		position: 'absolute',
 		top: 0,
 		width: 75,
-		backgroundColor: '#D4AF37',
+		backgroundColor: colors.gold,
 		left: 0,
 		borderTopLeftRadius: 18,
 		borderBottomLeftRadius: 18,
@@ -833,14 +791,14 @@ const styles = StyleSheet.create({
 		position: 'absolute',
 		top: 0,
 		width: 75,
-		backgroundColor: '#EF4444',
+		backgroundColor: colors.error,
 		right: 0,
 		borderTopRightRadius: 18,
 		borderBottomRightRadius: 18,
 	},
 	headerSubtitle: {
 		fontSize: 12,
-		color: '#64748B',
+		color: colors.textMuted,
 		marginTop: 2,
 		fontWeight: '500',
 	},
@@ -854,19 +812,19 @@ const styles = StyleSheet.create({
 		flex: 1,
 		flexDirection: 'row',
 		alignItems: 'center',
-		backgroundColor: '#FFFFFF',
+		backgroundColor: colors.surfaceCard,
 		borderRadius: 12,
 		paddingHorizontal: 12,
-		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		borderWidth: 1,
+		borderColor: colors.border,
 	},
 	sortButton: {
 		width: 44,
 		height: 44,
 		borderRadius: 12,
-		backgroundColor: '#F5EFE6',
-		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		backgroundColor: colors.surfaceCard,
+		borderWidth: 1,
+		borderColor: colors.border,
 		justifyContent: 'center',
 		alignItems: 'center',
 	},
@@ -874,7 +832,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		paddingVertical: 10,
 		paddingHorizontal: 8,
-		color: '#163354',
+		color: colors.text,
 		fontSize: 14,
 		fontWeight: '500',
 	},
@@ -895,24 +853,24 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		height: 34,
 		borderRadius: 17,
-		backgroundColor: '#F5EFE6',
-		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		backgroundColor: colors.surfaceCard,
+		borderWidth: 1,
+		borderColor: colors.border,
 		justifyContent: 'center',
 		alignItems: 'center',
 		flexShrink: 0,
 	},
 	filterButtonActive: {
-		backgroundColor: '#1D4A79',
-		borderColor: '#1D4A79',
+		backgroundColor: colors.primaryAction,
+		borderColor: colors.primaryAction,
 	},
 	filterText: {
 		fontSize: 12,
 		fontWeight: '600',
-		color: '#64748B',
+		color: colors.textMuted,
 	},
 	filterTextActive: {
-		color: '#FFFFFF',
+		color: colors.primaryActionText,
 		fontWeight: '700',
 	},
 	listContent: {
@@ -945,25 +903,25 @@ const styles = StyleSheet.create({
 	},
 	statusText: {
 		fontSize: 10.5,
-		fontWeight: '800',
+		fontWeight: '700',
 		textTransform: 'uppercase',
 		letterSpacing: 0.5,
 	},
 	postTitle: {
 		fontSize: 16,
-		fontWeight: '800',
-		color: '#163354',
+		fontWeight: '700',
+		color: colors.text,
 		marginBottom: 6,
 		lineHeight: 22,
 	},
 	postContent: {
 		fontSize: 13,
-		color: '#475569',
+		color: colors.textSecondary,
 		lineHeight: 19,
 	},
 	postDate: {
 		fontSize: 11,
-		color: '#8E9BAE',
+		color: colors.textSubtle,
 		fontWeight: '500',
 	},
 	emptyState: {
@@ -977,12 +935,12 @@ const styles = StyleSheet.create({
 	emptyText: {
 		fontSize: 17,
 		fontWeight: '700',
-		color: '#163354',
+		color: colors.text,
 		marginBottom: 6,
 	},
 	emptySubtext: {
 		fontSize: 13,
-		color: '#64748B',
+		color: colors.textMuted,
 	},
 	footerLoader: {
 		flexDirection: 'row',
@@ -993,21 +951,21 @@ const styles = StyleSheet.create({
 	},
 	footerText: {
 		fontSize: 12,
-		color: '#64748B',
+		color: colors.textMuted,
 	},
 	modalOverlay: {
 		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.5)',
+		backgroundColor: colors.navyMuted,
 		justifyContent: 'flex-end',
 	},
 	modalSheet: {
-		backgroundColor: '#FAF7F2',
+		backgroundColor: colors.surfaceLight,
 		borderTopLeftRadius: 24,
 		borderTopRightRadius: 24,
 		padding: 20,
 		paddingBottom: 32,
 		borderWidth: 1,
-		borderColor: '#EADBCE',
+		borderColor: colors.border,
 	},
 	sheetHeader: {
 		flexDirection: 'row',
@@ -1016,12 +974,12 @@ const styles = StyleSheet.create({
 		marginBottom: 16,
 		paddingBottom: 12,
 		borderBottomWidth: 1,
-		borderBottomColor: '#EADBCE',
+		borderBottomColor: colors.border,
 	},
 	sheetTitle: {
 		fontSize: 16,
-		fontWeight: '800',
-		color: '#163354',
+		fontWeight: '700',
+		color: colors.text,
 		flex: 1,
 		marginRight: 10,
 	},
@@ -1035,13 +993,13 @@ const styles = StyleSheet.create({
 		justifyContent: 'space-between',
 		padding: 12,
 		borderRadius: 14,
-		backgroundColor: '#FFFFFF',
-		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		backgroundColor: colors.surfaceCard,
+		borderWidth: 1,
+		borderColor: colors.border,
 	},
 	stageOptionRowActive: {
-		backgroundColor: '#E0F2FE',
-		borderColor: '#BAE6FD',
+		backgroundColor: colors.ideaBg,
+		borderColor: colors.ideaText,
 	},
 	stageLeft: {
 		flexDirection: 'row',
@@ -1058,24 +1016,24 @@ const styles = StyleSheet.create({
 	stageLabel: {
 		fontSize: 14,
 		fontWeight: '700',
-		color: '#163354',
+		color: colors.text,
 	},
 	stageLabelActive: {
-		fontWeight: '800',
+		fontWeight: '700',
 	},
 	pickerSheet: {
-		backgroundColor: '#FAF7F2',
+		backgroundColor: colors.surfaceLight,
 		borderTopLeftRadius: 24,
 		borderTopRightRadius: 24,
 		padding: 20,
 		paddingBottom: 32,
 		borderWidth: 1,
-		borderColor: '#EADBCE',
+		borderColor: colors.border,
 	},
 	pickerTitle: {
 		fontSize: 16,
-		fontWeight: '800',
-		color: '#163354',
+		fontWeight: '700',
+		color: colors.text,
 		marginBottom: 16,
 	},
 	pickerOption: {
@@ -1084,11 +1042,11 @@ const styles = StyleSheet.create({
 		gap: 12,
 		paddingVertical: 14,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: '#EADBCE',
+		borderBottomColor: colors.border,
 	},
 	pickerOptionText: {
 		fontSize: 14,
-		color: '#475569',
+		color: colors.textSecondary,
 		fontWeight: '600',
 	},
 })

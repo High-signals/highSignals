@@ -9,13 +9,18 @@ import {
 	Image,
 	ActivityIndicator,
 } from 'react-native'
+import Skeleton from '@/components/Skeleton'
 import Toast from 'react-native-toast-message'
 import { useRouter } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
+import { useTheme } from '@/context/ThemeContext'
+import { Ionicons } from '@expo/vector-icons'
 
 export default function ProfileEditScreen() {
+	const { colors, theme } = useTheme();
+	const styles = React.useMemo(() => getStyles(colors), [colors]);
 	const router = useRouter()
 	const { isAuthenticated } = useAuth()
 	const [loading, setLoading] = useState(true)
@@ -113,7 +118,7 @@ export default function ProfileEditScreen() {
 	if (loading) {
 		return (
 			<View style={[styles.container, styles.center]}>
-				<ActivityIndicator size='large' color='#1D4A79' />
+				<ActivityIndicator size='large' color={colors.gold} />
 			</View>
 		)
 	}
@@ -123,7 +128,7 @@ export default function ProfileEditScreen() {
 			<ScrollView showsVerticalScrollIndicator={false}>
 				<View style={styles.header}>
 					<TouchableOpacity onPress={() => router.back()}>
-						<Text style={styles.backButton}>{'←'}</Text>
+						<Ionicons name='arrow-back' size={24} color={colors.text} />
 					</TouchableOpacity>
 					<Text style={styles.headerTitle}>Edit Profile</Text>
 					<View style={{ width: 30 }} />
@@ -209,7 +214,7 @@ export default function ProfileEditScreen() {
 					activeOpacity={0.85}
 				>
 					{saving ? (
-						<ActivityIndicator color='#FFFFFF' />
+						<ActivityIndicator color={colors.primaryActionText} />
 					) : (
 						<Text style={styles.saveButtonText}>Save changes</Text>
 					)}
@@ -221,10 +226,10 @@ export default function ProfileEditScreen() {
 	)
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: '#FBF9F5',
+		backgroundColor: colors.background,
 	},
 	center: {
 		justifyContent: 'center',
@@ -240,13 +245,13 @@ const styles = StyleSheet.create({
 	},
 	backButton: {
 		fontSize: 26,
-		color: '#163354',
+		color: colors.text,
 		fontWeight: '700',
 	},
 	headerTitle: {
 		fontSize: 18,
-		fontWeight: '800',
-		color: '#163354',
+		fontWeight: '700',
+		color: colors.text,
 	},
 	imageSection: {
 		alignItems: 'center',
@@ -260,22 +265,22 @@ const styles = StyleSheet.create({
 		height: 110,
 		borderRadius: 55,
 		borderWidth: 3,
-		borderColor: '#1D4A79',
+		borderColor: colors.navyLight,
 	},
 	placeholderImage: {
 		width: 110,
 		height: 110,
 		borderRadius: 55,
-		backgroundColor: '#1D4A79',
+		backgroundColor: colors.navyLight,
 		justifyContent: 'center',
 		alignItems: 'center',
 		borderWidth: 3,
-		borderColor: '#1D4A79',
+		borderColor: colors.navyLight,
 	},
 	placeholderInitial: {
 		fontSize: 44,
-		fontWeight: '800',
-		color: '#FFFFFF',
+		fontWeight: '700',
+		color: colors.surfaceCard,
 	},
 	cameraIcon: {
 		position: 'absolute',
@@ -284,11 +289,11 @@ const styles = StyleSheet.create({
 		width: 34,
 		height: 34,
 		borderRadius: 17,
-		backgroundColor: '#F5EFE6',
+		backgroundColor: colors.surfaceCard,
 		justifyContent: 'center',
 		alignItems: 'center',
 		borderWidth: 2,
-		borderColor: '#EADBCE',
+		borderColor: colors.border,
 	},
 	avatarOverlay: {
 		position: 'absolute',
@@ -312,21 +317,21 @@ const styles = StyleSheet.create({
 	label: {
 		fontSize: 13.5,
 		fontWeight: '700',
-		color: '#163354',
+		color: colors.text,
 		marginBottom: 8,
 	},
 	input: {
-		backgroundColor: '#FFFFFF',
+		backgroundColor: colors.surfaceCard,
 		borderRadius: 12,
 		paddingHorizontal: 16,
 		paddingVertical: 13,
 		fontSize: 15,
-		color: '#163354',
-		borderWidth: 1.5,
-		borderColor: '#EADBCE',
+		color: colors.text,
+		borderWidth: 1,
+		borderColor: colors.border,
 	},
 	disabledInput: {
-		backgroundColor: '#F5EFE6',
+		backgroundColor: colors.surfaceCard,
 		opacity: 0.8,
 	},
 	bioInput: {
@@ -336,7 +341,7 @@ const styles = StyleSheet.create({
 	saveButton: {
 		marginHorizontal: 24,
 		marginTop: 36,
-		backgroundColor: '#1D4A79',
+		backgroundColor: colors.primaryAction,
 		borderRadius: 14,
 		paddingVertical: 15,
 		alignItems: 'center',
@@ -346,7 +351,7 @@ const styles = StyleSheet.create({
 	},
 	saveButtonText: {
 		fontSize: 15,
-		fontWeight: '800',
-		color: '#FFFFFF',
+		fontWeight: '700',
+		color: colors.primaryActionText,
 	},
 })
