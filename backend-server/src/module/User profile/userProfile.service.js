@@ -1,6 +1,7 @@
 import AppError from './../../shared/service/appError.js'
 import prisma from './../../config/db.js'
-import { supabase, AVATARS_BUCKET } from './../../config/supabase.js'
+import { s3, R2_AVATARS_BUCKET, R2_PUBLIC_URL } from './../../config/cloudflare.js'
+import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 
 export async function getUserProfile(userId) {
 	const userProfile = await prisma.user.findUnique({
@@ -110,15 +111,6 @@ const EXT_FROM_MIME = {
 	'image/heif': 'heif',
 }
 
-function extractStoragePath(publicUrl) {
-	if (!publicUrl || typeof publicUrl !== 'string') return null
-	// public URL shape: {SUPABASE_URL}/storage/v1/object/public/{bucket}/{path}
-	const marker = `/storage/v1/object/public/${AVATARS_BUCKET}/`
-	const idx = publicUrl.indexOf(marker)
-	if (idx === -1) return null
-	return publicUrl.slice(idx + marker.length)
-}
-
 export async function uploadUserAvatar(userId, file) {
 	if (!file || !file.buffer) {
 		throw new AppError('No file uploaded', 400)
@@ -133,30 +125,21 @@ export async function uploadUserAvatar(userId, file) {
 		select: { avatar: true },
 	})
 
-	const objectPath = `${userId}/${Date.now()}.${ext}`
+	// Put inside avatar1 folder
+	const objectKey = \`avatar1/\${userId}/\${Date.now()}.\${ext}\`
 
-	const { error: uploadError } = await supabase.storage
-		.from(AVATARS_BUCKET)
-		.upload(objectPath, file.buffer, {
-			contentType: file.mimetype,
-			upsert: false,
-		})
-
-	if (uploadError) {
-		throw new AppError(
-			`Avatar upload failed: ${uploadError.message}`,
-			500,
-		)
+	try {
+		await s3.send(new PutObjectCommand({
+			Bucket: R2_AVATARS_BUCKET,
+			Key: objectKey,
+			Body: file.buffer,
+			ContentType: file.mimetype,
+		}))
+	} catch (err) {
+		throw new AppError(\`Avatar upload failed: \${err.message}\`, 500)
 	}
 
-	const { data: publicUrlData } = supabase.storage
-		.from(AVATARS_BUCKET)
-		.getPublicUrl(objectPath)
-
-	const publicUrl = publicUrlData?.publicUrl
-	if (!publicUrl) {
-		throw new AppError('Failed to resolve avatar URL', 500)
-	}
+	const publicUrl = \`\${R2_PUBLIC_URL}/\${objectKey}\`
 
 	const updated = await prisma.user.update({
 		where: { id: userId },
@@ -170,15 +153,15 @@ export async function uploadUserAvatar(userId, file) {
 		},
 	})
 
-	// Best-effort cleanup of the previous object so the bucket doesn't grow
-	// forever. We do this after the DB update so a storage hiccup never
-	// leaves the user with a broken avatar URL.
-	const oldPath = extractStoragePath(existing?.avatar)
-	if (oldPath && oldPath !== objectPath) {
-		supabase.storage
-			.from(AVATARS_BUCKET)
-			.remove([oldPath])
-			.catch(() => {})
+	// Cleanup old avatar
+	if (existing?.avatar && existing.avatar.includes(R2_PUBLIC_URL)) {
+		const oldKey = existing.avatar.replace(\`\${R2_PUBLIC_URL}/\`, '')
+		if (oldKey !== objectKey) {
+			s3.send(new DeleteObjectCommand({
+				Bucket: R2_AVATARS_BUCKET,
+				Key: oldKey
+			})).catch(() => {})
+		}
 	}
 
 	return updated
@@ -190,12 +173,12 @@ export async function deleteUserAvatar(userId) {
 		select: { avatar: true },
 	})
 
-	const oldPath = extractStoragePath(existing?.avatar)
-	if (oldPath) {
-		await supabase.storage
-			.from(AVATARS_BUCKET)
-			.remove([oldPath])
-			.catch(() => {})
+	if (existing?.avatar && existing.avatar.includes(R2_PUBLIC_URL)) {
+		const oldKey = existing.avatar.replace(\`\${R2_PUBLIC_URL}/\`, '')
+		await s3.send(new DeleteObjectCommand({
+			Bucket: R2_AVATARS_BUCKET,
+			Key: oldKey
+		})).catch(() => {})
 	}
 
 	const updated = await prisma.user.update({
