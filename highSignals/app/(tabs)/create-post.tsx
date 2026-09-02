@@ -121,6 +121,8 @@ export default function CreatePostScreen() {
 	const [contentType, setContentType] = useState<string>('')
 	const [customContentType, setCustomContentType] = useState('')
 	const [showContentTypeModal, setShowContentTypeModal] = useState(false)
+	const [showSaveStageModal, setShowSaveStageModal] = useState(false)
+	const [selectedStage, setSelectedStage] = useState<'IDEA' | 'SCRIPTING'>('IDEA')
 	const [customAlert, setCustomAlert] = useState({ visible: false, title: '', message: '' })
 	const showAlert = (title: string, message: string) => setCustomAlert({ visible: true, title, message })
 
@@ -180,7 +182,7 @@ export default function CreatePostScreen() {
 					content,
 				})
 			} else {
-				const initialStatus = params.record === '1' ? 'RECORDING' : 'SCRIPTING'
+				const initialStatus = 'IDEA'
 				const created = await api.posts.create({
 					title: title.trim() || 'Untitled',
 					content,
@@ -570,7 +572,7 @@ export default function CreatePostScreen() {
 		await performSave()
 	}
 
-	const handleFinish = async () => {
+	const handleDoneClick = () => {
 		if (!contentType) {
 			Toast.show({ type: 'error', text1: 'Content Type', text2: 'Please select a content type.' })
 			return
@@ -583,11 +585,14 @@ export default function CreatePostScreen() {
 			Toast.show({ type: 'error', text1: 'Not signed in', text2: 'Please log in first.' })
 			return
 		}
+		setShowSaveStageModal(true)
+	}
 
+	const handleFinish = async () => {
 		setIsSaving(true)
 		try {
 			const finalContentType = contentType === 'Other' ? customContentType.trim() : contentType;
-			const status = params.record === '1' ? 'RECORDING' : 'SCRIPTING'
+			const status = selectedStage;
 
 			if (draftIdRef.current) {
 				await api.posts.update(draftIdRef.current, {
@@ -609,6 +614,7 @@ export default function CreatePostScreen() {
 
 			Toast.show({ type: 'success', text1: 'Success', text2: 'Saved!' })
 			Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+			setShowSaveStageModal(false)
 			setShowContentTypeModal(false)
 			router.push('/(tabs)/GetContent')
 		} catch (error: any) {
@@ -638,7 +644,7 @@ export default function CreatePostScreen() {
 
 	const keyboardActive = keyboardHeight > 0
 	const viewportShrunk = keyboardActive && (windowHeight < maxWindowHeightRef.current - 80)
-	const bottomPadding = keyboardActive && !viewportShrunk ? keyboardHeight : 0
+	const bottomPadding = Platform.OS === 'ios' ? (keyboardActive && !viewportShrunk ? keyboardHeight : 0) : 0
 
 	return (
 		<View style={[styles.container, { paddingBottom: bottomPadding }]}>
@@ -747,7 +753,7 @@ export default function CreatePostScreen() {
 
 						<TouchableOpacity
 							style={[styles.publishStrip, { backgroundColor: colors.primaryAction, paddingVertical: 10, paddingHorizontal: 24, flex: 0, opacity: !contentType ? 0.5 : 1 }]}
-							onPress={handleFinish}
+							onPress={handleDoneClick}
 							activeOpacity={0.85}
 							disabled={isSaving || !contentType}
 						>
@@ -933,6 +939,67 @@ export default function CreatePostScreen() {
 								disabled={contentType === 'Other' && !customContentType.trim()}
 							>
 								<Text style={styles.confirmText}>Confirm</Text>
+							</TouchableOpacity>
+						</View>
+					</View>
+				</View>
+			</Modal>
+
+						{/* Save Stage Modal */}
+			<Modal
+				visible={showSaveStageModal}
+				transparent
+				animationType="fade"
+				onRequestClose={() => setShowSaveStageModal(false)}
+			>
+				<View style={styles.modalOverlay}>
+					<View style={styles.modalContent}>
+						<Text style={styles.modalTitle}>Save As</Text>
+						
+						<TouchableOpacity
+							style={[styles.option, selectedStage === 'IDEA' && styles.optionSelected]}
+							onPress={() => setSelectedStage('IDEA')}
+						>
+							<View style={styles.optionLeft}>
+								<Ionicons name="bulb-outline" size={22} color={colors.primaryIcon} />
+								<View style={{ marginLeft: 12 }}>
+									<Text style={styles.optionTitle}>Idea</Text>
+									<Text style={styles.optionDesc}>Save as a rough idea</Text>
+								</View>
+							</View>
+							<View style={[styles.radio, selectedStage === 'IDEA' && styles.radioActive]}>
+								{selectedStage === 'IDEA' && <View style={styles.radioDot} />}
+							</View>
+						</TouchableOpacity>
+
+						<TouchableOpacity
+							style={[styles.option, selectedStage === 'SCRIPTING' && styles.optionSelected]}
+							onPress={() => setSelectedStage('SCRIPTING')}
+						>
+							<View style={styles.optionLeft}>
+								<Ionicons name="document-text-outline" size={22} color={colors.primaryIcon} />
+								<View style={{ marginLeft: 12 }}>
+									<Text style={styles.optionTitle}>Scripting</Text>
+									<Text style={styles.optionDesc}>Move to the scripting stage</Text>
+								</View>
+							</View>
+							<View style={[styles.radio, selectedStage === 'SCRIPTING' && styles.radioActive]}>
+								{selectedStage === 'SCRIPTING' && <View style={styles.radioDot} />}
+							</View>
+						</TouchableOpacity>
+
+						<View style={styles.modalActions}>
+							<TouchableOpacity 
+								style={styles.cancelButton}
+								onPress={() => setShowSaveStageModal(false)}
+							>
+								<Text style={styles.cancelText}>Cancel</Text>
+							</TouchableOpacity>
+							<TouchableOpacity 
+								style={styles.confirmButton}
+								onPress={handleFinish}
+							>
+								<Text style={styles.confirmText}>Save</Text>
 							</TouchableOpacity>
 						</View>
 					</View>

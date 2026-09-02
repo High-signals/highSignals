@@ -113,7 +113,7 @@ export default function PostDetailScreen() {
 
 	const keyboardActive = keyboardHeight > 0
 	const viewportShrunk = keyboardActive && (windowHeight < maxWindowHeightRef.current - 80)
-	const bottomPadding = keyboardActive && !viewportShrunk ? keyboardHeight : 0
+	const bottomPadding = Platform.OS === 'ios' ? (keyboardActive && !viewportShrunk ? keyboardHeight : 0) : 0
 
 	type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 	const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')

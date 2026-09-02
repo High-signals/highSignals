@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useEffect, useCallback } from 'react'
 import {
 	View,
@@ -28,7 +29,7 @@ const FILTER_LABELS: Record<FilterType, string> = {
 	all: 'All',
 	IDEA: 'Idea',
 	SCRIPTING: 'Scripting',
-	RECORDING: 'Recording',
+	RECORDING: 'Filming',
 	EDITING: 'Editing',
 	POSTED: 'Posted',
 }
@@ -36,7 +37,7 @@ const FILTER_LABELS: Record<FilterType, string> = {
 const STATUS_LABELS: Record<string, string> = {
 	IDEA: 'IDEA',
 	SCRIPTING: 'SCRIPTING',
-	RECORDING: 'RECORDING',
+	RECORDING: 'FILMING',
 	EDITING: 'EDITING',
 	POSTED: 'POSTED',
 	DRAFT: 'SCRIPTING',
@@ -101,7 +102,7 @@ export default function GetContentScreen() {
 	const STAGES = [
 		{ key: 'IDEA', label: 'Idea', icon: 'bulb-outline', color: colors.ideaText, bg: colors.ideaBg },
 		{ key: 'SCRIPTING', label: 'Scripting', icon: 'create-outline', color: colors.scriptingText, bg: colors.scriptingBg },
-		{ key: 'RECORDING', label: 'Recording', icon: 'mic-outline', color: colors.recordingText, bg: colors.recordingBg },
+		{ key: 'RECORDING', label: 'Filming', icon: 'mic-outline', color: colors.recordingText, bg: colors.recordingBg },
 		{ key: 'EDITING', label: 'Editing', icon: 'cut-outline', color: colors.editingText, bg: colors.editingBg },
 		{ key: 'POSTED', label: 'Posted', icon: 'checkmark-done-outline', color: colors.postedText, bg: colors.postedBg },
 	]
@@ -172,36 +173,49 @@ export default function GetContentScreen() {
 	// Fetch posts with pagination support
 	const fetchPosts = useCallback(
 		async (page: number = 1, append: boolean = false) => {
+			const params = new URLSearchParams({
+				page: String(page),
+				limit: String(pagination.limit),
+				search: searchQuery,
+				...(sortOption && { sort: sortOption }),
+				...(filter !== 'all' && { status: filter }),
+			})
+			const cacheKey = `@posts_cache_${params.toString()}`
+
 			try {
-				if (page === 1) {
-					setLoading(true)
+				if (page === 1 && !append) {
+					try {
+						const cachedData = await AsyncStorage.getItem(cacheKey)
+						if (cachedData) {
+							setPosts(JSON.parse(cachedData))
+							// Already have data, don't show full loading screen
+						} else {
+							setLoading(true)
+						}
+					} catch (e) {
+						setLoading(true)
+					}
 				} else {
 					setPagination((prev) => ({ ...prev, isLoadingMore: true }))
 				}
-
-				// Build query parameters
-				const params = new URLSearchParams({
-					page: String(page),
-					limit: String(pagination.limit),
-					search: searchQuery,
-					...(sortOption && { sort: sortOption }),
-					// Only filter if not 'all'
-					...(filter !== 'all' && { status: filter }),
-				})
 
 				const allPosts = await api.posts.getAll({
 					...Object.fromEntries(params),
 				})
 
 				if (append) {
-					// Append new posts to existing list
-					setPosts((prevPosts) => [...prevPosts, ...(allPosts || [])])
+					setPosts((prevPosts) => {
+						const newPosts = [...prevPosts, ...(allPosts || [])]
+						return newPosts
+					})
 				} else {
-					// Replace entire list (for initial load or refresh)
 					setPosts(allPosts || [])
+					// Save page 1 to cache
+					if (page === 1) {
+						AsyncStorage.setItem(cacheKey, JSON.stringify(allPosts || [])).catch(e => console.log('Cache save error', e))
+					}
 				}
 
-				// Determine if there are more posts to load
 				const hasMore = (allPosts?.length || 0) === pagination.limit
 				setPagination((prev) => ({
 					...prev,
@@ -211,9 +225,7 @@ export default function GetContentScreen() {
 				}))
 			} catch (error) {
 				console.error('Error fetching posts:', error)
-				if (!append) {
-					setPosts([])
-				}
+				// We keep cached data on screen if network fails
 				setPagination((prev) => ({ ...prev, isLoadingMore: false }))
 			} finally {
 				setLoading(false)

@@ -69,12 +69,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const fetchUserData = async (tokenOverride?: string) => {
     try {
+      const cachedUser = await AsyncStorage.getItem('cachedUserData');
+      if (cachedUser) {
+        setUser(JSON.parse(cachedUser));
+      }
+    } catch(e) {}
+
+    try {
       if (tokenOverride) {
         api.setTokens({ accessToken: tokenOverride })
       }
 
       const response = await api.profile.get()
       setUser(response)
+      await AsyncStorage.setItem('cachedUserData', JSON.stringify(response)).catch(() => {})
     } catch (error: any) {
       console.error('Failed to fetch user:', error)
       // Only sign out for explicit auth failures. Transient errors
@@ -85,6 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         await AsyncStorage.removeItem(AUTH_TOKEN_KEY)
         setToken(null)
         setUser(null)
+        AsyncStorage.removeItem('cachedUserData').catch(() => {})
       }
     } finally {
       setLoading(false)
@@ -147,6 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     AsyncStorage.removeItem(AUTH_TOKEN_KEY)
     setToken(null)
     setUser(null)
+        AsyncStorage.removeItem('cachedUserData').catch(() => {})
   }
 
   const refreshUserData = async () => {

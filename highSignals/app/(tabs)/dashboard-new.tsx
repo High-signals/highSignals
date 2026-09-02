@@ -70,7 +70,7 @@ export default function DashboardScreen() {
 	const [icp, setIcp] = useState<any | null>(null)
 	const [loadingData, setLoadingData] = useState(true)
 
-	useEffect(() => {
+		useEffect(() => {
 		Animated.parallel([
 			Animated.timing(fadeAnim, {
 				toValue: 1,
@@ -130,6 +130,17 @@ export default function DashboardScreen() {
 
 		const loadDashboard = async () => {
 			try {
+				const cachedDataStr = await AsyncStorage.getItem('@dashboard_data');
+				if (cachedDataStr && mounted) {
+					const cached = JSON.parse(cachedDataStr);
+					setProfile(cached.profileData);
+					setPosts(cached.postsData || []);
+					setIcp(cached.icpData);
+					setLoadingData(false);
+				}
+			} catch(e) {}
+
+			try {
 				const [profileData, postsData, icpData] = await Promise.all([
 					api.profile.get().catch(() => null),
 					api.posts.getAll({ limit: 1000 }).catch(() => []),
@@ -141,6 +152,14 @@ export default function DashboardScreen() {
 				setProfile(profileData)
 				setPosts(postsData || [])
 				setIcp(icpData)
+				
+				// Save to cache
+				AsyncStorage.setItem('@dashboard_data', JSON.stringify({
+					profileData,
+					postsData,
+					icpData
+				})).catch(() => {})
+				
 			} finally {
 				if (mounted) setLoadingData(false)
 			}
@@ -151,7 +170,18 @@ export default function DashboardScreen() {
 				const postsData = await api.posts
 					.getAll({ limit: 1000 })
 					.catch(() => [])
-				if (mounted) setPosts(postsData || [])
+				if (mounted) {
+					setPosts(postsData || [])
+					
+					// Update cache specifically for posts
+					AsyncStorage.getItem('@dashboard_data').then(cachedStr => {
+						if (cachedStr) {
+							const cached = JSON.parse(cachedStr);
+							cached.postsData = postsData || [];
+							AsyncStorage.setItem('@dashboard_data', JSON.stringify(cached)).catch(() => {})
+						}
+					})
+				}
 			} catch {}
 		}
 
@@ -414,6 +444,14 @@ export default function DashboardScreen() {
 											>
 												{post.title || 'Untitled Post'}
 											</Text>
+											{!!post.content && (
+												<Text
+													style={styles.activityPreviewText}
+													numberOfLines={1}
+												>
+													{post.content.replace(/<[^>]*>?/gm, '').trim()}
+												</Text>
+											)}
 											<View
 												style={[
 													styles.statusPillBadge,
@@ -432,7 +470,7 @@ export default function DashboardScreen() {
 														{ color: badge.text },
 													]}
 												>
-													{post.status}
+													{post.status === 'RECORDING' ? 'FILMING' : post.status}
 												</Text>
 											</View>
 										</View>
@@ -744,6 +782,11 @@ const getStyles = (colors: any) => StyleSheet.create({
 		fontSize: 13.5,
 		fontWeight: '700',
 		color: colors.text,
+		marginBottom: 4,
+	},
+	activityPreviewText: {
+		fontSize: 12,
+		color: colors.textMuted,
 		marginBottom: 4,
 	},
 	statusPillBadge: {
