@@ -7,6 +7,8 @@ import {
 	Modal,
 	Alert,
 	ActivityIndicator,
+	ScrollView,
+	PanResponder
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import Animated, {
@@ -18,32 +20,24 @@ import Animated, {
 	Easing,
 } from 'react-native-reanimated'
 import { useVoiceTranscription, type VoiceStatus } from './useVoiceTranscription'
+import { useTheme } from '@/context/ThemeContext'
 
-const BRAND = '#1D4A79'
-const BRAND_GOLD = '#D4AF37'
-const PANEL = '#FAF7F2'
 const RECORDING_RED = '#DC2626'
-// Diameter of the speaker icon puck that rides the progress bar's leading edge.
 const ICON_TIP_SIZE = 22
 
 type RecordingModalProps = {
 	visible: boolean
 	onClose: () => void
-	/** Live (interim) transcript → editor renders it as a grey caret span. */
 	onLiveTranscript: (text: string) => void
-	/** Final phrase → committed permanently into the editor. */
 	onFinalText: (text: string) => void
-	/** Fired when a dictation session begins (live or retry) → new-line rule. */
 	onSessionStart?: () => void
-	/** A previously-recorded file to resume (draft flow); primes the Retry button. */
 	resumeFilePath?: string | null
-	/** Persist a device draft (unfinished idea) when the user keeps it on exit. */
 	onDraftSave?: (fileUri: string) => void
-	/** Clear the device draft once the idea is committed or discarded. */
 	onDraftClear?: () => void
 }
 
-function statusLabel(status: VoiceStatus, hasRecording: boolean): string {
+function statusLabel(status: VoiceStatus, hasRecording: boolean, countdown: number | null): string {
+	if (countdown !== null && countdown > 0) return `Speak in ${countdown}...`;
 	switch (status) {
 		case 'connecting':
 			return 'Connecting…'
@@ -56,7 +50,7 @@ function statusLabel(status: VoiceStatus, hasRecording: boolean): string {
 		case 'error':
 			return 'Something went wrong — you can Retry'
 		default:
-			return hasRecording ? 'Recorded — tap Retry or Done' : 'Record your idea'
+			return hasRecording ? 'Recorded — tap Retry or Insert' : 'Record your idea'
 	}
 }
 
@@ -70,6 +64,21 @@ export default function RecordingModal({
 	onDraftSave,
 	onDraftClear,
 }: RecordingModalProps) {
+	const { colors } = useTheme();
+	const styles = React.useMemo(() => getStyles(colors), [colors]);
+
+	const [localText, setLocalText] = useState('')
+	const [interimText, setInterimText] = useState('')
+
+	const handleLiveTranscript = useCallback((text: string) => {
+		setInterimText(text)
+	}, [])
+
+	const handleFinalText = useCallback((text: string) => {
+		setLocalText((prev) => (prev ? prev + ' ' + text : text))
+		setInterimText('')
+	}, [])
+
 	const {
 		status,
 		levels,
@@ -82,17 +91,33 @@ export default function RecordingModal({
 		cancel,
 		retry,
 		getFileUri,
-	} = useVoiceTranscription({ onLiveTranscript, onFinalText, onSessionStart })
+	} = useVoiceTranscription({ 
+		onLiveTranscript: handleLiveTranscript, 
+		onFinalText: handleFinalText, 
+		onSessionStart 
+	})
 
+	const displayFullText = localText + (localText && interimText ? ' ' : '') + interimText
 	const [committed, setCommitted] = useState(false)
+	const [countdown, setCountdown] = useState<number | null>(null)
 	const pulse = useSharedValue(0.4)
+
+	useEffect(() => {
+		if (countdown === null) return
+		if (countdown === 0) {
+			setCountdown(null)
+			return
+		}
+		const timer = setTimeout(() => {
+			setCountdown(countdown - 1)
+		}, 1000)
+		return () => clearTimeout(timer)
+	}, [countdown])
+
 	const listening = status === 'recording' || status === 'connecting'
 	const transcribing = status === 'transcribing'
-
-	// A resumed draft counts as an existing recording that can be retried.
 	const canRetry = hasRecording || !!resumeFilePath
 
-	// Pulse the mic glow while listening.
 	useEffect(() => {
 		if (!listening) return
 		const interval = setInterval(() => {
@@ -112,30 +137,42 @@ export default function RecordingModal({
 
 	const pulseStyle = useAnimatedStyle(() => ({ opacity: pulse.value }))
 
-	// Reset the committed flag each time the sheet opens.
 	useEffect(() => {
-		if (visible) setCommitted(false)
+		if (visible) {
+			setCommitted(false)
+			setLocalText('')
+			setInterimText('')
+			setCountdown(null)
+		}
 	}, [visible])
 
 	const toggle = useCallback(() => {
-		if (listening) stop()
-		else start()
+		if (listening) {
+			stop()
+			setCountdown(null)
+		} else {
+			setCountdown(3)
+			start()
+		}
 	}, [listening, start, stop])
 
-	// Done: stop + let the final transcript land, mark committed, clear draft, close.
-	const handleDone = useCallback(async () => {
+	const handleInsert = useCallback(async () => {
 		await stop()
+		const finalResult = localText + (localText && interimText ? ' ' : '') + interimText
+		if (finalResult) {
+			onFinalText(finalResult)
+		}
 		setCommitted(true)
 		onDraftClear?.()
 		onClose()
-	}, [stop, onDraftClear, onClose])
+	}, [stop, localText, interimText, onFinalText, onDraftClear, onClose])
 
 	const handleRetry = useCallback(() => {
+		setLocalText('')
+		setInterimText('')
 		retry(resumeFilePath ?? undefined)
 	}, [retry, resumeFilePath])
 
-	// Cancel guard: if there's an in-progress or uncommitted recording, confirm
-	// before throwing the idea away.
 	const requestClose = useCallback(() => {
 		const active = listening || (canRetry && !committed)
 		if (!active) {
@@ -152,7 +189,6 @@ export default function RecordingModal({
 					onPress: () => {
 						const uri = getFileUri() || resumeFilePath || null
 						if (uri) onDraftSave?.(uri)
-						// Stop capture but keep the file for later.
 						stop()
 						onClose()
 					},
@@ -181,6 +217,16 @@ export default function RecordingModal({
 		onDraftClear,
 	])
 
+	const panResponder = React.useMemo(() => 
+		PanResponder.create({
+			onStartShouldSetPanResponder: () => true,
+			onPanResponderRelease: (e, gestureState) => {
+				if (gestureState.dy > 50) {
+					requestClose()
+				}
+			},
+		}), [requestClose])
+
 	return (
 		<Modal
 			visible={visible}
@@ -190,118 +236,102 @@ export default function RecordingModal({
 		>
 			<View style={styles.overlay}>
 				<View style={styles.sheet}>
-					<View style={styles.sheetHeader}>
+					<View style={styles.sheetHeader} {...panResponder.panHandlers}>
 						<View style={styles.grabber} />
 						<TouchableOpacity
 							onPress={requestClose}
 							style={styles.closeBtn}
 							hitSlop={10}
 						>
-							<Ionicons name='close' size={22} color='rgba(255,255,255,0.6)' />
+							<Ionicons name='close' size={22} color={colors.textSubtle} />
 						</TouchableOpacity>
 					</View>
 
-					<Text style={styles.title}>
-						{listening ? 'Listening…' : 'Record your idea'}
-					</Text>
-					<Text style={styles.subtitle}>
-						Your words appear in the script behind this sheet.
-					</Text>
+					<ScrollView style={styles.transcriptArea} contentContainerStyle={{flexGrow: 1}}>
+						<Text style={displayFullText ? styles.transcriptText : styles.transcriptPlaceholder}>
+							{displayFullText || 'Start speaking to transcribe...'}
+						</Text>
+					</ScrollView>
 
-					{/* Waveform */}
-					<View style={styles.waveform}>
-						{levels.map((level, index) => (
-							<WaveBar key={index} level={level} active={listening} />
-						))}
-					</View>
-
-					{/* Status line (NOT the transcript — that goes into the editor) */}
-					<Text
-						numberOfLines={2}
-						style={[
-							styles.status,
-							(status === 'error' || status === 'reconnecting') &&
-								styles.statusError,
-						]}
-					>
-						{statusLabel(status, hasRecording)}
-					</Text>
-
-					{/* Native audio module missing (e.g. Expo Go) — dictation can't run. */}
 					{!audioAvailable && (
 						<Text style={[styles.status, styles.statusError]}>
-							Voice recording needs the full app build (not Expo Go). Please
-							open the dev/production build to dictate.
+							Voice recording needs the full app build (not Expo Go).
 						</Text>
 					)}
+					{transcribing && <TranscribeProgress progress={progress} colors={colors} styles={styles} />}
 
-					{/* Transcribing progress bar with a speaker icon riding the tip */}
-					{transcribing && <TranscribeProgress progress={progress} />}
+					<View style={styles.recordingRow}>
+						<View style={styles.waveformContainer}>
+							<Text
+								numberOfLines={2}
+								style={[
+									styles.status,
+									(status === 'error' || status === 'reconnecting') && styles.statusError,
+								]}
+							>
+								{statusLabel(status, hasRecording, countdown)}
+							</Text>
+							<View style={styles.waveform}>
+								{levels.map((level, index) => (
+									<WaveBar key={index} level={level} active={listening} colors={colors} styles={styles} />
+								))}
+							</View>
+						</View>
 
-					{/* Mic button */}
-					<TouchableOpacity
-						onPress={toggle}
-						activeOpacity={0.85}
-						disabled={isBusy || !audioAvailable}
-						style={[
-							styles.micButton,
-							listening && styles.micButtonActive,
-							(isBusy || !audioAvailable) && styles.micButtonDisabled,
-						]}
-					>
-						{listening ? (
-							<Animated.View style={pulseStyle}>
-								<Ionicons name='stop' size={30} color='#ffffff' />
-							</Animated.View>
-						) : (
-							<Ionicons name='mic' size={30} color='#000000' />
-						)}
-					</TouchableOpacity>
-					<Text style={styles.micHint}>
-						{transcribing
-							? 'Transcribing your recording…'
-							: listening
-								? 'Tap to stop'
-								: 'Tap to start'}
-					</Text>
-
-					{/* Retry — visible when there's a recording that failed to stream */}
-					{canRetry && !listening && !transcribing && (
 						<TouchableOpacity
-							onPress={handleRetry}
-							style={styles.retryButton}
+							onPress={toggle}
 							activeOpacity={0.85}
-							disabled={isBusy}
+							disabled={isBusy || !audioAvailable}
+							style={[
+								styles.miniMicButton,
+								listening && styles.micButtonActive,
+								(isBusy || !audioAvailable) && styles.micButtonDisabled,
+							]}
 						>
-							{isBusy ? (
-								<ActivityIndicator color={BRAND} size='small' />
+							{listening ? (
+								<Animated.View style={pulseStyle}>
+									<Ionicons name='stop' size={20} color='#ffffff' />
+								</Animated.View>
 							) : (
-								<>
-									<Ionicons name='refresh' size={18} color={BRAND} />
-									<Text style={styles.retryText}>Retry transcription</Text>
-								</>
+								<Ionicons name='mic' size={20} color='#ffffff' />
 							)}
 						</TouchableOpacity>
-					)}
+					</View>
 
-					{/* Done */}
-					<TouchableOpacity
-						onPress={handleDone}
-						style={styles.doneButton}
-						activeOpacity={0.85}
-						disabled={isBusy}
-					>
-						<Text style={styles.doneText}>Done</Text>
-					</TouchableOpacity>
+					<View style={styles.actionsRow}>
+						{canRetry && !listening && !transcribing && (
+							<TouchableOpacity
+								onPress={handleRetry}
+								style={styles.retryButton}
+								activeOpacity={0.85}
+								disabled={isBusy}
+							>
+								{isBusy ? (
+									<ActivityIndicator color={colors.navyLight} size='small' />
+								) : (
+									<>
+										<Ionicons name='refresh' size={18} color={colors.navyLight} />
+										<Text style={styles.retryText}>Retry transcription</Text>
+									</>
+								)}
+							</TouchableOpacity>
+						)}
+						<TouchableOpacity
+							onPress={handleInsert}
+							style={[styles.doneButton, (!displayFullText || listening) && styles.buttonDisabled]}
+							activeOpacity={0.85}
+							disabled={!displayFullText || listening || isBusy}
+						>
+							<Text style={styles.doneText}>Insert</Text>
+						</TouchableOpacity>
+					</View>
 				</View>
 			</View>
 		</Modal>
 	)
 }
 
-// Horizontal progress bar with a speaker icon riding the tip. `progress` is
-// 0..1; the fill and the icon animate smoothly toward it as chunks are sent.
-function TranscribeProgress({ progress }: { progress: number }) {
+function TranscribeProgress({ progress, colors, styles }: { progress: number, colors: any, styles: any }) {
 	const [trackWidth, setTrackWidth] = useState(0)
 	const clamped = Math.max(0, Math.min(1, progress))
 	const anim = useSharedValue(clamped)
@@ -313,7 +343,6 @@ function TranscribeProgress({ progress }: { progress: number }) {
 	const fillStyle = useAnimatedStyle(() => ({
 		width: `${anim.value * 100}%`,
 	}))
-	// Keep the icon centered on the fill's leading edge, clamped inside the track.
 	const iconStyle = useAnimatedStyle(() => ({
 		transform: [
 			{
@@ -327,22 +356,21 @@ function TranscribeProgress({ progress }: { progress: number }) {
 	}))
 
 	return (
-		<View style={styles.progressWrap}>
+		<View style={styles.progressContainer}>
 			<View
-				style={styles.progressTrack}
+				style={styles.track}
 				onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
 			>
-				<Animated.View style={[styles.progressFill, fillStyle]} />
-				<Animated.View style={[styles.progressTip, iconStyle]}>
-					<Ionicons name='volume-high' size={13} color='#000000' />
+				<Animated.View style={[styles.fill, fillStyle]} />
+				<Animated.View style={[styles.iconRider, iconStyle]}>
+					<Ionicons name='volume-medium' size={ICON_TIP_SIZE} color={colors.navyLight} />
 				</Animated.View>
 			</View>
-			<Text style={styles.progressLabel}>{Math.round(clamped * 100)}%</Text>
 		</View>
 	)
 }
 
-function WaveBar({ level, active }: { level: number; active: boolean }) {
+function WaveBar({ level, active, colors, styles }: { level: number; active: boolean; colors: any; styles: any }) {
 	const barHeight = useSharedValue(level)
 
 	useEffect(() => {
@@ -362,137 +390,87 @@ function WaveBar({ level, active }: { level: number; active: boolean }) {
 			style={[
 				styles.waveBar,
 				animStyle,
-				{ opacity: active ? 0.5 + level * 0.5 : 0.25 },
+				!active && { backgroundColor: colors.textSubtle },
 			]}
 		/>
 	)
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
 	overlay: {
 		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.5)',
+		backgroundColor: 'rgba(0,0,0,0.6)',
 		justifyContent: 'flex-end',
 	},
 	sheet: {
-		backgroundColor: PANEL,
+		backgroundColor: colors.surfaceCard,
 		borderTopLeftRadius: 24,
 		borderTopRightRadius: 24,
-		paddingHorizontal: 24,
+		paddingHorizontal: 20,
 		paddingBottom: 36,
 		paddingTop: 12,
-		alignItems: 'center',
 		borderTopWidth: 1.5,
-		borderTopColor: '#EADBCE',
+		borderTopColor: colors.border,
 	},
 	sheetHeader: {
 		width: '100%',
 		alignItems: 'center',
 		marginBottom: 14,
 		justifyContent: 'center',
+		paddingVertical: 8,
 	},
 	grabber: {
 		width: 40,
 		height: 4,
 		borderRadius: 2,
-		backgroundColor: '#EADBCE',
+		backgroundColor: colors.border,
 	},
 	closeBtn: {
 		position: 'absolute',
 		right: 0,
-		top: -2,
+		top: 4,
 		padding: 4,
 	},
-	title: {
-		fontSize: 18,
-		fontWeight: '800',
-		color: '#163354',
-		marginBottom: 6,
-	},
-	subtitle: {
-		fontSize: 13,
-		color: '#64748B',
-		textAlign: 'center',
-		marginBottom: 20,
-		paddingHorizontal: 8,
-	},
-	waveform: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'center',
-		height: 48,
-		gap: 3,
-		marginBottom: 14,
-	},
-	waveBar: {
-		width: 3,
-		borderRadius: 1.5,
-		backgroundColor: BRAND,
-	},
-	status: {
-		fontSize: 14,
-		color: '#163354',
-		textAlign: 'center',
-		minHeight: 38,
-		marginBottom: 6,
-		paddingHorizontal: 8,
-		fontWeight: '600',
-	},
-	statusError: {
-		color: RECORDING_RED,
-	},
-	progressWrap: {
+	transcriptArea: {
 		width: '100%',
+		minHeight: 150,
+		maxHeight: 250,
+		backgroundColor: colors.background,
+		borderRadius: 12,
+		padding: 16,
+		marginBottom: 16,
+		borderWidth: 1,
+		borderColor: colors.border,
+	},
+	transcriptText: {
+		fontSize: 16,
+		color: colors.text,
+		lineHeight: 24,
+	},
+	transcriptPlaceholder: {
+		fontSize: 16,
+		color: colors.textSubtle,
+		lineHeight: 24,
+		fontStyle: 'italic',
+	},
+	recordingRow: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		gap: 10,
-		marginBottom: 10,
+		justifyContent: 'space-between',
+		marginBottom: 16,
 		paddingHorizontal: 4,
 	},
-	progressTrack: {
+	waveformContainer: {
 		flex: 1,
-		height: ICON_TIP_SIZE,
-		borderRadius: ICON_TIP_SIZE / 2,
-		backgroundColor: '#F5EFE6',
-		borderWidth: 1,
-		borderColor: '#EADBCE',
-		justifyContent: 'center',
-		overflow: 'hidden',
+		marginRight: 16,
 	},
-	progressFill: {
-		position: 'absolute',
-		left: 0,
-		top: 0,
-		bottom: 0,
-		backgroundColor: BRAND,
-		borderRadius: ICON_TIP_SIZE / 2,
-	},
-	progressTip: {
-		position: 'absolute',
-		left: 0,
-		width: ICON_TIP_SIZE,
-		height: ICON_TIP_SIZE,
-		borderRadius: ICON_TIP_SIZE / 2,
-		backgroundColor: BRAND,
+	miniMicButton: {
+		width: 54,
+		height: 54,
+		borderRadius: 27,
+		backgroundColor: colors.navyLight,
 		alignItems: 'center',
 		justifyContent: 'center',
-	},
-	progressLabel: {
-		width: 40,
-		textAlign: 'right',
-		color: '#64748B',
-		fontSize: 12,
-		fontWeight: '700',
-		fontVariant: ['tabular-nums'],
-	},
-	micButton: {
-		width: 74,
-		height: 74,
-		borderRadius: 37,
-		backgroundColor: BRAND,
-		alignItems: 'center',
-		justifyContent: 'center',
-		marginTop: 8,
 	},
 	micButtonActive: {
 		backgroundColor: RECORDING_RED,
@@ -500,43 +478,84 @@ const styles = StyleSheet.create({
 	micButtonDisabled: {
 		opacity: 0.5,
 	},
-	micHint: {
-		fontSize: 12,
-		color: '#64748B',
-		marginTop: 10,
-		fontWeight: '500',
+	status: {
+		fontSize: 13,
+		color: colors.navyLight,
+		fontWeight: '600',
+		marginBottom: 8,
 	},
-	retryButton: {
+	statusError: {
+		color: RECORDING_RED,
+	},
+	waveform: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		justifyContent: 'center',
-		gap: 8,
-		marginTop: 18,
-		paddingVertical: 13,
-		paddingHorizontal: 24,
-		borderRadius: 14,
-		borderWidth: 1.5,
-		borderColor: '#EADBCE',
-		backgroundColor: '#F5EFE6',
+		justifyContent: 'flex-start',
+		height: 36,
+		gap: 3,
+	},
+	waveBar: {
+		width: 3,
+		backgroundColor: colors.navyLight,
+		borderRadius: 1.5,
+	},
+	actionsRow: {
+		flexDirection: 'row',
 		width: '100%',
+		gap: 12,
+	},
+	retryButton: {
+		flex: 1,
+		paddingVertical: 13,
+		borderRadius: 12,
+		alignItems: 'center',
+		justifyContent: 'center',
+		backgroundColor: colors.background,
+		borderWidth: 1,
+		borderColor: colors.navyLight,
+		flexDirection: 'row',
+		gap: 6,
 	},
 	retryText: {
-		color: '#163354',
+		color: colors.navyLight,
 		fontWeight: '700',
 		fontSize: 15,
 	},
 	doneButton: {
-		marginTop: 12,
-		paddingVertical: 14,
-		paddingHorizontal: 40,
-		borderRadius: 14,
-		backgroundColor: BRAND,
-		width: '100%',
+		flex: 1,
+		paddingVertical: 13,
+		borderRadius: 12,
 		alignItems: 'center',
+		backgroundColor: colors.navyLight,
 	},
 	doneText: {
-		color: '#FFFFFF',
-		fontWeight: '800',
+		color: '#ffffff',
+		fontWeight: '700',
 		fontSize: 15,
 	},
-})
+	buttonDisabled: {
+		opacity: 0.5,
+	},
+	progressContainer: {
+		width: '100%',
+		marginBottom: 20,
+	},
+	track: {
+		height: 4,
+		backgroundColor: colors.border,
+		borderRadius: 2,
+		width: '100%',
+		overflow: 'visible',
+	},
+	fill: {
+		height: '100%',
+		backgroundColor: colors.navyLight,
+		borderRadius: 2,
+	},
+	iconRider: {
+		position: 'absolute',
+		top: -(ICON_TIP_SIZE / 2) + 2,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+});

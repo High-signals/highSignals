@@ -129,12 +129,14 @@ export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [theme, setTheme] = useState<ThemeType>('light');
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem('appTheme').then((savedTheme) => {
       if (savedTheme === 'dark' || savedTheme === 'light') {
         setTheme(savedTheme);
       }
+      setIsLoaded(true);
     });
   }, []);
 
@@ -145,6 +147,8 @@ export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({ children 
   };
 
   const colors = theme === 'light' ? LIGHT_COLORS : DARK_COLORS;
+
+  if (!isLoaded) return null;
 
   return (
     <ThemeContext.Provider value={{ theme, colors, toggleTheme }}>

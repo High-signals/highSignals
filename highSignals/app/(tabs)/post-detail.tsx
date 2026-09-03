@@ -113,7 +113,7 @@ export default function PostDetailScreen() {
 
 	const keyboardActive = keyboardHeight > 0
 	const viewportShrunk = keyboardActive && (windowHeight < maxWindowHeightRef.current - 80)
-	const bottomPadding = Platform.OS === 'ios' ? (keyboardActive && !viewportShrunk ? keyboardHeight : 0) : 0
+	const bottomPadding = Platform.OS === 'ios' ? keyboardHeight : 0;
 
 	type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 	const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
@@ -316,7 +316,7 @@ export default function PostDetailScreen() {
 			IDEA: 'IDEA',
 			SCRIPTING: 'SCRIPTING',
 			DRAFT: 'SCRIPTING',
-			RECORDING: 'RECORDING',
+			RECORDING: 'FILMING',
 			EDITING: 'EDITING',
 			SCHEDULED: 'EDITING',
 			POSTED: 'POSTED',
@@ -476,61 +476,85 @@ export default function PostDetailScreen() {
 		    }
 		  }, true);
 
+		  
+		  // --- WHATSAPP-STYLE AUTO-FORMATTING ---
+		  if (!window.__autoformatInstalled_v5) {
+		    window.__autoformatInstalled_v5 = true;
+		    ed.addEventListener('keyup', function(e) {
+		      var sel = window.getSelection();
+		      if (!sel || !sel.rangeCount) return;
+		      var range = sel.getRangeAt(0);
+		      if (range.startContainer.nodeType !== 3) return;
+		      
+		      var node = range.startContainer;
+		      var text = node.textContent;
+		      var offset = range.startOffset;
+		      var beforeCursor = text.substring(0, offset);
+		      
+		      // 1. Bullet list (- or *)
+		      if (/^[-*]\\s$/.test(beforeCursor)) {
+		         range.setStart(node, 0);
+		         range.setEnd(node, offset);
+		         sel.removeAllRanges(); sel.addRange(range);
+		         document.execCommand('delete', false, null);
+		         document.execCommand('insertUnorderedList', false, null);
+		         return;
+		      }
+		      
+		      // 2. Numbered list
+		      if (/^\\d+\\.\\s$/.test(beforeCursor)) {
+		         range.setStart(node, 0);
+		         range.setEnd(node, offset);
+		         sel.removeAllRanges(); sel.addRange(range);
+		         document.execCommand('delete', false, null);
+		         document.execCommand('insertOrderedList', false, null);
+		         return;
+		      }
+		      
+		      // Regexes for bold, italic, strike
+		      // Bold: *word*
+		      // Italic: _word_
+		      // Strike: ~word~
+		      
+		      var boldMatch = beforeCursor.match(/\\*(?!\\s)(.*?\\S)\\*$/);
+		      if (boldMatch) {
+		         var word = boldMatch[1];
+		         var matchStart = offset - boldMatch[0].length;
+		         range.setStart(node, matchStart);
+		         range.setEnd(node, offset);
+		         sel.removeAllRanges(); sel.addRange(range);
+		         document.execCommand('insertHTML', false, '<b>' + word + '</b>&#8203;');
+		         return;
+		      }
+		      
+		      var italicMatch = beforeCursor.match(/_(?!\\s)(.*?\\S)_$/);
+		      if (italicMatch) {
+		         var word = italicMatch[1];
+		         var matchStart = offset - italicMatch[0].length;
+		         range.setStart(node, matchStart);
+		         range.setEnd(node, offset);
+		         sel.removeAllRanges(); sel.addRange(range);
+		         document.execCommand('insertHTML', false, '<i>' + word + '</i>&#8203;');
+		         return;
+		      }
+		      
+		      var strikeMatch = beforeCursor.match(/~(?!\\s)(.*?\\S)~$/);
+		      if (strikeMatch) {
+		         var word = strikeMatch[1];
+		         var matchStart = offset - strikeMatch[0].length;
+		         range.setStart(node, matchStart);
+		         range.setEnd(node, offset);
+		         sel.removeAllRanges(); sel.addRange(range);
+		         document.execCommand('insertHTML', false, '<strike>' + word + '</strike>&#8203;');
+		         return;
+		      }
+		    });
+		  }
+
 		  // --- FLOATING TOOLBAR INJECTION ---
-		  if (!window.__floatingToolbarInstalled) {
-		    window.__floatingToolbarInstalled = true;
+		  if (!window.__floatingToolbarInstalled_v5) {
+		    window.__floatingToolbarInstalled_v5 = true;
 		    
-		    var style = document.createElement('style');
-		    style.innerHTML = \`
-		      .floating-toolbar {
-		        position: absolute;
-		        display: none;
-		        background: rgba(250, 247, 242, 0.98);
-		        border: 1.5px solid #EADBCE;
-		        border-radius: 10px;
-		        padding: 4px;
-		        z-index: 99999;
-		        box-shadow: 0 4px 16px rgba(22, 51, 84, 0.12);
-		        flex-direction: row;
-		        align-items: center;
-		        gap: 2px;
-		        pointer-events: auto;
-		        backdrop-filter: blur(10px);
-		        transition: opacity 0.15s ease;
-		        opacity: 0;
-		      }
-		      .floating-toolbar.active {
-		        display: flex;
-		        opacity: 1;
-		      }
-		      .floating-btn {
-		        background: transparent;
-		        border: none;
-		        color: ${colors.text};
-		        padding: 6px 10px;
-		        font-size: 13px;
-		        font-weight: bold;
-		        border-radius: 6px;
-		        cursor: pointer;
-		        display: flex;
-		        align-items: center;
-		        justify-content: center;
-		        min-width: 30px;
-		        height: 30px;
-		        outline: none;
-		      }
-		      .floating-btn:active, .floating-btn.active {
-		        background: #EBDCB9;
-		        color: ${colors.text};
-		      }
-		      .floating-divider {
-		        width: 1px;
-		        height: 18px;
-		        background: #EADBCE;
-		        margin: 0 4px;
-		      }
-		    \`;
-		    document.head.appendChild(style);
 		    
 		    var toolbar = document.createElement('div');
 		    toolbar.className = 'floating-toolbar';
@@ -814,7 +838,13 @@ export default function PostDetailScreen() {
 								color: colors.text,
 								caretColor: colors.navyLight,
 								placeholderColor: colors.textSubtle,
-								contentCSSText: `font-size: 17px; line-height: 28px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: ${colors.text}; padding: 8px 18px ${EDITOR_BOTTOM_PADDING}px 18px; margin: 0; } input[type="checkbox"] { accent-color: ${colors.navyLight}; margin-right: 8px; transform: scale(1.15); vertical-align: middle; } .dummy-todo {`,
+								contentCSSText: `color-scheme: ${theme === 'dark' ? 'dark' : 'light'}; font-size: 17px; line-height: 28px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: ${colors.text}; padding: 8px 18px ${EDITOR_BOTTOM_PADDING}px 18px; margin: 0; caret-color: ${colors.text} !important; } input[type="checkbox"] { accent-color: ${colors.navyLight}; margin-right: 8px; transform: scale(1.15); vertical-align: middle; } 
+    .floating-toolbar { position: absolute; display: none; background: ${colors.surfaceCard}; border: 1px solid ${colors.border}; border-radius: 8px; padding: 4px; z-index: 99999; box-shadow: 0 4px 16px rgba(0,0,0,0.6); flex-direction: row; align-items: center; gap: 2px; pointer-events: auto; backdrop-filter: blur(10px); transition: opacity 0.15s ease; opacity: 0; }
+    .floating-toolbar.active { display: flex; opacity: 1; }
+    .floating-btn { background: transparent; border: none; color: ${colors.text}; padding: 6px 10px; font-size: 13px; font-weight: bold; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; min-width: 30px; height: 30px; outline: none; }
+    .floating-btn:active, .floating-btn.active { background: ${colors.goldMuted}; color: ${colors.gold}; }
+    .floating-divider { width: 1px; height: 18px; background: ${colors.border}; margin: 0 4px; }
+    .dummy-todo {`,
 							}}
 							placeholder='Start writing…'
 							useContainer={false}
