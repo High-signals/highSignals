@@ -56,6 +56,13 @@ router.use(authenticateToken)
  *                 bio:
  *                   type: string
  *                   example: Software developer
+ *                 aiUsage:
+ *                   type: integer
+ *                   example: 10
+ *                 lastAiUsageDate:
+ *                   type: string
+ *                   format: date-time
+ *                   example: 2026-09-03T10:00:00Z
  *       401:
  *         description: Unauthorized (missing or invalid token)
  *         content:

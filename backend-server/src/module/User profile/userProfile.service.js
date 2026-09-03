@@ -6,7 +6,7 @@ import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 export async function getUserProfile(userId) {
 	const userProfile = await prisma.user.findUnique({
 		where: { id: userId },
-		select: { id: true, email: true, name: true, avatar: true, bio: true },
+		select: { id: true, email: true, name: true, avatar: true, bio: true, aiUsage: true, lastAiUsageDate: true },
 	})
 	if (!userProfile) throw new AppError('User profile not found', 404)
 	return userProfile

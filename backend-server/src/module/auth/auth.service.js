@@ -25,6 +25,8 @@ function sanitizeUser(user) {
     name: user.name,
     avatar: user.avatar || null,
     bio: user.bio || null,
+    aiUsage: user.aiUsage !== undefined ? user.aiUsage : 10,
+    lastAiUsageDate: user.lastAiUsageDate || null,
   }
 }
 

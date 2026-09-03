@@ -12,6 +12,7 @@ import icpRoutes from './module/ICP/icp.route.js'
 import userProfileRoutes from './module/User profile/userProfile.routes.js'
 import postRouter from './module/Post/post.route.js'
 import transcriptionRouter from './module/transcription/transcription.route.js'
+import aiRouter from './module/ai/ai.route.js'
 import { registerTranscriptionWS } from './module/transcription/transcription.ws.js'
 
 dotenv.config()
@@ -94,6 +95,7 @@ app.use('/api/icp', icpRoutes)
 app.use('/api/user', userProfileRoutes)
 app.use('/api/post', postRouter)
 app.use('/api/transcribe', transcriptionRouter)
+app.use('/api/ai', aiRouter)
 
 // Error handling middleware
 app.use(errorHandler)
