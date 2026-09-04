@@ -13,6 +13,7 @@ import {
 	ScrollView,
 	Dimensions,
 	useWindowDimensions,
+	Image,
 } from 'react-native'
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
@@ -31,6 +32,8 @@ import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
 import { useTheme } from '@/context/ThemeContext'
 import RecordingModal from './components/RecordingModal'
+import AIReviewModal from './components/AIReviewModal'
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated'
 
 
 
@@ -81,6 +84,20 @@ export default function CreatePostScreen() {
 	const [title, setTitle] = useState('')
 	const [isSaving, setIsSaving] = useState(false)
 	const [showRecordingModal, setShowRecordingModal] = useState(false)
+	const [aiModalVisible, setAiModalVisible] = useState(false)
+	const aiButtonAnim = useSharedValue(0)
+
+	const aiButtonStyle = useAnimatedStyle(() => ({
+		transform: [{ translateY: aiButtonAnim.value }]
+	}))
+
+	useEffect(() => {
+		aiButtonAnim.value = withRepeat(
+			withSequence(withTiming(-5, { duration: 1500 }), withTiming(5, { duration: 1500 })),
+			-1,
+			true
+		)
+	}, [])
 	// When resuming an unfinished idea, this holds the cached audio file URI so
 	// the modal can prime its Retry button with it.
 	const [resumeFilePath, setResumeFilePath] = useState<string | null>(null)
@@ -793,18 +810,6 @@ export default function CreatePostScreen() {
 								<Text style={[styles.publishStripText, { color: colors.black }]}>Done</Text>
 							)}
 						</TouchableOpacity>
-						<TouchableOpacity 
-							style={styles.aiButton}
-							activeOpacity={0.8}
-							onPress={() => {
-								Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-								setShowAiText(true)
-								setTimeout(() => setShowAiText(false), 10000)
-							}}
-						>
-							<Ionicons name="sparkles" size={14} color={colors.primaryIcon} />
-							<Text style={styles.aiButtonText}>AI</Text>
-						</TouchableOpacity>
 					</View>
 				)}
 				<View style={[styles.floatingDock, { paddingBottom: keyboardActive ? 0 : (insets.bottom ?? 0) }]}>
@@ -1059,6 +1064,37 @@ export default function CreatePostScreen() {
 					</View>
 				</View>
 			</Modal>
+
+			<Animated.View style={[{position: 'absolute', right: 16, bottom: (insets.bottom || 0) + 120, zIndex: 999}, aiButtonStyle]}>
+				<TouchableOpacity onPress={() => setAiModalVisible(true)} activeOpacity={0.8} style={styles.aiButton} hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}>
+					<Image source={require('@/assets/images/ai_bot_icon.jpg')} style={{ width: 48, height: 48, borderRadius: 24, resizeMode: 'cover' }} />
+					<Text style={[styles.aiButtonText, { fontSize: 14, fontWeight: '800', marginTop: 4 }]}>AI</Text>
+				</TouchableOpacity>
+			</Animated.View>
+
+			<AIReviewModal
+				visible={aiModalVisible}
+				onClose={() => setAiModalVisible(false)}
+				postId={draftIdRef.current || ''}
+				content={content}
+				title={title}
+				contentType={contentType}
+				onInsert={(text) => {
+					let html = text
+					// Basic markdown parsing
+					html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>')
+					html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>')
+					html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>')
+					html = html.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+					html = html.replace(/\*(.*?)\*/g, '<i>$1</i>')
+					// Newlines to breaks
+					html = html.replace(/\n/g, '<br>')
+
+					const newContent = content + (content.trim() ? '<br><br>' : '') + html
+					setContent(newContent)
+					editorRef.current?.setContentHTML(newContent)
+				}}
+			/>
 		</View>
 	)
 }
@@ -1204,23 +1240,15 @@ const getStyles = (colors: any) => StyleSheet.create({
 		borderRadius: 12,
 	},
 	aiButton: {
-		position: 'absolute',
-		right: 16,
-		top: -46,
-		backgroundColor: colors.surfaceCard,
-		borderWidth: 1,
-		borderColor: colors.border,
-		borderRadius: 20,
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		flexDirection: 'row',
+		backgroundColor: 'transparent',
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		flexDirection: 'column',
 		alignItems: 'center',
-		gap: 5,
-		elevation: 3,
-		shadowColor: colors.text,
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.08,
-		shadowRadius: 4,
+		justifyContent: 'center',
+		gap: 2,
+		elevation: 0,
+		shadowOpacity: 0,
 	},
 	aiButtonText: {
 		color: colors.text,

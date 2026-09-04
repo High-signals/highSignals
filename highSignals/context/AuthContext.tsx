@@ -8,6 +8,8 @@ interface User {
   name: string
   avatar?: string
   bio?: string
+  aiUsage?: number
+  lastAiUsageDate?: string
 }
 
 interface AuthContextType {
